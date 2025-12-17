@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login • Cold Storage Unit</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <style>
+      .auth-wrap {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg);
+        padding: 24px;
+      }
+      .auth-card {
+        width: 100%;
+        max-width: 420px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
+        padding: 24px;
+      }
+      .auth-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .auth-header .logo {
+        font-size: 24px;
+      }
+      .auth-title {
+        margin: 0;
+        font-size: 18px;
+      }
+      .auth-form {
+        display: grid;
+        gap: 12px;
+      }
+      .auth-form label {
+        display: grid;
+        gap: 6px;
+        color: var(--text);
+      }
+      .auth-form input[type="email"],
+      .auth-form input[type="password"] {
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
+      .auth-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 6px;
+        gap: 12px;
+      }
+      .auth-actions .btn {
+        flex: 0 0 auto;
+        width: auto;
+        padding: 10px 24px;
+      }
+      .link {
+        color: var(--primary);
+        text-decoration: none;
+        font-size: 13px;
+      }
+      .error-msg {
+        color: #7f1d1d;
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        padding: 8px 10px;
+        border-radius: 8px;
+        display: none;
+      }
+      .warning-msg {
+        color: #92400e;
+        background: #fef3c7;
+        border: 1px solid #fde68a;
+        padding: 8px 10px;
+        border-radius: 8px;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="auth-wrap">
+      <div class="auth-card" role="form" aria-labelledby="login-title">
+        <div class="auth-header">
+          <span class="logo" aria-hidden="true">❄️</span>
+          <h1 id="login-title" class="auth-title">Sign in to Cold Storage</h1>
+        </div>
+        <p class="muted" style="margin-top: -6px; margin-bottom: 10px">
+          Enter your credentials to continue.
+        </p>
+        <div id="login-error" class="error-msg" role="alert">
+          Invalid email or password.
+        </div>
+        <div id="login-warning" class="warning-msg" role="alert">
+          Security alert has been sent due to multiple failed login attempts.
+        </div>
+        <form id="login-form" class="auth-form">
+          <label>
+            Email
+            <input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+            />
+          </label>
+          <label>
+            Password
+            <input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              required
+              minlength="6"
+            />
+          </label>
+          <div class="auth-actions">
+            <a class="link" href="#" id="forgot-link">Forgot password?</a>
+            <button class="btn" type="submit">Sign in</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const form = document.getElementById("login-form");
+        const email = document.getElementById("email");
+        const password = document.getElementById("password");
+        const errorBox = document.getElementById("login-error");
+        const warningBox = document.getElementById("login-warning");
+
+        // Configuration
+        const REQUIRED_PASSWORD = "Tm200702!";
+        const MAX_FAILED_ATTEMPTS = 3;
+        const PHONE_NUMBER = "+263780473692";
+
+        // Get failed attempts from localStorage
+        function getFailedAttempts() {
+          try {
+            const data = localStorage.getItem("csu_failed_login");
+            if (!data) return { count: 0, timestamp: Date.now() };
+            const parsed = JSON.parse(data);
+            // Reset if more than 30 minutes have passed
+            if (Date.now() - parsed.timestamp > 30 * 60 * 1000) {
+              return { count: 0, timestamp: Date.now() };
+            }
+            return parsed;
+          } catch {
+            return { count: 0, timestamp: Date.now() };
+          }
+        }
+
+        // Save failed attempts to localStorage
+        function saveFailedAttempts(count) {
+          try {
+            localStorage.setItem(
+              "csu_failed_login",
+              JSON.stringify({ count: count, timestamp: Date.now() })
+            );
+          } catch {}
+        }
+
+        // Reset failed attempts
+        function resetFailedAttempts() {
+          try {
+            localStorage.removeItem("csu_failed_login");
+          } catch {}
+        }
+
+        // Send security alert (in production, this would call your backend API)
+        async function sendSecurityAlert(emailAttempt) {
+          try {
+            // This would be your backend API endpoint that sends SMS/push notifications
+            // Example: await fetch('/api/security-alert', { ... })
+            console.log(`🚨 SECURITY ALERT: 3 failed login attempts detected`);
+            console.log(`Email attempted: ${emailAttempt}`);
+            console.log(`Phone to notify: ${PHONE_NUMBER}`);
+            console.log(`Timestamp: ${new Date().toISOString()}`);
+
+            // Simulate API call (replace with actual backend call)
+            const response = await fetch("/api/security-alert", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                phone: PHONE_NUMBER,
+                email: emailAttempt,
+                timestamp: new Date().toISOString(),
+                message: `Security Alert: 3 failed login attempts detected for Cold Storage Unit dashboard at ${new Date().toLocaleString()}`,
+              }),
+            }).catch((err) => {
+              // If backend not available, log to console
+              console.warn(
+                "Backend API not available. Alert logged locally:",
+                err
+              );
+              return null;
+            });
+
+            return true;
+          } catch (error) {
+            console.error("Failed to send security alert:", error);
+            return false;
+          }
+        }
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          errorBox.style.display = "none";
+          warningBox.style.display = "none";
+
+          const em = (email.value || "").trim();
+          const pw = (password.value || "").trim();
+
+          // Simple frontend validation
+          const valid = em.includes("@") && pw.length >= 6;
+          if (!valid) {
+            errorBox.style.display = "block";
+            return;
+          }
+
+          // Check password
+          if (pw !== REQUIRED_PASSWORD) {
+            // Increment failed attempts
+            const attempts = getFailedAttempts();
+            const newCount = attempts.count + 1;
+            saveFailedAttempts(newCount);
+
+            // Update error message with attempt count
+            errorBox.textContent = `Invalid email or password. (Attempt ${newCount} of ${MAX_FAILED_ATTEMPTS})`;
+            errorBox.style.display = "block";
+
+            // Check if threshold reached
+            if (newCount >= MAX_FAILED_ATTEMPTS) {
+              // Send security alert
+              await sendSecurityAlert(em);
+
+              // Show warning
+              warningBox.style.display = "block";
+              errorBox.textContent =
+                "Account temporarily locked. Security alert sent.";
+
+              // Disable form for 5 minutes
+              form
+                .querySelectorAll("input, button")
+                .forEach((el) => (el.disabled = true));
+
+              setTimeout(() => {
+                form
+                  .querySelectorAll("input, button")
+                  .forEach((el) => (el.disabled = false));
+                errorBox.style.display = "none";
+                warningBox.style.display = "none";
+                resetFailedAttempts();
+              }, 5 * 60 * 1000); // 5 minutes lockout
+            }
+
+            return;
+          }
+
+          // Successful login - reset failed attempts
+          resetFailedAttempts();
+
+          // Set session and redirect
+          localStorage.setItem(
+            "csu_auth",
+            JSON.stringify({ email: em, ts: Date.now() })
+          );
+          window.location.href = "./index.html";
+        });
+
+        document
+          .getElementById("forgot-link")
+          .addEventListener("click", (e) => {
+            e.preventDefault();
+            alert("Password reset is not yet implemented.");
+          });
+
+        // Clear any previous session on login page load
+        try {
+          localStorage.removeItem("csu_auth");
+        } catch {}
+
+        // Check if account is currently locked
+        const attempts = getFailedAttempts();
+        if (attempts.count >= MAX_FAILED_ATTEMPTS) {
+          errorBox.textContent =
+            "Account temporarily locked due to multiple failed attempts.";
+          errorBox.style.display = "block";
+          warningBox.style.display = "block";
+          form
+            .querySelectorAll("input, button")
+            .forEach((el) => (el.disabled = true));
+        }
+      })();
+    </script>
+  </body>
+</html>

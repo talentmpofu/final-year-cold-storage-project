@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200">
+  <rect x="10" y="10" width="380" height="180" rx="12" ry="12" fill="#e6f7ff" stroke="#1890ff" stroke-width="2"/>
+  <text x="200" y="50" text-anchor="middle" font-family="Segoe UI, Arial" font-size="18" fill="#0f4c81">Cold Storage Unit</text>
+  <g>
+    <rect x="40" y="80" width="90" height="60" rx="8" ry="8" fill="#fff" stroke="#52c41a" stroke-width="2"/>
+    <text x="85" y="113" text-anchor="middle" font-size="12" font-family="Segoe UI, Arial" fill="#3f8600">Sensor</text>
+  </g>
+  <g>
+    <rect x="160" y="80" width="90" height="60" rx="8" ry="8" fill="#fff" stroke="#faad14" stroke-width="2"/>
+    <text x="205" y="113" text-anchor="middle" font-size="12" font-family="Segoe UI, Arial" fill="#ad6800">Controller</text>
+  </g>
+  <g>
+    <rect x="280" y="80" width="90" height="60" rx="8" ry="8" fill="#fff" stroke="#f5222d" stroke-width="2"/>
+    <text x="325" y="113" text-anchor="middle" font-size="12" font-family="Segoe UI, Arial" fill="#a8071a">Alert</text>
+  </g>
+  <line x1="130" y1="110" x2="160" y2="110" stroke="#595959" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="250" y1="110" x2="280" y2="110" stroke="#595959" stroke-width="2" marker-end="url(#arrow)"/>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#595959"/>
+    </marker>
+  </defs>
+</svg>

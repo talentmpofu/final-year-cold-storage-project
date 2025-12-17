@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cold Storage Unit Dashboard</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="app-header gradient" role="banner">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">❄️</span>
+        <div>
+          <h1>Cold Storage Monitor</h1>
+          <p class="subtitle">Smart Produce Management System</p>
+        </div>
+      </div>
+      <nav class="header-sections" aria-label="Quick sections">
+        <a class="section-link" href="#dashboard">Live Metrics</a>
+        <a class="section-link" href="#controls">Controls</a>
+        <a class="section-link" href="#camera">Camera Snapshot</a>
+        <a class="section-link" href="#alerts">Alerts</a>
+        <script>
+          // Gate dashboard behind a simple local session
+          (function () {
+            try {
+              const raw = localStorage.getItem("csu_auth");
+              if (!raw) {
+                window.location.href = "./login.html";
+                return;
+              }
+              const sess = JSON.parse(raw);
+              // optional: expire after 12 hours
+              const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+              if (
+                !sess ||
+                !sess.email ||
+                Date.now() - (sess.ts || 0) > TWELVE_HOURS
+              ) {
+                localStorage.removeItem("csu_auth");
+                window.location.href = "./login.html";
+              }
+            } catch (e) {
+              window.location.href = "./login.html";
+            }
+          })();
+        </script>
+      </nav>
+      <!-- Primary navigation removed for top-down single-page flow -->
+      <div class="system-status" aria-live="polite">
+        <span class="status-dot online" aria-hidden="true"></span>
+        <span class="status-text">System Online</span>
+      </div>
+      <button id="logout-btn" class="section-link" style="margin-left: 12px">
+        Logout
+      </button>
+    </header>
+    <div
+      id="alert-banner"
+      class="alert-banner"
+      role="status"
+      aria-live="assertive"
+      hidden
+    >
+      <span id="alert-banner-text"></span>
+      <button
+        id="alert-banner-dismiss"
+        class="alert-dismiss"
+        aria-label="Dismiss alert"
+      >
+        ✕
+      </button>
+    </div>
+
+    <main class="container" role="main">
+      <section class="view" id="dashboard" aria-labelledby="metrics-title">
+        <h2 id="metrics-title">Live Metrics</h2>
+        <div class="grid">
+          <article class="card" aria-label="Temperature">
+            <header>
+              <h3>Temperature</h3>
+              <span class="unit">°C</span>
+            </header>
+            <div class="value" id="temp-value">--</div>
+            <div class="target">Target: 2–4°C</div>
+            <div class="bar">
+              <span class="bar-fill" id="temp-bar" style="width: 50%"></span>
+            </div>
+            <footer>
+              <div class="trend" id="temp-trend">Stable</div>
+              <div class="muted" style="margin-top: 4px">
+                min <span id="temp-min">--</span>°C · avg
+                <span id="temp-avg">--</span>°C · max
+                <span id="temp-max">--</span>°C
+              </div>
+            </footer>
+          </article>
+          <article class="card" aria-label="Humidity">
+            <header>
+              <h3>Humidity</h3>
+              <span class="unit">%</span>
+            </header>
+            <div class="value" id="humidity-value">--</div>
+            <div class="target">Target: 85–95%</div>
+            <div class="bar">
+              <span
+                class="bar-fill"
+                id="humidity-bar"
+                style="width: 70%"
+              ></span>
+            </div>
+            <footer>
+              <div class="trend" id="humidity-trend">Stable</div>
+              <div class="muted" style="margin-top: 4px">
+                min <span id="humidity-min">--</span>% · avg
+                <span id="humidity-avg">--</span>% · max
+                <span id="humidity-max">--</span>%
+              </div>
+            </footer>
+          </article>
+          <article class="card" aria-label="Ethylene/VOCs">
+            <header>
+              <h3>Ethylene/VOCs</h3>
+              <span class="unit">ppm</span>
+            </header>
+            <div class="value" id="ethylene-value">--</div>
+            <div class="target">Threshold: 0.1 ppm</div>
+            <div class="bar">
+              <span
+                class="bar-fill warn"
+                id="ethylene-bar"
+                style="width: 30%"
+              ></span>
+            </div>
+            <footer>
+              <div class="trend" id="ethylene-trend">Stable</div>
+              <div class="muted" style="margin-top: 4px">
+                min <span id="ethylene-min">--</span> · avg
+                <span id="ethylene-avg">--</span> · max
+                <span id="ethylene-max">--</span> ppm
+              </div>
+            </footer>
+          </article>
+        </div>
+
+        <div class="card" style="margin-top: 20px">
+          <header>
+            <h3>System Status</h3>
+            <span class="unit muted">Component Health</span>
+          </header>
+          <div class="status-grid">
+            <div class="status-item">
+              <div class="status-header">
+                <span class="status-icon" id="cooling-status-icon">⚙️</span>
+                <span class="status-name">Cooling System</span>
+              </div>
+              <div class="status-indicator" id="cooling-status">
+                <span class="status-badge active">Active</span>
+              </div>
+            </div>
+            <div class="status-item">
+              <div class="status-header">
+                <span class="status-icon" id="humidifier-status-icon">💧</span>
+                <span class="status-name">Humidifier</span>
+              </div>
+              <div class="status-indicator" id="humidifier-status">
+                <span class="status-badge active">Active</span>
+              </div>
+            </div>
+            <div class="status-item">
+              <div class="status-header">
+                <span class="status-icon" id="scrubber-status-icon">🔄</span>
+                <span class="status-name">Air Scrubber</span>
+              </div>
+              <div class="status-indicator" id="scrubber-status">
+                <span class="status-badge standby">Standby</span>
+              </div>
+            </div>
+            <div class="status-item">
+              <div class="status-header">
+                <span class="status-icon" id="camera-status-icon">📷</span>
+                <span class="status-name">AI Camera</span>
+              </div>
+              <div class="status-indicator" id="camera-status">
+                <span class="status-badge active">Active</span>
+              </div>
+            </div>
+          </div>
+          <div
+            style="
+              margin-top: 18px;
+              padding-top: 18px;
+              border-top: 1px solid #e5e7eb;
+            "
+          >
+            <h4
+              style="
+                font-size: 14px;
+                font-weight: 600;
+                color: #374151;
+                margin: 0 0 12px 0;
+              "
+            >
+              Filter Health
+            </h4>
+            <div style="display: flex; flex-direction: column; gap: 12px">
+              <div style="display: flex; align-items: center; gap: 12px">
+                <span style="flex: 0 0 120px; font-size: 13px; color: #6b7280"
+                  >KMnO₄ Filter</span
+                >
+                <div
+                  style="
+                    flex: 1;
+                    background: #f3f4f6;
+                    height: 8px;
+                    border-radius: 4px;
+                    overflow: hidden;
+                  "
+                >
+                  <div
+                    id="kmno4-bar"
+                    style="
+                      background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+                      height: 100%;
+                      width: 78%;
+                      transition: width 0.3s ease;
+                    "
+                  ></div>
+                </div>
+                <span
+                  id="kmno4-percent"
+                  style="
+                    flex: 0 0 40px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #374151;
+                    text-align: right;
+                  "
+                  >78%</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls" id="controls" aria-labelledby="controls-title">
+        <h2 id="controls-title">Manual Controls</h2>
+        <div class="controls-grid">
+          <div class="control-card">
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+              "
+            >
+              <h3>Cooling</h3>
+              <span class="toggle-status" id="cooling-status-text">Active</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="cooling-toggle" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="control-card">
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+              "
+            >
+              <h3>Humidifier</h3>
+              <span class="toggle-status" id="humidifier-status-text"
+                >Active</span
+              >
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="humidifier-toggle" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="control-card">
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+              "
+            >
+              <h3>Ethylene/VOCs Scrubbing</h3>
+              <span class="toggle-status" id="scrubber-status-text"
+                >Standby</span
+              >
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="scrubber-toggle" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="view"
+        id="view-ai-alerts"
+        aria-labelledby="ai-alerts-title"
+      >
+        <h2 id="ai-alerts-title">AI Quality Alerts</h2>
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+          "
+        >
+          <span class="muted">Real-time AI monitoring</span>
+          <span
+            class="status-badge"
+            id="alert-count"
+            style="
+              background: #ef4444;
+              color: white;
+              padding: 4px 12px;
+              border-radius: 12px;
+              font-size: 13px;
+            "
+            >2 Active</span
+          >
+        </div>
+        <div id="ai-alerts-list" style="display: grid; gap: 12px">
+          <!-- AI alerts populated by JS -->
+        </div>
+      </section>
+
+      <section
+        class="view"
+        id="view-inventory"
+        aria-labelledby="inventory-title"
+      >
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+          "
+        >
+          <h2 id="inventory-title" style="margin: 0">Inventory Overview</h2>
+        </div>
+        <div class="inventory-controls">
+          <input
+            id="inv-search"
+            type="search"
+            placeholder="Search produce..."
+            aria-label="Search inventory"
+          />
+          <select id="inv-filter" aria-label="Filter by status">
+            <option value="all">All status</option>
+            <option value="critical">Critical</option>
+            <option value="warning">Warning</option>
+            <option value="good">Good</option>
+          </select>
+          <button
+            class="btn"
+            id="add-items-btn"
+            style="
+              padding: 10px 12px;
+              font-size: 14px;
+              flex: 0 0 auto;
+              width: auto;
+            "
+          >
+            + Add Items
+          </button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table class="table" aria-label="Inventory table">
+              <thead>
+                <tr>
+                  <th scope="col">Item</th>
+                  <th scope="col">Variety</th>
+                  <th scope="col">Quantity</th>
+                  <th scope="col">Days Left</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody id="inv-body">
+                <!-- populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="view"
+        id="view-predictions"
+        aria-labelledby="predictions-title"
+      >
+        <h2 id="predictions-title">Predictive Analytics & Recommendations</h2>
+        <div
+          class="grid"
+          style="
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+          "
+        >
+          <div
+            class="card"
+            style="background: #eff6ff; border: 1px solid #bfdbfe"
+          >
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 12px;
+              "
+            >
+              <div
+                style="
+                  background: #3b82f6;
+                  color: white;
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 10px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 20px;
+                "
+              >
+                📊
+              </div>
+              <h3 style="margin: 0; font-size: 16px">Shelf Life Prediction</h3>
+            </div>
+            <p class="muted" style="font-size: 13px; margin-bottom: 12px">
+              Based on current conditions and AI analysis:
+            </p>
+            <div
+              style="
+                font-size: 32px;
+                font-weight: 700;
+                color: #1e40af;
+                margin-bottom: 4px;
+              "
+              id="avg-shelf-life"
+            >
+              6.2 days
+            </div>
+            <p class="muted" style="font-size: 12px">
+              Average across all items
+            </p>
+          </div>
+          <div
+            class="card"
+            style="background: #f0fdf4; border: 1px solid #bbf7d0"
+          >
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 12px;
+              "
+            >
+              <div
+                style="
+                  background: #22c55e;
+                  color: white;
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 10px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 20px;
+                "
+              >
+                💡
+              </div>
+              <h3 style="margin: 0; font-size: 16px">Optimization Tips</h3>
+            </div>
+            <ul
+              id="optimization-tips"
+              style="
+                margin: 0;
+                padding-left: 18px;
+                font-size: 13px;
+                color: #166534;
+                line-height: 1.8;
+              "
+            >
+              <li>Reduce temperature by 0.5°C for apples</li>
+              <li>Increase humidity for leafy greens</li>
+              <li>Separate ethylene producers</li>
+            </ul>
+          </div>
+          <div
+            class="card"
+            style="background: #faf5ff; border: 1px solid #e9d5ff"
+          >
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 12px;
+              "
+            >
+              <div
+                style="
+                  background: #a855f7;
+                  color: white;
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 10px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 20px;
+                "
+              >
+                📈
+              </div>
+              <h3 style="margin: 0; font-size: 16px">Usage Forecast</h3>
+            </div>
+            <p class="muted" style="font-size: 13px; margin-bottom: 10px">
+              Recommended consumption order:
+            </p>
+            <ol
+              id="usage-forecast"
+              style="
+                margin: 0;
+                padding-left: 18px;
+                font-size: 13px;
+                color: #6b21a8;
+                line-height: 1.8;
+              "
+            >
+              <li>Apples (3 days left)</li>
+              <li>Lettuce (5 days left)</li>
+              <li>Bananas (8 days left)</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="view"
+        id="view-analytics"
+        aria-labelledby="analytics-title"
+      >
+        <h2>Environmental Trends</h2>
+        <div class="card">
+          <header>
+            <h3>Environmental Trends</h3>
+            <div style="display: flex; gap: 8px">
+              <button class="time-range-btn active" data-range="24h">
+                24H
+              </button>
+              <button class="time-range-btn" data-range="7d">7D</button>
+              <button class="time-range-btn" data-range="30d">30D</button>
+            </div>
+          </header>
+          <div style="position: relative">
+            <canvas
+              id="env-trend"
+              width="1200"
+              height="360"
+              class="spark"
+            ></canvas>
+            <div id="env-tooltip" class="env-tooltip" hidden></div>
+          </div>
+          <footer class="muted" style="margin-top: 8px">
+            <span style="display: inline-block; margin-right: 12px"
+              ><span
+                style="
+                  background: #ef4444;
+                  width: 30px;
+                  height: 12px;
+                  border-radius: 2px;
+                  display: inline-block;
+                  margin-right: 6px;
+                "
+              ></span
+              >Temperature (°C)</span
+            >
+            <span style="display: inline-block; margin-right: 12px"
+              ><span
+                style="
+                  background: #0ea5e9;
+                  width: 30px;
+                  height: 12px;
+                  border-radius: 2px;
+                  display: inline-block;
+                  margin-right: 6px;
+                "
+              ></span
+              >Humidity (%)</span
+            >
+            <span style="display: inline-block"
+              ><span
+                style="
+                  background: #f59e0b;
+                  width: 30px;
+                  height: 12px;
+                  border-radius: 2px;
+                  display: inline-block;
+                  margin-right: 6px;
+                "
+              ></span
+              >Ethylene/VOCs (ppm)</span
+            >
+          </footer>
+        </div>
+      </section>
+
+      <section class="view" id="view-settings" aria-labelledby="settings-title">
+        <h2 id="settings-title">Settings</h2>
+        <div class="card">
+          <form class="settings-form">
+            <label>
+              Temperature target (°C)
+              <input type="number" min="0" max="15" step="0.1" value="6" />
+            </label>
+            <label>
+              Humidity target (%)
+              <input type="number" min="50" max="100" step="1" value="90" />
+            </label>
+            <label>
+              Ethylene threshold (ppm)
+              <input type="number" min="0" max="1" step="0.01" value="0.1" />
+            </label>
+          </form>
+        </div>
+      </section>
+
+      <section class="camera" id="camera" aria-labelledby="camera-title">
+        <h2 id="camera-title">Camera Snapshot</h2>
+        <div class="camera-frame">
+          <img
+            id="camera-img"
+            src="assets/img/placeholder-produce.jpg"
+            alt="Live snapshot of stored produce"
+          />
+        </div>
+        <div class="camera-actions">
+          <button class="btn" id="refresh-snapshot" type="button">
+            Refresh Snapshot
+          </button>
+          <button class="btn" id="open-gallery" type="button">
+            Open Gallery
+          </button>
+        </div>
+      </section>
+
+      <section class="alerts" id="alerts" aria-labelledby="alerts-title">
+        <h2 id="alerts-title">Alerts</h2>
+        <ul class="alert-list" id="alert-list" role="list">
+          <li class="alert-item ok">No active alerts</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="app-footer" role="contentinfo">
+      <p>© 2025 Cold Storage Unit</p>
+    </footer>
+
+    <script src="assets/js/app.js"></script>
+    <!-- Logout confirmation modal -->
+    <div id="logout-modal" class="modal" hidden>
+      <div
+        class="modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logout-title"
+      >
+        <h3 id="logout-title">Are you sure you want to log out?</h3>
+        <p class="muted">
+          You will need to sign in again to access the dashboard.
+        </p>
+        <div class="modal-actions">
+          <button id="logout-confirm" class="btn">Yes, log out</button>
+          <button
+            id="logout-cancel"
+            class="btn"
+            style="background: #6b7280; border-color: #6b7280"
+          >
+            No, stay
+          </button>
+        </div>
+      </div>
+    </div>
+    <script>
+      // Logout clears session and redirects to login
+      (function () {
+        const btn = document.getElementById("logout-btn");
+        const modal = document.getElementById("logout-modal");
+        const confirmBtn = document.getElementById("logout-confirm");
+        const cancelBtn = document.getElementById("logout-cancel");
+        function openModal() {
+          if (modal) modal.hidden = false;
+        }
+        function closeModal() {
+          if (modal) modal.hidden = true;
+        }
+        if (btn) {
+          btn.addEventListener("click", function () {
+            openModal();
+          });
+        }
+        if (confirmBtn) {
+          confirmBtn.addEventListener("click", function () {
+            try {
+              localStorage.removeItem("csu_auth");
+            } catch {}
+            window.location.href = "./login.html";
+          });
+        }
+        if (cancelBtn) {
+          cancelBtn.addEventListener("click", function () {
+            closeModal();
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
