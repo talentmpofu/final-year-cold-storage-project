@@ -83,7 +83,7 @@
 
     // Fixed axis ranges - separate axes for temperature and ethylene
     const tempMin = 0;
-    const tempMax = 15; // Temperature °C
+    const tempMax = 30; // Temperature °C
     const ethMin = 0;
     const ethMax = 0.2; // Ethylene ppm (0-0.2 range to show 0.01-0.15 variations)
     const humMin = 0;
