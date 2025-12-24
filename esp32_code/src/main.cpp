@@ -5,6 +5,8 @@
  * Hardware Required:
  * - ESP32 Development Board
  * - DHT22 Temperature & Humidity Sensor
+ * - SGP41 VOC Sensor (I2C)
+ * - Relay for scrubbing system control
  * - Connecting wires
  *
  * DHT22 Wiring:
@@ -12,12 +14,25 @@
  * - GND -> GND (ESP32)
  * - DATA -> GPIO 4 (ESP32)
  * - Add 10K resistor between VCC and DATA
+ *
+ * SGP41 Wiring (I2C):
+ * - VCC -> 3.3V (ESP32)
+ * - GND -> GND (ESP32)
+ * - SCL -> GPIO 22 (ESP32 default I2C SCL)
+ * - SDA -> GPIO 21 (ESP32 default I2C SDA)
+ *
+ * Scrubbing System Relay:
+ * - Control Pin -> GPIO 5 (ESP32)
  */
 
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <DHT.h>
 #include <ArduinoJson.h>
+#include <Wire.h>
+
+// SGP41 I2C Address
+#define SGP41_ADDRESS 0x59
 
 // WiFi credentials - UPDATE THESE WITH YOUR NETWORK
 
@@ -31,6 +46,10 @@ const char *serverUrl = "http://172.20.10.2:3000/api/metrics";
 #define DHT_PIN 4      // GPIO 4 for DHT22 data pin
 #define DHT_TYPE DHT22 // DHT22 sensor type
 #define NUM_READINGS 3 // Number of readings to average
+#define SCRUBBER_PIN 5 // GPIO 5 for scrubbing system relay
+
+// VOC threshold in ppm (raw index value for SGP40)
+#define VOC_THRESHOLD 150.0 // Threshold to activate scrubbing system
 
 // Calibration offsets (adjust based on known reference values)
 #define TEMP_OFFSET 0.0 // No calibration - raw DHT22 reading
@@ -39,10 +58,16 @@ const char *serverUrl = "http://172.20.10.2:3000/api/metrics";
 // Create DHT sensor object
 DHT dht(DHT_PIN, DHT_TYPE);
 
+// VOC sensor variables
+uint16_t vocRaw = 0;
+
 // Variables to store sensor readings
 float temperature = 0.0;
 float humidity = 0.0;
+float vocIndex = 0.0;
 int failedReadings = 0;
+bool sgpReady = false;
+bool scrubberActive = false;
 
 // Function to get averaged sensor readings
 bool getAveragedReadings(float &avgTemp, float &avgHum)
@@ -96,8 +121,61 @@ bool getAveragedReadings(float &avgTemp, float &avgHum)
   return false;
 }
 
+// Simple function to read VOC from SGP41
+uint16_t readSGP41_VOC()
+{
+  // SGP41 measure raw command: 0x260F
+  Wire.beginTransmission(SGP41_ADDRESS);
+  Wire.write(0x26);
+  Wire.write(0x0F);
+  Wire.endTransmission();
+
+  delay(50); // Wait for measurement
+
+  // Read 6 bytes (2 bytes data + 1 byte CRC, twice)
+  Wire.requestFrom(SGP41_ADDRESS, 6);
+
+  if (Wire.available() >= 6)
+  {
+    uint8_t voc_msb = Wire.read();
+    uint8_t voc_lsb = Wire.read();
+    Wire.read(); // CRC
+    Wire.read(); // NOx MSB
+    Wire.read(); // NOx LSB
+    Wire.read(); // CRC
+
+    return (voc_msb << 8) | voc_lsb;
+  }
+
+  return 0;
+}
+
+// Function to control scrubbing system
+void controlScrubber(float vocLevel)
+{
+  if (vocLevel > VOC_THRESHOLD)
+  {
+    if (!scrubberActive)
+    {
+      digitalWrite(SCRUBBER_PIN, HIGH);
+      scrubberActive = true;
+      Serial.println("⚠ VOC LEVEL HIGH! Scrubbing system ACTIVATED");
+    }
+  }
+  else
+  {
+    // Add hysteresis: turn off only when significantly below threshold
+    if (scrubberActive && vocLevel < (VOC_THRESHOLD * 0.8))
+    {
+      digitalWrite(SCRUBBER_PIN, LOW);
+      scrubberActive = false;
+      Serial.println("✓ VOC level normal. Scrubbing system DEACTIVATED");
+    }
+  }
+}
+
 // Function to send data to backend API
-void sendDataToServer(float temp, float hum)
+void sendDataToServer(float temp, float hum, float voc)
 {
   if (WiFi.status() == WL_CONNECTED)
   {
@@ -109,8 +187,8 @@ void sendDataToServer(float temp, float hum)
     StaticJsonDocument<200> doc;
     doc["temperature"]["value"] = temp;
     doc["humidity"]["value"] = hum;
-    doc["ethylene"]["value"] = 0.05; // Placeholder - add sensor if needed
-    doc["vocs"]["value"] = 0.0;      // Placeholder - add sensor if needed
+    doc["ethylene"]["value"] = voc / 1000.0; // Convert VOC index to ppm equivalent
+    doc["vocs"]["value"] = voc;              // Raw VOC index value
     doc["timestamp"] = millis();
 
     String jsonString;
@@ -177,10 +255,35 @@ void setup()
     Serial.println("Check SSID and password");
   }
 
+  // Initialize scrubber relay pin
+  pinMode(SCRUBBER_PIN, OUTPUT);
+  digitalWrite(SCRUBBER_PIN, LOW); // Start with scrubber off
+  Serial.println("Scrubbing system relay initialized");
+
+  // Initialize I2C for SGP41
+  Wire.begin();
+  Serial.println("I2C bus initialized");
+
+  // Try to detect SGP41 sensor
+  Wire.beginTransmission(SGP41_ADDRESS);
+  uint8_t error = Wire.endTransmission();
+
+  if (error == 0)
+  {
+    Serial.println("✓ SGP41 VOC sensor detected");
+    sgpReady = true;
+  }
+  else
+  {
+    Serial.println("✗ SGP41 sensor not found!");
+    Serial.println("Check I2C wiring (SDA=GPIO21, SCL=GPIO22)");
+    sgpReady = false;
+  }
+
   // Initialize DHT sensor
   dht.begin();
   Serial.println("DHT22 sensor initialized");
-  Serial.println("Waiting for sensor to stabilize...\n");
+  Serial.println("Waiting for sensors to stabilize...\n");
   delay(3000);
 
   // Perform initial reading to clear any errors
@@ -194,6 +297,25 @@ void loop()
   // Get averaged readings
   if (getAveragedReadings(temperature, humidity))
   {
+    // Read VOC sensor if available
+    if (sgpReady)
+    {
+      vocRaw = readSGP41_VOC();
+
+      if (vocRaw > 0)
+      {
+        // Convert raw value to index (simplified, typical range 100-500)
+        vocIndex = (float)vocRaw / 10.0;
+
+        // Control scrubbing system based on VOC level
+        controlScrubber(vocIndex);
+      }
+      else
+      {
+        Serial.println("⚠ VOC sensor reading failed");
+      }
+    }
+
     // Display readings on Serial Monitor
     Serial.println("--- Sensor Readings ---");
     Serial.print("Temperature: ");
@@ -203,6 +325,17 @@ void loop()
     Serial.print("Humidity: ");
     Serial.print(humidity, 1);
     Serial.println(" %");
+
+    if (sgpReady && !isnan(vocIndex))
+    {
+      Serial.print("VOC Index: ");
+      Serial.print(vocIndex, 0);
+      Serial.print(" (Threshold: ");
+      Serial.print(VOC_THRESHOLD, 0);
+      Serial.println(")");
+      Serial.print("Scrubber: ");
+      Serial.println(scrubberActive ? "ON" : "OFF");
+    }
 
     // Check if temperature is in target range (2-4°C)
     if (temperature >= 2.0 && temperature <= 4.0)
@@ -219,7 +352,7 @@ void loop()
     }
 
     // Send data to web dashboard
-    sendDataToServer(temperature, humidity);
+    sendDataToServer(temperature, humidity, sgpReady ? vocIndex : 0.0);
 
     Serial.println("----------------------\n");
   }
