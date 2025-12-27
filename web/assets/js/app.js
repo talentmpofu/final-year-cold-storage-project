@@ -17,7 +17,7 @@
   const targets = {
     temp: { min: 2, max: 4 },
     humidity: { min: 85, max: 95 },
-    ethylene: { max: 0.1 },
+    ethylene: { max: 30 }, // VOCs threshold: 30 ppm (30000 raw / 1000)
   };
   const MAX_POINTS = 50;
   let currentTimeRange = "24h"; // Default time range
@@ -31,14 +31,21 @@
       // {
       //   temperature: { value: Number },
       //   humidity: { value: Number },
-      //   ethylene: { value: Number },
       //   vocs: { value: Number },
+      //   produce: { type, detectedAt, manualOverride, confidence, thresholds },
       //   timestamp: ISOString
       // }
+
+      // Update produce information if available
+      if (data.produce) {
+        updateProduceDisplay(data.produce);
+      }
+
       return {
         temp: Number(data?.temperature?.value),
         humidity: Number(data?.humidity?.value),
-        ethylene: Number(data?.ethylene?.value),
+        ethylene: Number(data?.vocs?.value) / 1000.0, // VOCs converted to ppm for display
+        produce: data.produce,
       };
     } catch (e) {
       return null;
@@ -83,9 +90,9 @@
 
     // Fixed axis ranges - separate axes for temperature and ethylene
     const tempMin = 0;
-    const tempMax = 30; // Temperature °C
+    const tempMax = 35; // Temperature °C
     const ethMin = 0;
-    const ethMax = 0.2; // Ethylene ppm (0-0.2 range to show 0.01-0.15 variations)
+    const ethMax = 50; // VOCs/Ethylene ppm (0-50 range to show typical 20-40 values)
     const humMin = 0;
     const humMax = 100; // Humidity %
     const tempRange = tempMax - tempMin || 1;
@@ -403,9 +410,9 @@
     el("humidity-min").textContent = fmt(sHum.min);
     el("humidity-avg").textContent = fmt(sHum.avg);
     el("humidity-max").textContent = fmt(sHum.max);
-    el("ethylene-min").textContent = fmtPrecise(sEth.min);
-    el("ethylene-avg").textContent = fmtPrecise(sEth.avg);
-    el("ethylene-max").textContent = fmtPrecise(sEth.max);
+    el("ethylene-min").textContent = fmt(sEth.min);
+    el("ethylene-avg").textContent = fmt(sEth.avg);
+    el("ethylene-max").textContent = fmt(sEth.max);
 
     const alertList = el("alert-list");
     alertList.innerHTML = "";
@@ -417,21 +424,21 @@
       });
     if (humidity < targets.humidity.min - 3)
       alerts.push({ type: "warn", text: "Humidity is dropping below target." });
-    if (ethylene > targets.ethylene.max - 0.02) {
+    if (ethylene > targets.ethylene.max) {
       alerts.push({
         type: "err",
-        text: "Ethylene concentration high — air filter activated automatically.",
+        text: "VOC/Ethylene concentration high — air scrubber activated automatically.",
       });
-      // Auto-activate scrubber when ethylene is high
+      // Auto-activate scrubber when VOCs are high
       if (systemStatus.scrubber !== "active") {
         systemStatus.scrubber = "active";
         updateSystemStatus();
       }
     } else {
-      // Auto-deactivate when ethylene is normal
+      // Auto-deactivate when VOCs are normal (with 20% hysteresis)
       if (
         systemStatus.scrubber === "active" &&
-        ethylene < targets.ethylene.max - 0.04
+        ethylene < targets.ethylene.max * 0.8
       ) {
         systemStatus.scrubber = "standby";
         updateSystemStatus();
@@ -514,6 +521,25 @@
   let scrubberRunTime = 0; // Track scrubber runtime for KMnO4 degradation
 
   function updateSystemStatus() {
+    // Check if we're in manual override mode
+    const autoManualToggle = document.getElementById("auto-manual-toggle");
+    const isAutoMode = autoManualToggle ? autoManualToggle.checked : true;
+
+    // Only update system status badges if in auto mode
+    // In manual mode, these are controlled by the manual override toggles
+    if (!isAutoMode) {
+      // Still update camera status as it's not part of manual controls
+      const cameraStatusEl = el("camera-status");
+      if (cameraStatusEl) {
+        const status =
+          systemStatus.camera === "active"
+            ? { text: "Active", class: "active" }
+            : { text: "Standby", class: "standby" };
+        cameraStatusEl.innerHTML = `<span class="status-badge ${status.class}">${status.text}</span>`;
+      }
+      return; // Don't update other components in manual mode
+    }
+
     const statusMap = {
       active: { text: "Active", class: "active" },
       standby: { text: "Standby", class: "standby" },
@@ -629,38 +655,20 @@
       snapshot: "assets/img/placeholder-produce.jpg",
     },
     {
-      item: "Lettuce",
-      variety: "Iceberg",
-      qty: 12,
-      unit: "heads",
-      shelf: 5,
+      item: "Tomatoes",
+      variety: "Roma",
+      qty: 28,
+      unit: "units",
+      shelf: 6,
       status: "warning",
       snapshot: "assets/img/placeholder-produce.jpg",
     },
     {
-      item: "Carrots",
-      variety: "Organic",
-      qty: 36,
+      item: "Potatoes",
+      variety: "Russet",
+      qty: 45,
       unit: "units",
-      shelf: 12,
-      status: "good",
-      snapshot: "assets/img/placeholder-produce.jpg",
-    },
-    {
-      item: "Bananas",
-      variety: "Cavendish",
-      qty: 18,
-      unit: "units",
-      shelf: 8,
-      status: "good",
-      snapshot: "assets/img/placeholder-produce.jpg",
-    },
-    {
-      item: "Tomatoes",
-      variety: "Cherry",
-      qty: 28,
-      unit: "units",
-      shelf: 6,
+      shelf: 21,
       status: "good",
       snapshot: "assets/img/placeholder-produce.jpg",
     },
@@ -682,9 +690,9 @@
     },
     {
       id: 2,
-      icon: "🥬",
-      title: "Lettuce",
-      message: "Early browning detected on outer leaves. Monitor closely.",
+      icon: "🍅",
+      title: "Tomatoes",
+      message: "Early soft spots detected on 2 tomatoes. Monitor closely.",
       severity: "medium",
       actions: [
         { label: "Schedule", type: "primary" },
@@ -693,9 +701,9 @@
     },
     {
       id: 3,
-      icon: "🥕",
-      title: "Carrots",
-      message: "All items optimal. Remaining time: 12 days.",
+      icon: "🥔",
+      title: "Potatoes",
+      message: "All items optimal. Remaining time: 21 days.",
       severity: "good",
       actions: [],
     },
@@ -821,6 +829,95 @@
     apply();
   }
 
+  // Produce presets with optimal storage conditions
+  const producePresets = {
+    potatoes: { temp: 7, humidity: 90, ethylene: 20 },
+    apples: { temp: 2, humidity: 92, ethylene: 25 },
+    tomatoes: { temp: 13, humidity: 87, ethylene: 35 },
+  };
+
+  function bindSettings() {
+    const presetSelect = el("produce-preset");
+    const tempInput = el("temp-target-input");
+    const humidityInput = el("humidity-target-input");
+    const ethyleneInput = el("ethylene-threshold-input");
+    const settingsForm = el("settings-form");
+
+    // Handle preset selection
+    if (presetSelect) {
+      presetSelect.addEventListener("change", (e) => {
+        const preset = producePresets[e.target.value];
+        if (preset) {
+          tempInput.value = preset.temp;
+          humidityInput.value = preset.humidity;
+          ethyleneInput.value = preset.ethylene;
+        }
+      });
+    }
+
+    // Handle form submission
+    if (settingsForm) {
+      settingsForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const newTemp = parseFloat(tempInput.value);
+        const newHumidity = parseFloat(humidityInput.value);
+        const newEthylene = parseFloat(ethyleneInput.value);
+
+        // Update targets with range (±1°C for temp, ±2.5% for humidity)
+        targets.temp.min = Math.max(0, newTemp - 1);
+        targets.temp.max = Math.min(15, newTemp + 1);
+        targets.humidity.min = Math.max(50, newHumidity - 2.5);
+        targets.humidity.max = Math.min(100, newHumidity + 2.5);
+        targets.ethylene.max = newEthylene;
+
+        // Update display in Live Metrics cards
+        const tempTarget = document.querySelector(
+          '[aria-label="Temperature"] .target'
+        );
+        const humidityTarget = document.querySelector(
+          '[aria-label="Humidity"] .target'
+        );
+        const ethyleneTarget = document.querySelector(
+          '[aria-label="Ethylene/VOCs"] .target'
+        );
+
+        if (tempTarget) {
+          tempTarget.textContent = `Target: ${targets.temp.min.toFixed(
+            0
+          )}–${targets.temp.max.toFixed(0)}°C`;
+        }
+        if (humidityTarget) {
+          humidityTarget.textContent = `Target: ${Math.round(
+            targets.humidity.min
+          )}–${Math.round(targets.humidity.max)}%`;
+        }
+        if (ethyleneTarget) {
+          ethyleneTarget.textContent = `Threshold: ${targets.ethylene.max} ppm`;
+        }
+
+        // Show confirmation
+        const alertList = el("alert-list");
+        if (alertList) {
+          const li = document.createElement("li");
+          li.className = "alert-item ok";
+          li.textContent = `✓ Settings updated: Temp ${targets.temp.min.toFixed(
+            0
+          )}-${targets.temp.max.toFixed(0)}°C, Humidity ${Math.round(
+            targets.humidity.min
+          )}-${Math.round(targets.humidity.max)}%, Ethylene ${
+            targets.ethylene.max
+          }ppm`;
+          alertList.prepend(li);
+          setTimeout(() => li.remove(), 5000);
+        }
+
+        // Scroll to dashboard to see updated targets
+        location.hash = "#dashboard";
+      });
+    }
+  }
+
   function bindTimeRangeButtons() {
     const buttons = document.querySelectorAll(".time-range-btn");
     if (!buttons.length) return;
@@ -857,6 +954,279 @@
     });
   }
 
+  // Produce management functions
+  const produceIcons = {
+    apples: "🍎",
+    tomatoes: "🍅",
+    potatoes: "🥔",
+    null: "❓",
+  };
+
+  const produceNames = {
+    apples: "Apples",
+    tomatoes: "Tomatoes",
+    potatoes: "Potatoes",
+    null: "No produce detected",
+  };
+
+  function updateProduceDisplay(produce) {
+    const icon = el("current-produce-icon");
+    const name = el("current-produce-name");
+    const method = el("current-produce-method");
+    const confidence = el("current-produce-confidence");
+
+    if (icon)
+      icon.textContent = produceIcons[produce.type] || produceIcons.null;
+    if (name)
+      name.textContent = produceNames[produce.type] || produceNames.null;
+
+    if (method) {
+      if (produce.type) {
+        method.textContent = produce.manualOverride
+          ? "👤 Manually selected"
+          : "🤖 AI detected";
+      } else {
+        method.textContent = "Waiting for detection...";
+      }
+    }
+
+    if (confidence) {
+      if (produce.confidence && !produce.manualOverride) {
+        confidence.textContent = `Confidence: ${(
+          produce.confidence * 100
+        ).toFixed(1)}%`;
+      } else {
+        confidence.textContent = "";
+      }
+    }
+
+    // Update thresholds display
+    if (produce.thresholds) {
+      const tempEl = el("threshold-temp");
+      const humidEl = el("threshold-humidity");
+      const vocEl = el("threshold-voc");
+
+      if (tempEl) {
+        tempEl.textContent = `${produce.thresholds.temperature.min}–${produce.thresholds.temperature.max}°C`;
+      }
+      if (humidEl) {
+        humidEl.textContent = `${produce.thresholds.humidity.min}–${produce.thresholds.humidity.max}%`;
+      }
+      if (vocEl) {
+        vocEl.textContent = `${(produce.thresholds.voc / 1000).toFixed(0)} ppm`;
+      }
+
+      // Update target displays in metric cards
+      const tempTarget = document.querySelector(
+        '.card[aria-label="Temperature"] .target'
+      );
+      const humidTarget = document.querySelector(
+        '.card[aria-label="Humidity"] .target'
+      );
+
+      if (tempTarget) {
+        tempTarget.textContent = `Target: ${produce.thresholds.temperature.min}–${produce.thresholds.temperature.max}°C`;
+      }
+      if (humidTarget) {
+        humidTarget.textContent = `Target: ${produce.thresholds.humidity.min}–${produce.thresholds.humidity.max}%`;
+      }
+    }
+  }
+
+  async function setProduceType(produceType) {
+    try {
+      const res = await fetch("/api/produce/set", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ produceType }),
+      });
+
+      if (!res.ok) throw new Error("Failed to set produce type");
+
+      const data = await res.json();
+      if (data.success) {
+        updateProduceDisplay(data.produce);
+        showAlert(
+          `✓ Produce set to ${produceNames[produceType]}. Thresholds updated.`,
+          "success"
+        );
+      }
+    } catch (e) {
+      showAlert(`✗ Failed to set produce type: ${e.message}`, "error");
+    }
+  }
+
+  function bindProduceControls() {
+    const setBtn = el("set-produce-btn");
+    const select = el("manual-produce-select");
+
+    if (setBtn && select) {
+      setBtn.addEventListener("click", () => {
+        const selectedProduce = select.value;
+        if (selectedProduce) {
+          setProduceType(selectedProduce);
+        } else {
+          showAlert("⚠️ Please select a produce type", "warning");
+        }
+      });
+    }
+  }
+
+  // Camera snapshot functions
+  async function loadLatestSnapshot() {
+    try {
+      const res = await fetch("/api/latest-snapshot", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch snapshot");
+
+      const data = await res.json();
+      const cameraImg = el("camera-img");
+
+      if (data.success && data.snapshot && cameraImg) {
+        cameraImg.src = data.snapshot + "?t=" + Date.now();
+        cameraImg.alt = "Latest camera snapshot";
+      } else if (cameraImg) {
+        cameraImg.src = "assets/img/placeholder-produce.jpg";
+        cameraImg.alt = "No snapshot available";
+      }
+    } catch (e) {
+      console.error("Error loading snapshot:", e);
+      const cameraImg = el("camera-img");
+      if (cameraImg) {
+        cameraImg.src = "assets/img/placeholder-produce.jpg";
+        cameraImg.alt = "Error loading snapshot";
+      }
+    }
+  }
+
+  async function openSnapshotGallery() {
+    try {
+      const res = await fetch("/api/snapshots", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch snapshots");
+
+      const data = await res.json();
+
+      if (!data.success || !data.snapshots || data.snapshots.length === 0) {
+        showAlert("📷 No snapshots available yet", "warning");
+        return;
+      }
+
+      // Create gallery modal
+      const modal = document.createElement("div");
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        overflow-y: auto;
+      `;
+
+      const closeBtn = document.createElement("button");
+      closeBtn.textContent = "✕ Close Gallery";
+      closeBtn.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        z-index: 10001;
+      `;
+      closeBtn.addEventListener("click", () => modal.remove());
+
+      const gallery = document.createElement("div");
+      gallery.style.cssText = `
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        max-width: 1200px;
+        margin-top: 60px;
+      `;
+
+      data.snapshots.forEach((snapshot) => {
+        const imgContainer = document.createElement("div");
+        imgContainer.style.cssText = `
+          background: white;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        `;
+
+        const img = document.createElement("img");
+        img.src = snapshot.url;
+        img.alt = snapshot.name;
+        img.style.cssText = `
+          width: 100%;
+          height: auto;
+          display: block;
+        `;
+
+        const caption = document.createElement("div");
+        caption.textContent = new Date(snapshot.timestamp).toLocaleString();
+        caption.style.cssText = `
+          padding: 10px;
+          background: #1e293b;
+          color: white;
+          text-align: center;
+          font-size: 14px;
+        `;
+
+        imgContainer.appendChild(img);
+        imgContainer.appendChild(caption);
+        gallery.appendChild(imgContainer);
+      });
+
+      modal.appendChild(closeBtn);
+      modal.appendChild(gallery);
+      document.body.appendChild(modal);
+    } catch (e) {
+      console.error("Error opening gallery:", e);
+      showAlert("✗ Failed to load gallery", "error");
+    }
+  }
+
+  function bindCameraControls() {
+    const refreshBtn = el("refresh-snapshot");
+    const galleryBtn = el("open-gallery");
+
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => {
+        loadLatestSnapshot();
+        showAlert("📷 Snapshot refreshed", "success");
+      });
+    }
+
+    if (galleryBtn) {
+      galleryBtn.addEventListener("click", openSnapshotGallery);
+    }
+  }
+
+  function showAlert(message, type = "info") {
+    const banner = el("alert-banner");
+    const text = el("alert-banner-text");
+    if (banner && text) {
+      text.textContent = message;
+      banner.className = `alert-banner alert-${type}`;
+      banner.hidden = false;
+
+      setTimeout(() => {
+        banner.hidden = true;
+      }, 5000);
+    }
+  }
+
   function init() {
     updateMetrics();
     updateSystemStatus();
@@ -864,11 +1234,16 @@
     renderAIAlerts();
     bindControls();
     bindInventory();
+    bindSettings();
     bindEnvTrendTooltip();
     bindTimeRangeButtons();
+    bindProduceControls();
+    bindCameraControls();
+    loadLatestSnapshot(); // Load initial snapshot
     setInterval(() => {
       updateMetrics();
       updateFilterHealth();
+      loadLatestSnapshot(); // Auto-refresh snapshot every 5 seconds
     }, 5000);
     // Header nav removed; scrolling handled by section anchor links in-page.
     if (!location.hash) {

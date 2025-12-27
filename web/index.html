@@ -22,7 +22,7 @@
       </div>
       <nav class="header-sections" aria-label="Quick sections">
         <a class="section-link" href="#dashboard">Live Metrics</a>
-        <a class="section-link" href="#controls">Controls</a>
+        <a class="section-link" href="#controls">System Override</a>
         <a class="section-link" href="#camera">Camera Snapshot</a>
         <a class="section-link" href="#alerts">Alerts</a>
         <script>
@@ -78,6 +78,201 @@
     </div>
 
     <main class="container" role="main">
+      <!-- Produce Selection Section -->
+      <section
+        class="view"
+        id="produce-selection"
+        aria-labelledby="produce-title"
+        style="padding-bottom: 24px"
+      >
+        <h2 id="produce-title">🍎 Produce Detection & Selection</h2>
+        <div class="card">
+          <div
+            style="
+              display: flex;
+              gap: 20px;
+              align-items: center;
+              flex-wrap: wrap;
+            "
+          >
+            <!-- Current Produce Display -->
+            <div style="flex: 1; min-width: 250px">
+              <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #6b7280">
+                Currently Stored:
+              </h3>
+              <div
+                id="current-produce-display"
+                style="display: flex; align-items: center; gap: 12px"
+              >
+                <span id="current-produce-icon" style="font-size: 48px"
+                  >❓</span
+                >
+                <div>
+                  <div
+                    id="current-produce-name"
+                    style="font-size: 24px; font-weight: 600; color: #1f2937"
+                  >
+                    No produce detected
+                  </div>
+                  <div
+                    id="current-produce-method"
+                    style="font-size: 14px; color: #6b7280; margin-top: 4px"
+                  >
+                    Waiting for detection...
+                  </div>
+                  <div
+                    id="current-produce-confidence"
+                    style="font-size: 12px; color: #9ca3af; margin-top: 2px"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Manual Selection -->
+            <div
+              style="
+                flex: 1;
+                min-width: 250px;
+                padding-left: 20px;
+                border-left: 2px solid #e5e7eb;
+              "
+            >
+              <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #6b7280">
+                Manual Override:
+              </h3>
+              <div style="display: flex; gap: 10px; align-items: center">
+                <select
+                  id="manual-produce-select"
+                  class="produce-select"
+                  style="
+                    flex: 1;
+                    padding: 10px;
+                    font-size: 14px;
+                    border: 2px solid #d1d5db;
+                    border-radius: 8px;
+                    background: white;
+                  "
+                >
+                  <option value="">-- Select Produce --</option>
+                  <option value="apples">🍎 Apples</option>
+                  <option value="tomatoes">🍅 Tomatoes</option>
+                  <option value="potatoes">🥔 Potatoes</option>
+                </select>
+                <button
+                  id="set-produce-btn"
+                  class="btn-primary"
+                  style="
+                    padding: 10px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    background: #3b82f6;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                  "
+                >
+                  Set
+                </button>
+              </div>
+              <p style="font-size: 12px; color: #6b7280; margin-top: 8px">
+                ℹ️ Manual selection overrides AI detection
+              </p>
+            </div>
+          </div>
+
+          <!-- Current Thresholds -->
+          <div
+            style="
+              margin-top: 20px;
+              padding-top: 20px;
+              border-top: 2px solid #e5e7eb;
+            "
+          >
+            <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #6b7280">
+              Active Storage Thresholds:
+            </h3>
+            <div
+              style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 16px;
+              "
+            >
+              <div class="threshold-item">
+                <div
+                  style="
+                    font-size: 12px;
+                    color: #6b7280;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                  "
+                >
+                  Temperature
+                </div>
+                <div
+                  id="threshold-temp"
+                  style="
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #1f2937;
+                    margin-top: 4px;
+                  "
+                >
+                  0–4°C
+                </div>
+              </div>
+              <div class="threshold-item">
+                <div
+                  style="
+                    font-size: 12px;
+                    color: #6b7280;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                  "
+                >
+                  Humidity
+                </div>
+                <div
+                  id="threshold-humidity"
+                  style="
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #1f2937;
+                    margin-top: 4px;
+                  "
+                >
+                  90–95%
+                </div>
+              </div>
+              <div class="threshold-item">
+                <div
+                  style="
+                    font-size: 12px;
+                    color: #6b7280;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                  "
+                >
+                  VOC Threshold
+                </div>
+                <div
+                  id="threshold-voc"
+                  style="
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #1f2937;
+                    margin-top: 4px;
+                  "
+                >
+                  30 ppm
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="view" id="dashboard" aria-labelledby="metrics-title">
         <h2 id="metrics-title">Live Metrics</h2>
         <div class="grid">
@@ -129,7 +324,7 @@
               <span class="unit">ppm</span>
             </header>
             <div class="value" id="ethylene-value">--</div>
-            <div class="target">Threshold: 0.1 ppm</div>
+            <div class="target">Threshold: 30 ppm</div>
             <div class="bar">
               <span
                 class="bar-fill warn"
@@ -151,7 +346,6 @@
         <div class="card" style="margin-top: 20px">
           <header>
             <h3>System Status</h3>
-            <span class="unit muted">Component Health</span>
           </header>
           <div class="status-grid">
             <div class="status-item">
@@ -250,8 +444,61 @@
       </section>
 
       <section class="controls" id="controls" aria-labelledby="controls-title">
-        <h2 id="controls-title">Manual Controls</h2>
-        <div class="controls-grid">
+        <h2 id="controls-title">System Override Controls</h2>
+
+        <!-- Auto/Manual Mode Toggle -->
+        <div
+          class="card"
+          style="
+            margin-bottom: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 2px solid #0ea5e9;
+          "
+        >
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 8px;
+            "
+          >
+            <div>
+              <h3 style="margin: 0 0 4px 0; font-size: 16px; color: #0c4a6e">
+                Control Mode
+              </h3>
+              <p
+                style="margin: 0; font-size: 13px; color: #075985"
+                id="control-mode-description"
+              >
+                System is in <strong>Automatic Mode</strong> - PID controllers
+                are managing all components
+              </p>
+            </div>
+            <label class="toggle-switch" style="transform: scale(1.2)">
+              <input type="checkbox" id="auto-manual-toggle" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-top: 12px;
+              padding: 8px 12px;
+              background: rgba(255, 255, 255, 0.7);
+              border-radius: 6px;
+            "
+          >
+            <span style="font-size: 12px; color: #0369a1">
+              <span id="mode-indicator">🤖 AUTO</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="controls-grid" id="manual-controls-grid">
           <div class="control-card">
             <div
               style="
@@ -502,8 +749,8 @@
               "
             >
               <li>Reduce temperature by 0.5°C for apples</li>
-              <li>Increase humidity for leafy greens</li>
-              <li>Separate ethylene producers</li>
+              <li>Increase humidity for tomatoes storage</li>
+              <li>Keep potatoes in dark, well-ventilated area</li>
             </ul>
           </div>
           <div
@@ -549,8 +796,8 @@
               "
             >
               <li>Apples (3 days left)</li>
-              <li>Lettuce (5 days left)</li>
-              <li>Bananas (8 days left)</li>
+              <li>Tomatoes (6 days left)</li>
+              <li>Potatoes (21 days left)</li>
             </ol>
           </div>
         </div>
@@ -627,21 +874,66 @@
       </section>
 
       <section class="view" id="view-settings" aria-labelledby="settings-title">
-        <h2 id="settings-title">Settings</h2>
+        <h2 id="settings-title">Storage Settings</h2>
         <div class="card">
-          <form class="settings-form">
+          <form class="settings-form" id="settings-form">
+            <label>
+              Produce Type
+              <select
+                id="produce-preset"
+                style="
+                  padding: 10px;
+                  border: 1px solid #d1d5db;
+                  border-radius: 6px;
+                  font-size: 14px;
+                "
+              >
+                <option value="">Custom Settings</option>
+                <option value="potatoes">Potatoes</option>
+                <option value="apples">Apples</option>
+                <option value="tomatoes">Tomatoes</option>
+              </select>
+            </label>
             <label>
               Temperature target (°C)
-              <input type="number" min="0" max="15" step="0.1" value="6" />
+              <input
+                type="number"
+                id="temp-target-input"
+                min="0"
+                max="15"
+                step="0.1"
+                value="3"
+              />
             </label>
             <label>
               Humidity target (%)
-              <input type="number" min="50" max="100" step="1" value="90" />
+              <input
+                type="number"
+                id="humidity-target-input"
+                min="50"
+                max="100"
+                step="1"
+                value="90"
+              />
             </label>
             <label>
               Ethylene threshold (ppm)
-              <input type="number" min="0" max="1" step="0.01" value="0.1" />
+              <input
+                type="number"
+                id="ethylene-threshold-input"
+                min="0"
+                max="50"
+                step="1"
+                value="30"
+              />
             </label>
+            <button
+              type="submit"
+              class="btn"
+              style="margin-top: 16px; width: 100%"
+            >
+              Save & Apply Settings
+            </button>
           </form>
         </div>
       </section>
@@ -678,6 +970,95 @@
     </footer>
 
     <script src="assets/js/app.js"></script>
+
+    <!-- Override Confirmation Modal -->
+    <div id="override-modal" class="modal" hidden>
+      <div
+        class="modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="override-title"
+      >
+        <h3 id="override-title" style="color: #dc2626; margin-bottom: 12px">
+          ⚠️ Emergency Override Mode
+        </h3>
+        <div
+          style="
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border-radius: 4px;
+          "
+        >
+          <p
+            style="color: #78350f; font-size: 14px; margin: 0; line-height: 1.6"
+          >
+            <strong>You are about to disable automatic PID control.</strong>
+            These controls override automatic regulation and should only be used
+            for testing, maintenance, or emergency situations.
+          </p>
+        </div>
+        <p class="muted" style="margin-bottom: 12px">
+          When you switch to manual mode:
+        </p>
+        <ul
+          style="
+            color: #6b7280;
+            font-size: 14px;
+            margin: 0 0 16px 20px;
+            line-height: 1.8;
+          "
+        >
+          <li>
+            The system will
+            <strong>stop automatically regulating</strong> temperature,
+            humidity, and air quality
+          </li>
+          <li>
+            You will have <strong>full manual control</strong> over cooling,
+            humidifier, and scrubbing systems
+          </li>
+          <li>
+            Produce quality may be <strong>at risk</strong> if manual settings
+            are incorrect
+          </li>
+          <li>
+            The system normally manages all components automatically based on
+            sensor readings
+          </li>
+        </ul>
+        <p
+          style="
+            font-weight: 600;
+            color: #dc2626;
+            margin-top: 16px;
+            padding: 12px;
+            background: #fee;
+            border-radius: 4px;
+          "
+        >
+          ⚠ Only proceed if you understand the risks and need manual control.
+        </p>
+        <div class="modal-actions">
+          <button
+            id="override-confirm"
+            class="btn"
+            style="background: #dc2626; border-color: #dc2626"
+          >
+            Yes, enable manual override
+          </button>
+          <button
+            id="override-cancel"
+            class="btn"
+            style="background: #6b7280; border-color: #6b7280"
+          >
+            No, keep automatic mode
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Logout confirmation modal -->
     <div id="logout-modal" class="modal" hidden>
       <div
@@ -733,6 +1114,193 @@
             closeModal();
           });
         }
+      })();
+    </script>
+
+    <!-- Auto/Manual Mode Control Script -->
+    <script>
+      (function () {
+        const autoManualToggle = document.getElementById("auto-manual-toggle");
+        const modeIndicator = document.getElementById("mode-indicator");
+        const modeDescription = document.getElementById(
+          "control-mode-description"
+        );
+        const manualControlsGrid = document.getElementById(
+          "manual-controls-grid"
+        );
+        const coolingToggle = document.getElementById("cooling-toggle");
+        const humidifierToggle = document.getElementById("humidifier-toggle");
+        const scrubberToggle = document.getElementById("scrubber-toggle");
+        const overrideModal = document.getElementById("override-modal");
+        const overrideConfirm = document.getElementById("override-confirm");
+        const overrideCancel = document.getElementById("override-cancel");
+
+        let isAutoMode = true;
+
+        function updateControlsState() {
+          if (isAutoMode) {
+            // Auto mode - disable manual controls and turn them off
+            modeIndicator.textContent = "🤖 AUTO";
+            modeDescription.innerHTML =
+              "System is in <strong>Automatic Mode</strong> - PID controllers are managing all components";
+            manualControlsGrid.style.opacity = "0.5";
+            manualControlsGrid.style.pointerEvents = "none";
+            coolingToggle.disabled = true;
+            coolingToggle.checked = false;
+            humidifierToggle.disabled = true;
+            humidifierToggle.checked = false;
+            scrubberToggle.disabled = true;
+            scrubberToggle.checked = false;
+            // Update status text
+            document.getElementById("cooling-status-text").textContent = "Auto";
+            document.getElementById("humidifier-status-text").textContent =
+              "Auto";
+            document.getElementById("scrubber-status-text").textContent =
+              "Auto";
+          } else {
+            // Manual mode - enable manual controls, start with OFF state
+            modeIndicator.textContent = "👤 MANUAL";
+            modeDescription.innerHTML =
+              '<strong style="color: #dc2626;">Manual Override Active</strong> - You are controlling components manually';
+            manualControlsGrid.style.opacity = "1";
+            manualControlsGrid.style.pointerEvents = "auto";
+            coolingToggle.disabled = false;
+            humidifierToggle.disabled = false;
+            scrubberToggle.disabled = false;
+
+            // Start with all toggles OFF when entering manual mode
+            coolingToggle.checked = false;
+            humidifierToggle.checked = false;
+            scrubberToggle.checked = false;
+
+            // Update status text in override section
+            document.getElementById("cooling-status-text").textContent = "Off";
+            document.getElementById("humidifier-status-text").textContent =
+              "Off";
+            document.getElementById("scrubber-status-text").textContent = "Off";
+
+            // Update System Status badges to reflect manual control state
+            updateSystemStatusBadges();
+          }
+        }
+
+        function updateSystemStatusBadges() {
+          const coolingBadge = document.querySelector(
+            "#cooling-status .status-badge"
+          );
+          const humidifierBadge = document.querySelector(
+            "#humidifier-status .status-badge"
+          );
+          const scrubberBadge = document.querySelector(
+            "#scrubber-status .status-badge"
+          );
+
+          if (!isAutoMode) {
+            // In manual mode, sync with toggle states - start at Standby
+            if (coolingBadge) {
+              coolingBadge.textContent = coolingToggle.checked
+                ? "Active"
+                : "Standby";
+              coolingBadge.className = coolingToggle.checked
+                ? "status-badge active"
+                : "status-badge standby";
+            }
+            if (humidifierBadge) {
+              humidifierBadge.textContent = humidifierToggle.checked
+                ? "Active"
+                : "Standby";
+              humidifierBadge.className = humidifierToggle.checked
+                ? "status-badge active"
+                : "status-badge standby";
+            }
+            if (scrubberBadge) {
+              scrubberBadge.textContent = scrubberToggle.checked
+                ? "Active"
+                : "Standby";
+              scrubberBadge.className = scrubberToggle.checked
+                ? "status-badge active"
+                : "status-badge standby";
+            }
+          }
+          // In auto mode, badges are controlled by app.js based on real sensor data
+          // Don't override them here
+        }
+
+        function openOverrideModal() {
+          if (overrideModal) overrideModal.hidden = false;
+        }
+
+        function closeOverrideModal() {
+          if (overrideModal) overrideModal.hidden = true;
+        }
+
+        // Handle Auto/Manual toggle
+        if (autoManualToggle) {
+          autoManualToggle.addEventListener("change", function (e) {
+            if (!this.checked) {
+              // User wants to switch to manual mode - show confirmation
+              e.preventDefault();
+              openOverrideModal();
+            } else {
+              // Switching back to auto mode - no confirmation needed
+              isAutoMode = true;
+              updateControlsState();
+            }
+          });
+        }
+
+        // Confirm manual override
+        if (overrideConfirm) {
+          overrideConfirm.addEventListener("click", function () {
+            isAutoMode = false;
+            autoManualToggle.checked = false;
+            updateControlsState();
+            closeOverrideModal();
+          });
+        }
+
+        // Cancel manual override
+        if (overrideCancel) {
+          overrideCancel.addEventListener("click", function () {
+            autoManualToggle.checked = true;
+            isAutoMode = true;
+            closeOverrideModal();
+          });
+        }
+
+        // Initialize state
+        updateControlsState();
+
+        // Add event listeners to manual control toggles to update System Status
+        coolingToggle.addEventListener("change", function () {
+          if (!isAutoMode) {
+            document.getElementById("cooling-status-text").textContent = this
+              .checked
+              ? "Active"
+              : "Off";
+            updateSystemStatusBadges();
+          }
+        });
+
+        humidifierToggle.addEventListener("change", function () {
+          if (!isAutoMode) {
+            document.getElementById("humidifier-status-text").textContent = this
+              .checked
+              ? "Active"
+              : "Off";
+            updateSystemStatusBadges();
+          }
+        });
+
+        scrubberToggle.addEventListener("change", function () {
+          if (!isAutoMode) {
+            document.getElementById("scrubber-status-text").textContent = this
+              .checked
+              ? "Active"
+              : "Off";
+            updateSystemStatusBadges();
+          }
+        });
       })();
     </script>
   </body>
