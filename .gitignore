@@ -1,0 +1,25 @@
+# Node.js dependencies
+web/node_modules/
+
+# Runtime folders - images uploaded by ESP32-CAM
+web/uploads/
+web/snapshots/
+web/inference_uploads/
+
+# YOLO model files (large binary files)
+web/*.pt
+web/yolov8n.pt
+
+# Python cache
+web/__pycache__/
+*.pyc
+*.pyo
+
+# PlatformIO build artifacts
+esp32_code/.pio/
+esp32_cam_code/.pio/
+
+# IDE and system files
+.vscode/
+.DS_Store
+Thumbs.db
