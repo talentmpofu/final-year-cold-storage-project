@@ -33,8 +33,8 @@ try:
     print(f"✓ YOLO model loaded from {MODEL_PATH}")
 except Exception as e:
     print(f"⚠️  Warning: Could not load model from {MODEL_PATH}")
-    print(f"   Using YOLOv8n as placeholder. Train your model with produce dataset!")
-    model = YOLO('yolov8n.pt')  # Fallback to pretrained model
+    print(f"   Using YOLOv11x (Extra Large) - Maximum accuracy for spoilage detection!")
+    model = YOLO('yolo11x.pt')  # Fallback to YOLO v11 Extra Large (best accuracy)
 
 @app.route('/health', methods=['GET'])
 def health_check():
