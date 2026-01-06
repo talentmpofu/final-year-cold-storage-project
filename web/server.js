@@ -6,6 +6,14 @@ const axios = require("axios");
 const FormData = require("form-data");
 const fs = require("fs");
 const { getProduceSettings } = require("./produceDatabase");
+const {
+  checkAndAlert,
+  verifyEmailConfig,
+  sendTestEmail,
+} = require("./emailConfig");
+
+// Load environment variables
+require("dotenv").config();
 
 // Create snapshots directory if it doesn't exist
 const snapshotsDir = path.join(__dirname, "snapshots");
@@ -57,6 +65,9 @@ app.post("/api/metrics", (req, res) => {
     ...req.body,
     timestamp: new Date().toISOString(),
   };
+
+  // Check thresholds and send alerts if needed
+  checkAndAlert(latestMetrics, currentProduce.thresholds, currentProduce.type);
 
   res.json({ success: true, message: "Data received" });
 });
@@ -275,18 +286,97 @@ app.get("/api/thresholds", (req, res) => {
   });
 });
 
+// Test email endpoint
+app.post("/api/test-email", async (req, res) => {
+  console.log("📧 Testing email configuration...");
+
+  const isConfigured = await verifyEmailConfig();
+  if (!isConfigured) {
+    return res.status(500).json({
+      success: false,
+      error: "Email not configured. Check server logs and .env file",
+    });
+  }
+
+  const sent = await sendTestEmail();
+  if (sent) {
+    res.json({
+      success: true,
+      message: "Test email sent successfully! Check your inbox.",
+    });
+  } else {
+    res.status(500).json({
+      success: false,
+      error: "Failed to send test email. Check server logs for details.",
+    });
+  }
+});
+
+// Trigger manual alert for testing
+app.post("/api/test-alert", async (req, res) => {
+  const { alertType } = req.body;
+
+  if (!["temperature", "humidity", "voc"].includes(alertType)) {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid alert type. Must be 'temperature', 'humidity', or 'voc'",
+    });
+  }
+
+  const { sendAlert } = require("./emailConfig");
+
+  // Create test alert data
+  const testData = {
+    temperature: {
+      current: 15.5,
+      min: 0,
+      max: 4,
+      produceType: currentProduce.type || "Test",
+    },
+    humidity: {
+      current: 50,
+      min: 90,
+      max: 95,
+      produceType: currentProduce.type || "Test",
+    },
+    voc: {
+      current: 50000,
+      max: 30000,
+      produceType: currentProduce.type || "Test",
+    },
+  };
+
+  try {
+    await sendAlert(alertType, testData[alertType]);
+    res.json({
+      success: true,
+      message: `Test ${alertType} alert sent successfully!`,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // Serve the dashboard
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, "0.0.0.0", async () => {
   console.log("╔═══════════════════════════════════════╗");
   console.log("║  Cold Storage Backend Server         ║");
   console.log("╚═══════════════════════════════════════╝");
   console.log(`\n✓ Server running on port ${PORT}`);
   console.log(`\n📊 Dashboard: http://localhost:${PORT}`);
   console.log(`📡 API Endpoint: http://localhost:${PORT}/api/metrics`);
+
+  // Verify email configuration on startup
+  console.log(`\n📧 Verifying email configuration...`);
+  await verifyEmailConfig();
+
   console.log(`\n⚙️  Waiting for ESP32 data...\n`);
 
   // Get local IP address

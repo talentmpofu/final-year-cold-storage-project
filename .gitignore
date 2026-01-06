@@ -1,6 +1,10 @@
 # Node.js dependencies
 web/node_modules/
 
+# Environment variables (IMPORTANT: Contains sensitive credentials)
+web/.env
+.env
+
 # Runtime folders - images uploaded by ESP32-CAM
 web/uploads/
 web/snapshots/

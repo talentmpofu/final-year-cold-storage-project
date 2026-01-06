@@ -6,6 +6,7 @@
  * - ESP32 Development Board
  * - DHT22 Temperature & Humidity Sensor
  * - SGP41 VOC Sensor (I2C)
+ * - SSD1306 OLED Display 128x64 (I2C)
  * - Relay for scrubbing system control
  * - Connecting wires
  *
@@ -21,6 +22,12 @@
  * - SCL -> GPIO 22 (ESP32 default I2C SCL)
  * - SDA -> GPIO 21 (ESP32 default I2C SDA)
  *
+ * OLED Display Wiring (I2C - shares with SGP41):
+ * - VCC -> 3.3V (ESP32)
+ * - GND -> GND (ESP32)
+ * - SCL -> GPIO 22 (ESP32 default I2C SCL)
+ * - SDA -> GPIO 21 (ESP32 default I2C SDA)
+ *
  * Scrubbing System Relay:
  * - Control Pin -> GPIO 5 (ESP32)
  */
@@ -30,6 +37,15 @@
 #include <DHT.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+// OLED Display settings
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+#define SCREEN_ADDRESS 0x3C
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // SGP41 I2C Address
 #define SGP41_ADDRESS 0x59
@@ -173,6 +189,74 @@ uint16_t readSGP41_VOC()
   }
 
   return 0;
+}
+
+// Function to update OLED display
+void updateDisplay()
+{
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+
+  // Title
+  display.setCursor(0, 0);
+  display.setTextSize(1);
+  display.println("Cold Storage Unit");
+  display.drawLine(0, 10, 128, 10, SSD1306_WHITE);
+
+  // Temperature
+  display.setTextSize(1);
+  display.setCursor(0, 14);
+  display.print("Temp     : ");
+  display.print(temperature, 1);
+  display.print(" C");
+  if (temperature > TEMP_MAX || temperature < TEMP_MIN)
+  {
+    display.print(" !");
+  }
+
+  // Humidity
+  display.setCursor(0, 26);
+  display.print("Humidity : ");
+  display.print(humidity, 1);
+  display.print(" %");
+  if (humidity > HUMIDITY_MAX || humidity < HUMIDITY_MIN)
+  {
+    display.print(" !");
+  }
+
+  // VOC
+  display.setCursor(0, 38);
+  display.print("Ethyl/VOC: ");
+  display.print(vocRaw / 1000.0, 1);
+  display.print("ppm");
+
+  // Debug: print to serial
+  Serial.printf("VOC Check: vocRaw=%d, threshold=%.0f, show alert=%d\n",
+                vocRaw, VOC_THRESHOLD, (vocRaw > VOC_THRESHOLD));
+
+  if (vocRaw > VOC_THRESHOLD)
+  {
+    display.print("!");
+  }
+
+  // System Status
+  display.setCursor(0, 50);
+  display.print("Status   : ");
+  if (scrubberActive)
+    display.print("S");
+  else
+    display.print("-");
+  if (coolingActive)
+    display.print("C");
+  else
+    display.print("-");
+  if (humidifierActive)
+    display.print("H");
+  else
+    display.print("-");
+
+  display.display();
 }
 
 // Function to control cooling system
@@ -391,13 +475,15 @@ void setup()
   Wire.begin();
   Serial.println("I2C bus initialized");
 
-  // Scan I2C bus to find devices
+  // Scan I2C bus to find devices FIRST
   Serial.println("Scanning I2C bus...");
   byte devicesFound = 0;
+  byte oledAddress = 0x3C; // Default address
   for (byte address = 1; address < 127; address++)
   {
     Wire.beginTransmission(address);
     byte error = Wire.endTransmission();
+
     if (error == 0)
     {
       Serial.print("I2C device found at address 0x");
@@ -405,35 +491,59 @@ void setup()
         Serial.print("0");
       Serial.println(address, HEX);
       devicesFound++;
+
+      // Detect OLED address (usually 0x3C or 0x3D)
+      if (address == 0x3C || address == 0x3D)
+      {
+        oledAddress = address;
+        Serial.print("  -> Detected OLED at 0x");
+        Serial.println(address, HEX);
+      }
+      else if (address == SGP41_ADDRESS)
+      {
+        Serial.println("  -> Detected SGP41 VOC Sensor");
+        sgpReady = true;
+      }
     }
   }
 
   if (devicesFound == 0)
   {
-    Serial.println("No I2C devices found");
+    Serial.println("No I2C devices found!");
   }
   else
   {
     Serial.print("Found ");
     Serial.print(devicesFound);
-    Serial.println(" device(s)");
+    Serial.println(" I2C device(s)");
   }
 
-  // Try to detect SGP41 sensor
-  Wire.beginTransmission(SGP41_ADDRESS);
-  uint8_t error = Wire.endTransmission();
+  // Initialize OLED display with detected address
+  Serial.print("Initializing OLED at 0x");
+  Serial.println(oledAddress, HEX);
 
-  if (error == 0)
+  if (!display.begin(SSD1306_SWITCHCAPVCC, oledAddress))
   {
-    Serial.println("✓ SGP41 VOC sensor detected");
-    sgpReady = true;
+    Serial.println("✗ OLED display initialization FAILED!");
+    Serial.println("  Check wiring: VCC->3.3V, GND->GND, SCL->GPIO22, SDA->GPIO21");
   }
   else
   {
-    Serial.println("✗ SGP41 sensor not found!");
-    Serial.println("Check I2C wiring (SDA=GPIO21, SCL=GPIO22)");
-    sgpReady = false;
+    Serial.println("✓ OLED display initialized successfully!");
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(0, 0);
+    display.println("COLD");
+    display.println("STORAGE");
+    display.setTextSize(1);
+    display.setCursor(0, 45);
+    display.println("Starting...");
+    display.display();
+    delay(2000);
   }
+
+  // Continue with sensor initialization
 
   // Initialize DHT sensor
   dht.begin();
@@ -526,6 +636,9 @@ void loop()
     // Send data to web dashboard
     sendDataToServer(temperature, humidity, sgpReady ? vocIndex : 0.0);
 
+    // Update OLED display
+    updateDisplay();
+
     Serial.println("----------------------\n");
   }
   else
@@ -539,6 +652,19 @@ void loop()
       Serial.println("⚠ Check sensor wiring and power supply!");
       Serial.println("⚠ Ensure 10K pull-up resistor is connected\n");
     }
+
+    // Update display with error message
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(0, 0);
+    display.println("Cold Storage Unit");
+    display.setCursor(0, 20);
+    display.println("ERROR: Sensor fail!");
+    display.setCursor(0, 30);
+    display.print("Attempts: ");
+    display.println(failedReadings);
+    display.display();
   }
 
   // Wait before next reading cycle

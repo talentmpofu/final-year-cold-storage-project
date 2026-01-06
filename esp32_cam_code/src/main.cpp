@@ -39,7 +39,7 @@ const char *serverUrl = "http://172.20.10.2:3000/api/upload-image";
 
 // Timing
 unsigned long lastCaptureTime = 0;
-const unsigned long captureInterval = 60000; // Capture every 10 minutes
+const unsigned long captureInterval = 1800000; // Capture every 30 minutes
 
 // Function declarations
 void connectWiFi();
@@ -76,6 +76,11 @@ void setup()
   }
 
   Serial.println("🚀 ESP32-CAM ready for produce detection\n");
+
+  // Capture first image immediately on startup
+  Serial.println("📸 Taking initial capture...");
+  captureAndSendImage();
+  lastCaptureTime = millis();
 }
 
 void loop()

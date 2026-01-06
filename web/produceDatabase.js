@@ -15,7 +15,7 @@ const produceDatabase = {
       optimal: 92,
     },
     vocs: {
-      threshold: 35000, // Apples produce moderate ethylene
+      threshold: 30000, // Apples produce moderate ethylene
       sensitivity: "medium",
     },
     description: "Apples produce ethylene and require cold storage",
@@ -87,4 +87,22 @@ const produceDatabase = {
   },
 };
 
-module.exports = produceDatabase;
+// Function to get produce settings in ESP32-compatible format
+function getProduceSettings(produceType) {
+  const produce = produceDatabase[produceType];
+  if (!produce) return null;
+
+  return {
+    temp: {
+      min: produce.temperature.min,
+      max: produce.temperature.max,
+    },
+    humidity: {
+      min: produce.humidity.min,
+      max: produce.humidity.max,
+    },
+    voc: produce.vocs.threshold,
+  };
+}
+
+module.exports = { produceDatabase, getProduceSettings };
