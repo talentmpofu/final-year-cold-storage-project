@@ -60,12 +60,18 @@ const char *serverUrl = "http://172.20.10.2:3000/api/metrics";
 const char *thresholdsUrl = "http://172.20.10.2:3000/api/thresholds";
 
 // Pin definitions
-#define DHT_PIN 4         // GPIO 4 for DHT22 data pin
-#define DHT_TYPE DHT22    // DHT22 sensor type
-#define NUM_READINGS 3    // Number of readings to average
-#define SCRUBBER_PIN 5    // GPIO 5 for scrubbing system relay
-#define COOLING_PIN 18    // GPIO 18 for cooling system relay
-#define HUMIDIFIER_PIN 19 // GPIO 19 for humidifier relay
+#define DHT_PIN 4      // GPIO 4 for DHT22 data pin
+#define DHT_TYPE DHT22 // DHT22 sensor type
+#define NUM_READINGS 3 // Number of readings to average
+
+// Single Relay Module (1 channel)
+#define HUMIDIFIER_SCRUBBER_PIN 26 // GPIO 26 for humidifier + scrubber (4A total)
+
+// 4-Channel Relay Module
+#define PELTIER_1_PUMP_PIN 18 // GPIO 18 for Peltier 1 + Water Pump (8A)
+#define PELTIER_2_FAN_PIN 19  // GPIO 19 for Peltier 2 + All Fans (6.5A)
+#define PELTIER_3_PIN 23      // GPIO 23 for Peltier 3 (6A)
+#define PELTIER_4_PIN 25      // GPIO 25 for Peltier 4 (6A)
 
 // Default control thresholds (will be updated from server)
 float VOC_THRESHOLD = 30000; // VOC raw threshold (clean air: ~25000, polluted: >30000)
@@ -95,10 +101,10 @@ float vocIndex = 0.0;
 int failedReadings = 0;
 bool sgpReady = false;
 
-// System status tracking
-bool scrubberActive = false;
+// Relay status tracking
 bool coolingActive = false;
-bool humidifierActive = false;
+bool pumpActive = false;
+bool humidifierScrubberActive = false;
 
 // Function to get averaged sensor readings
 bool getAveragedReadings(float &avgTemp, float &avgHum)
@@ -242,16 +248,16 @@ void updateDisplay()
 
   // System Status
   display.setCursor(0, 50);
-  display.print("Status   : ");
-  if (scrubberActive)
-    display.print("S");
-  else
-    display.print("-");
+  display.print("Status: ");
   if (coolingActive)
     display.print("C");
   else
     display.print("-");
-  if (humidifierActive)
+  if (pumpActive)
+    display.print("P");
+  else
+    display.print("-");
+  if (humidifierScrubberActive)
     display.print("H");
   else
     display.print("-");
@@ -259,72 +265,71 @@ void updateDisplay()
   display.display();
 }
 
-// Function to control cooling system
+// Function to control cooling system (4 Peltiers + Water Pump + Fans together)
 void controlCooling(float temp)
 {
   if (temp > TEMP_MAX)
   {
     if (!coolingActive)
     {
-      digitalWrite(COOLING_PIN, HIGH);
+      // Activate all 4 cooling channels simultaneously
+      digitalWrite(PELTIER_1_PUMP_PIN, HIGH); // Peltier 1 + Water Pump (8A)
+      digitalWrite(PELTIER_2_FAN_PIN, HIGH);  // Peltier 2 + All Fans (6.5A)
+      digitalWrite(PELTIER_3_PIN, HIGH);      // Peltier 3 (6A)
+      digitalWrite(PELTIER_4_PIN, HIGH);      // Peltier 4 (6A)
       coolingActive = true;
+      pumpActive = true;
       Serial.println("❄️ Temperature HIGH! Cooling system ACTIVATED");
+      Serial.println("   → Peltier 1 + Pump ON (8A)");
+      Serial.println("   → Peltier 2 + Fans ON (6.5A)");
+      Serial.println("   → Peltier 3 ON (6A)");
+      Serial.println("   → Peltier 4 ON (6A)");
     }
   }
   else if (temp < TEMP_MIN)
   {
     if (coolingActive)
     {
-      digitalWrite(COOLING_PIN, LOW);
+      // Deactivate entire cooling system
+      digitalWrite(PELTIER_1_PUMP_PIN, LOW);
+      digitalWrite(PELTIER_2_FAN_PIN, LOW);
+      digitalWrite(PELTIER_3_PIN, LOW);
+      digitalWrite(PELTIER_4_PIN, LOW);
       coolingActive = false;
-      Serial.println("✓ Temperature OK. Cooling system DEACTIVATED");
+      pumpActive = false;
+      Serial.println("✓ Temperature OK. Cooling system DEACTIVATED (all components off)");
     }
   }
 }
 
-// Function to control humidifier
-void controlHumidifier(float hum)
+// Function to control humidifier + scrubber (combined on single relay)
+// Activates when EITHER humidity is low OR VOC is high
+void controlHumidifierScrubber(float hum, float vocLevel)
 {
-  if (hum < HUMIDITY_MIN)
-  {
-    if (!humidifierActive)
-    {
-      digitalWrite(HUMIDIFIER_PIN, HIGH);
-      humidifierActive = true;
-      Serial.println("💧 Humidity LOW! Humidifier ACTIVATED");
-    }
-  }
-  else if (hum > HUMIDITY_MAX)
-  {
-    if (humidifierActive)
-    {
-      digitalWrite(HUMIDIFIER_PIN, LOW);
-      humidifierActive = false;
-      Serial.println("✓ Humidity OK. Humidifier DEACTIVATED");
-    }
-  }
-}
+  bool shouldActivate = (hum < HUMIDITY_MIN) || (vocLevel > VOC_THRESHOLD);
 
-// Function to control scrubbing system
-void controlScrubber(float vocLevel)
-{
-  if (vocLevel > VOC_THRESHOLD)
+  if (shouldActivate)
   {
-    if (!scrubberActive)
+    if (!humidifierScrubberActive)
     {
-      digitalWrite(SCRUBBER_PIN, HIGH);
-      scrubberActive = true;
-      Serial.println("⚠ VOC LEVEL HIGH! Scrubbing system ACTIVATED");
+      digitalWrite(HUMIDIFIER_SCRUBBER_PIN, HIGH);
+      humidifierScrubberActive = true;
+      if (hum < HUMIDITY_MIN && vocLevel > VOC_THRESHOLD)
+        Serial.println("⚠️ Humidity LOW & VOC HIGH! Humidifier+Scrubber ACTIVATED");
+      else if (hum < HUMIDITY_MIN)
+        Serial.println("💧 Humidity LOW! Humidifier+Scrubber ACTIVATED");
+      else
+        Serial.println("⚠️ VOC HIGH! Humidifier+Scrubber ACTIVATED");
     }
   }
   else
   {
-    // Add hysteresis: turn off only when significantly below threshold
-    if (scrubberActive && vocLevel < (VOC_THRESHOLD * 0.8))
+    // Turn off only when both conditions are OK
+    if (humidifierScrubberActive && hum > HUMIDITY_MAX && vocLevel < (VOC_THRESHOLD * 0.8))
     {
-      digitalWrite(SCRUBBER_PIN, LOW);
-      scrubberActive = false;
-      Serial.println("✓ VOC level normal. Scrubbing system DEACTIVATED");
+      digitalWrite(HUMIDIFIER_SCRUBBER_PIN, LOW);
+      humidifierScrubberActive = false;
+      Serial.println("✓ Humidity & VOC OK. Humidifier+Scrubber DEACTIVATED");
     }
   }
 }
@@ -463,13 +468,29 @@ void setup()
   }
 
   // Initialize relay pins
-  pinMode(SCRUBBER_PIN, OUTPUT);
-  pinMode(COOLING_PIN, OUTPUT);
-  pinMode(HUMIDIFIER_PIN, OUTPUT);
-  digitalWrite(SCRUBBER_PIN, LOW);   // Start with scrubber off
-  digitalWrite(COOLING_PIN, LOW);    // Start with cooling off
-  digitalWrite(HUMIDIFIER_PIN, LOW); // Start with humidifier off
-  Serial.println("All relay systems initialized");
+  pinMode(PELTIER_1_PUMP_PIN, OUTPUT);      // 4-CH Relay 1
+  pinMode(PELTIER_2_FAN_PIN, OUTPUT);       // 4-CH Relay 2
+  pinMode(PELTIER_3_PIN, OUTPUT);           // 4-CH Relay 3
+  pinMode(PELTIER_4_PIN, OUTPUT);           // 4-CH Relay 4
+  pinMode(HUMIDIFIER_SCRUBBER_PIN, OUTPUT); // Single Relay
+
+  digitalWrite(PELTIER_1_PUMP_PIN, LOW);      // Start with peltier 1 + pump off
+  digitalWrite(PELTIER_2_FAN_PIN, LOW);       // Start with peltier 2 + fans off
+  digitalWrite(PELTIER_3_PIN, LOW);           // Start with peltier 3 off
+  digitalWrite(PELTIER_4_PIN, LOW);           // Start with peltier 4 off
+  digitalWrite(HUMIDIFIER_SCRUBBER_PIN, LOW); // Start with humidifier+scrubber off
+
+  Serial.println("\n=== RELAY CONFIGURATION (5 channels total) ===");
+  Serial.println("Single Relay Module (1 channel):");
+  Serial.println("  • GPIO 26: Humidifier + Scrubber (4A combined) ✓");
+  Serial.println("\n4-Channel Relay Module:");
+  Serial.println("  • CH1 (GPIO 18): Peltier 1 + Water Pump (8A) ✓");
+  Serial.println("  • CH2 (GPIO 19): Peltier 2 + All Fans (6.5A) ✓");
+  Serial.println("  • CH3 (GPIO 23): Peltier 3 (6A) ✓");
+  Serial.println("  • CH4 (GPIO 25): Peltier 4 (6A) ✓");
+  Serial.println("\nTotal cooling load: 26.5A (all channels under 10A) ✓");
+  Serial.println("Note: Humidifier+Scrubber share single relay (activate together)");
+  Serial.println("============================================\n");
 
   // Initialize I2C for SGP41
   Wire.begin();
@@ -578,9 +599,6 @@ void loop()
       {
         // Use raw value directly (typical clean air: 20000-30000)
         vocIndex = (float)vocRaw;
-
-        // Control scrubbing system based on VOC level
-        controlScrubber(vocIndex);
       }
       else
       {
@@ -588,9 +606,9 @@ void loop()
       }
     }
 
-    // Control cooling and humidifier systems
+    // Control all systems
     controlCooling(temperature);
-    controlHumidifier(humidity);
+    controlHumidifierScrubber(humidity, vocIndex);
 
     // Display readings on Serial Monitor
     Serial.println("--- Sensor Readings ---");
@@ -614,10 +632,10 @@ void loop()
     // Display system status
     Serial.print("Systems: Cooling=");
     Serial.print(coolingActive ? "ON" : "OFF");
-    Serial.print(" | Humidifier=");
-    Serial.print(humidifierActive ? "ON" : "OFF");
-    Serial.print(" | Scrubber=");
-    Serial.println(scrubberActive ? "ON" : "OFF");
+    Serial.print(" | Pump=");
+    Serial.print(pumpActive ? "ON" : "OFF");
+    Serial.print(" | Humidifier+Scrubber=");
+    Serial.println(humidifierScrubberActive ? "ON" : "OFF");
 
     // Check if temperature is in target range
     if (temperature >= TEMP_MIN && temperature <= TEMP_MAX)

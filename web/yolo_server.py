@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 YOLO Inference Server for Cold Storage Produce Detection
-Detects apples, tomatoes, and potatoes from ESP32-CAM images
+Detects apples and potatoes from ESP32-CAM images
 """
 
 from flask import Flask, request, jsonify
@@ -20,11 +20,10 @@ MODEL_PATH = "produce_model.pt"  # Path to your trained YOLO model
 UPLOAD_FOLDER = "inference_uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Class mapping for produce types
+# Class mapping for produce types (Apples + Potatoes only)
 PRODUCE_CLASSES = {
     0: 'apples',
-    1: 'tomatoes', 
-    2: 'potatoes'
+    1: 'potatoes'
 }
 
 # Load model (will be trained with your custom dataset)
@@ -142,7 +141,7 @@ def training_info():
     return jsonify({
         'message': 'Train your YOLO model with custom produce dataset',
         'steps': [
-            '1. Collect images of apples, tomatoes, and potatoes',
+            '1. Collect images of apples and potatoes',
             '2. Annotate images using tools like Roboflow or LabelImg',
             '3. Organize dataset: train/images, train/labels, val/images, val/labels',
             '4. Create data.yaml with class names and paths',
@@ -157,7 +156,7 @@ def training_info():
                 'train': './train/images',
                 'val': './val/images',
                 'nc': 3,
-                'names': ['apples', 'tomatoes', 'potatoes']
+                'names': ['apples', 'potatoes']
             }
         },
         'recommended_images': 'At least 100 images per class for good accuracy'

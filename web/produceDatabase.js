@@ -1,4 +1,4 @@
-// Produce Storage Conditions Database
+﻿// Produce Storage Conditions Database
 // Optimal temperature, humidity, and VOC thresholds for different produce types
 
 const produceDatabase = {
@@ -20,28 +20,7 @@ const produceDatabase = {
     },
     description: "Apples produce ethylene and require cold storage",
     storageLife: "3-8 months at optimal conditions",
-    icon: "🍎",
-  },
-
-  tomatoes: {
-    name: "Tomatoes",
-    temperature: {
-      min: 10,
-      max: 15,
-      optimal: 13,
-    },
-    humidity: {
-      min: 85,
-      max: 90,
-      optimal: 87,
-    },
-    vocs: {
-      threshold: 25000, // Very sensitive to ethylene
-      sensitivity: "high",
-    },
-    description: "Tomatoes are highly sensitive to ethylene and cold damage",
-    storageLife: "1-3 weeks at optimal conditions",
-    icon: "🍅",
+    icon: "",
   },
 
   potatoes: {
@@ -62,15 +41,15 @@ const produceDatabase = {
     },
     description: "Potatoes require cool, dark storage with good ventilation",
     storageLife: "5-8 months at optimal conditions",
-    icon: "🥔",
+    icon: "",
   },
 
   mixed: {
     name: "Mixed Produce",
     temperature: {
       min: 2,
-      max: 4,
-      optimal: 3,
+      max: 8,
+      optimal: 5,
     },
     humidity: {
       min: 85,
@@ -78,31 +57,13 @@ const produceDatabase = {
       optimal: 90,
     },
     vocs: {
-      threshold: 30000, // Conservative threshold
+      threshold: 28000,
       sensitivity: "medium",
     },
-    description: "Compromise settings for multiple produce types",
-    storageLife: "Varies by produce type",
-    icon: "🍎🍅🥔",
+    description: "Balanced settings for multiple produce types",
+    storageLife: "Varies by item",
+    icon: "",
   },
 };
 
-// Function to get produce settings in ESP32-compatible format
-function getProduceSettings(produceType) {
-  const produce = produceDatabase[produceType];
-  if (!produce) return null;
-
-  return {
-    temp: {
-      min: produce.temperature.min,
-      max: produce.temperature.max,
-    },
-    humidity: {
-      min: produce.humidity.min,
-      max: produce.humidity.max,
-    },
-    voc: produce.vocs.threshold,
-  };
-}
-
-module.exports = { produceDatabase, getProduceSettings };
+module.exports = produceDatabase;

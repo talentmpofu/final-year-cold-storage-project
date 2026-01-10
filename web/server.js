@@ -46,7 +46,7 @@ let latestMetrics = {
 
 // Store current produce and thresholds
 let currentProduce = {
-  type: null, // null, 'apples', 'tomatoes', 'potatoes'
+  type: null, // null, 'apples', 'potatoes'
   detectedAt: null,
   manualOverride: false,
   thresholds: {
@@ -90,14 +90,10 @@ app.get("/api/produce", (req, res) => {
 app.post("/api/produce/set", (req, res) => {
   const { produceType } = req.body;
 
-  if (
-    !produceType ||
-    !["apples", "tomatoes", "potatoes"].includes(produceType)
-  ) {
+  if (!produceType || !["apples", "potatoes"].includes(produceType)) {
     return res.status(400).json({
       success: false,
-      error:
-        "Invalid produce type. Must be 'apples', 'tomatoes', or 'potatoes'",
+      error: "Invalid produce type. Must be 'apples' or 'potatoes'",
     });
   }
 
@@ -360,6 +356,96 @@ app.post("/api/test-alert", async (req, res) => {
   }
 });
 
+// Inventory management with persistence
+const inventoryFile = path.join(__dirname, "inventory.json");
+
+// Load inventory from file
+function loadInventory() {
+  try {
+    if (fs.existsSync(inventoryFile)) {
+      const data = fs.readFileSync(inventoryFile, "utf8");
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error("❌ Error loading inventory:", error);
+  }
+  return [];
+}
+
+// Save inventory to file
+function saveInventory(inventory) {
+  try {
+    fs.writeFileSync(inventoryFile, JSON.stringify(inventory, null, 2));
+    console.log("💾 Inventory saved to file");
+  } catch (error) {
+    console.error("❌ Error saving inventory:", error);
+  }
+}
+
+let inventory = loadInventory();
+console.log(`📦 Loaded ${inventory.length} items from inventory`);
+
+// Get inventory
+app.get("/api/inventory", (req, res) => {
+  res.json({
+    success: true,
+    inventory: inventory,
+  });
+});
+
+// Add inventory item
+app.post("/api/inventory/add", (req, res) => {
+  const { produceType, quantity, daysLeft } = req.body;
+
+  if (!produceType || !quantity || !daysLeft) {
+    return res.status(400).json({
+      success: false,
+      error: "Missing required fields: produceType, quantity, daysLeft",
+    });
+  }
+
+  const newItem = {
+    id: Date.now(),
+    type: produceType,
+    quantity: parseInt(quantity),
+    daysLeft: parseInt(daysLeft),
+    addedAt: new Date().toISOString(),
+  };
+
+  inventory.push(newItem);
+  saveInventory(inventory);
+  console.log(`📦 Inventory item added: ${quantity} units of ${produceType}`);
+
+  res.json({
+    success: true,
+    inventory: inventory,
+    item: newItem,
+  });
+});
+
+// Delete inventory item
+app.delete("/api/inventory/delete/:id", (req, res) => {
+  const itemId = parseInt(req.params.id);
+
+  const initialLength = inventory.length;
+  inventory = inventory.filter((item) => item.id !== itemId);
+
+  if (inventory.length < initialLength) {
+    saveInventory(inventory);
+    console.log(`🗑️ Inventory item deleted: ID ${itemId}`);
+
+    res.json({
+      success: true,
+      inventory: inventory,
+    });
+  } else {
+    res.status(404).json({
+      success: false,
+      error: "Item not found",
+    });
+  }
+});
+
 // Serve the dashboard
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
@@ -392,9 +478,9 @@ app.listen(PORT, "0.0.0.0", async () => {
   });
   console.log("\n");
 
-  // Auto-open browser to dashboard
+  // Auto-open browser to login page
   const open = require("open");
-  const dashboardUrl = `http://localhost:${PORT}/index.html#dashboard`;
-  console.log(`🚀 Opening dashboard: ${dashboardUrl}\n`);
+  const dashboardUrl = `http://localhost:${PORT}/login.html`;
+  console.log(`🚀 Opening login page: ${dashboardUrl}\n`);
   open(dashboardUrl);
 });

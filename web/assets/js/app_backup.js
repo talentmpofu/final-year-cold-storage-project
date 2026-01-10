@@ -27,7 +27,6 @@
       const res = await fetch("/api/metrics", { cache: "no-store" });
       if (!res.ok) throw new Error("bad status");
       const data = await res.json();
-      console.log("📊 Fetched data from API:", data);
       // Expected shape:
       // {
       //   temperature: { value: Number },
@@ -42,16 +41,13 @@
         updateProduceDisplay(data.produce);
       }
 
-      const result = {
+      return {
         temp: Number(data?.temperature?.value),
         humidity: Number(data?.humidity?.value),
         ethylene: Number(data?.vocs?.value) / 1000.0, // VOCs converted to ppm for display
         produce: data.produce,
       };
-      console.log("📈 Parsed metrics:", result);
-      return result;
     } catch (e) {
-      console.error("❌ Error fetching metrics:", e);
       return null;
     }
   }
@@ -94,7 +90,7 @@
 
     // Fixed axis ranges - separate axes for temperature and ethylene
     const tempMin = 0;
-    const tempMax = 35; // Temperature °C
+    const tempMax = 35; // Temperature Â°C
     const ethMin = 0;
     const ethMax = 50; // VOCs/Ethylene ppm (0-50 range to show typical 20-40 values)
     const humMin = 0;
@@ -198,7 +194,7 @@
     canvasCtx.font = "13px Inter, Arial, sans-serif";
     // Left axis title (Temperature) - red
     canvasCtx.fillStyle = "#ef4444";
-    canvasCtx.fillText("Temp (°C)", PAD + 6, PAD - 8);
+    canvasCtx.fillText("Temp (Â°C)", PAD + 6, PAD - 8);
     // Left axis title (Ethylene) - orange, offset
     canvasCtx.fillStyle = "#f59e0b";
     canvasCtx.fillText("Ethylene (ppm)", PAD + 90, PAD - 8);
@@ -304,13 +300,13 @@
 
       tooltip.innerHTML = `
         <div style="font-weight: 600; margin-bottom: 4px; font-size: 12px;">${timeStr}</div>
-        <div><span style="color:#ef4444">●</span> Temperature: <strong>${fmt(
+        <div><span style="color:#ef4444">â—</span> Temperature: <strong>${fmt(
           item.temp
-        )} °C</strong></div>
-        <div><span style="color:#0ea5e9">●</span> Humidity: <strong>${fmt(
+        )} Â°C</strong></div>
+        <div><span style="color:#0ea5e9">â—</span> Humidity: <strong>${fmt(
           item.humidity
         )} %</strong></div>
-        <div><span style="color:#f59e0b">●</span> Ethylene/VOCs: <strong>${fmtPrecise(
+        <div><span style="color:#f59e0b">â—</span> Ethylene/VOCs: <strong>${fmtPrecise(
           item.ethylene
         )} ppm</strong></div>
       `;
@@ -328,9 +324,7 @@
   // Remove last-sync handling (element not present in DOM)
 
   async function updateMetrics() {
-    console.log("🔄 updateMetrics called");
     const fetched = await fetchMetrics();
-    console.log("✅ Fetched result:", fetched);
     let temp, humidity, ethylene, tstamp;
     if (
       fetched &&
@@ -342,26 +336,19 @@
       humidity = fetched.humidity;
       ethylene = fetched.ethylene;
       tstamp = Date.now();
-      console.log("✓ Using real data:", { temp, humidity, ethylene });
     } else {
       temp = 3 + Math.random() * 3.5;
       humidity = 85 + Math.random() * 8;
       ethylene = 0.01 + Math.random() * 0.14;
       tstamp = Date.now();
-      console.log("⚠️ Using mock data (fetch failed):", {
-        temp,
-        humidity,
-        ethylene,
-      });
     }
 
     el("temp-value").textContent = fmt(temp);
     el("humidity-value").textContent = fmt(humidity);
     el("ethylene-value").textContent = fmtPrecise(ethylene);
-    console.log("📝 Updated DOM elements");
 
     // Update indicator bars
-    // Temperature: 0-15°C range
+    // Temperature: 0-15Â°C range
     const tempPercent = Math.max(0, Math.min(100, (temp / 15) * 100));
     el("temp-bar").style.width = tempPercent + "%";
 
@@ -440,7 +427,7 @@
     if (ethylene > targets.ethylene.max) {
       alerts.push({
         type: "err",
-        text: "VOC/Ethylene concentration high — air scrubber activated automatically.",
+        text: "VOC/Ethylene concentration high â€” air scrubber activated automatically.",
       });
       // Auto-activate scrubber when VOCs are high
       if (systemStatus.scrubber !== "active") {
@@ -650,328 +637,17 @@
     // Camera actions
     const refreshBtn = el("refresh-snapshot");
     const galleryBtn = el("open-gallery");
-    if (refreshBtn) {
-      refreshBtn.addEventListener("click", () => {
-        loadLatestSnapshot();
-        notify("Snapshot refreshed");
-      });
-    }
-    if (galleryBtn) {
-      galleryBtn.addEventListener("click", () => {
-        console.log("Gallery button clicked");
-        openGalleryModal();
-      });
-    } else {
-      console.error("Open Gallery button not found!");
-    }
-  }
-
-  // Gallery functionality
-  async function openGalleryModal() {
-    // Remove any existing gallery modal first
-    const existingModal = document.getElementById("gallery-modal");
-    if (existingModal) {
-      existingModal.remove();
-    }
-
-    try {
-      const response = await fetch("/api/snapshots");
-      const data = await response.json();
-
-      if (!data.snapshots || data.snapshots.length === 0) {
-        alert("No snapshots available yet");
-        return;
-      }
-
-      // Create modal
-      const modal = document.createElement("div");
-      modal.id = "gallery-modal";
-      modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.95);
-        z-index: 10000;
-        overflow-y: auto;
-        padding: 20px;
-      `;
-
-      modal.innerHTML = `
-        <div style="max-width: 1200px; margin: 0 auto;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-            <h2 style="color: white; margin: 0;">Image Gallery</h2>
-            <button id="close-gallery" style="
-              background: #ef4444;
-              color: white;
-              border: none;
-              padding: 12px 24px;
-              font-size: 16px;
-              font-weight: 600;
-              border-radius: 8px;
-              cursor: pointer;
-            ">✕ Close Gallery</button>
-          </div>
-          <div id="gallery-grid" style="
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-          ">
-            ${data.snapshots
-              .map(
-                (snapshot, index) => `
-              <div class="gallery-item" data-url="${snapshot.url}" style="
-                background: white;
-                border-radius: 12px;
-                overflow: hidden;
-                cursor: pointer;
-                transition: transform 0.2s;
-              " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                <img src="${snapshot.url}" alt="Snapshot" style="
-                  width: 100%;
-                  height: 250px;
-                  object-fit: cover;
-                "/>
-                <div style="padding: 12px; text-align: center; color: #1f2937; font-size: 14px;">
-                  ${new Date(snapshot.timestamp).toLocaleString()}
-                </div>
-              </div>
-            `
-              )
-              .join("")}
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(modal);
-
-      // Close button - use a function to ensure clean removal
-      const closeGallery = () => {
-        const galleryModal = document.getElementById("gallery-modal");
-        if (galleryModal) {
-          galleryModal.remove();
-        }
-      };
-
-      document
-        .getElementById("close-gallery")
-        .addEventListener("click", closeGallery);
-
-      // Click image to view full size
-      document.querySelectorAll(".gallery-item").forEach((item, index) => {
-        item.addEventListener("click", () => {
-          viewFullImage(data.snapshots, index, closeGallery);
-        });
-      });
-
-      // Close on outside click
-      modal.addEventListener("click", (e) => {
-        if (e.target === modal) {
-          closeGallery();
-        }
-      });
-    } catch (error) {
-      console.error("Error loading gallery:", error);
-      alert("Failed to load gallery");
-    }
-  }
-
-  function viewFullImage(snapshots, currentIndex, closeGalleryCallback) {
-    let index = currentIndex;
-
-    // Remove any existing viewer first
-    const existingViewer = document.getElementById("image-viewer");
-    if (existingViewer) {
-      existingViewer.remove();
-    }
-
-    // Create full-screen image viewer
-    const viewer = document.createElement("div");
-    viewer.id = "image-viewer";
-    viewer.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.98);
-      z-index: 10001;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 80px;
-    `;
-
-    function updateImage() {
-      const snapshot = snapshots[index];
-      viewer.innerHTML = `
-        <img id="viewer-image" src="${
-          snapshot.url
-        }" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
-        
-        <!-- Close Button -->
-        <button id="close-viewer" style="
-          position: absolute;
-          top: 20px;
-          right: 20px;
-          background: #ef4444;
-          color: white;
-          border: none;
-          padding: 12px 24px;
-          font-size: 16px;
-          font-weight: 600;
-          border-radius: 8px;
-          cursor: pointer;
-          z-index: 10002;
-        ">✕ Close</button>
-
-        <!-- Timestamp -->
-        <div style="
-          position: absolute;
-          top: 20px;
-          left: 20px;
-          background: rgba(0, 0, 0, 0.8);
-          color: white;
-          padding: 12px 20px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          z-index: 10002;
-        ">
-          📅 ${new Date(snapshot.timestamp).toLocaleString()}<br>
-          <span style="font-size: 12px; opacity: 0.8;">Image ${index + 1} of ${
-        snapshots.length
-      }</span>
-        </div>
-
-        <!-- Left Arrow -->
-        ${
-          index > 0
-            ? `
-        <button id="prev-image" style="
-          position: absolute;
-          left: 20px;
-          top: 50%;
-          transform: translateY(-50%);
-          background: rgba(255, 255, 255, 0.9);
-          color: #1f2937;
-          border: none;
-          padding: 16px 20px;
-          font-size: 24px;
-          font-weight: 700;
-          border-radius: 50%;
-          cursor: pointer;
-          width: 60px;
-          height: 60px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 10002;
-          transition: background 0.2s;
-        " onmouseover="this.style.background='white'" onmouseout="this.style.background='rgba(255, 255, 255, 0.9)'">
-          ◀
-        </button>
-        `
-            : ""
-        }
-
-        <!-- Right Arrow -->
-        ${
-          index < snapshots.length - 1
-            ? `
-        <button id="next-image" style="
-          position: absolute;
-          right: 20px;
-          top: 50%;
-          transform: translateY(-50%);
-          background: rgba(255, 255, 255, 0.9);
-          color: #1f2937;
-          border: none;
-          padding: 16px 20px;
-          font-size: 24px;
-          font-weight: 700;
-          border-radius: 50%;
-          cursor: pointer;
-          width: 60px;
-          height: 60px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 10002;
-          transition: background 0.2s;
-        " onmouseover="this.style.background='white'" onmouseout="this.style.background='rgba(255, 255, 255, 0.9)'">
-          ▶
-        </button>
-        `
-            : ""
-        }
-      `;
-
-      // Attach event listeners
-      const closeBtn = document.getElementById("close-viewer");
-      if (closeBtn) {
-        closeBtn.addEventListener("click", () => {
-          viewer.remove();
-          document.removeEventListener("keydown", handleKeyPress);
-        });
-      }
-
-      const prevBtn = document.getElementById("prev-image");
-      if (prevBtn) {
-        prevBtn.addEventListener("click", () => {
-          index--;
-          updateImage();
-        });
-      }
-
-      const nextBtn = document.getElementById("next-image");
-      if (nextBtn) {
-        nextBtn.addEventListener("click", () => {
-          index++;
-          updateImage();
-        });
-      }
-    }
-
-    // Keyboard navigation
-    function handleKeyPress(e) {
-      if (e.key === "ArrowLeft" && index > 0) {
-        index--;
-        updateImage();
-      } else if (e.key === "ArrowRight" && index < snapshots.length - 1) {
-        index++;
-        updateImage();
-      } else if (e.key === "Escape") {
-        const viewerToRemove = document.getElementById("image-viewer");
-        if (viewerToRemove) {
-          viewerToRemove.remove();
-        }
-        document.removeEventListener("keydown", handleKeyPress);
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyPress);
-
-    // Close on background click
-    viewer.addEventListener("click", (e) => {
-      if (e.target === viewer || e.target.id === "image-viewer") {
-        const viewerToRemove = document.getElementById("image-viewer");
-        if (viewerToRemove) {
-          viewerToRemove.remove();
-        }
-        document.removeEventListener("keydown", handleKeyPress);
-      }
-    });
-
-    document.body.appendChild(viewer);
-    updateImage();
+    if (refreshBtn)
+      refreshBtn.addEventListener("click", () => notify("Snapshot refreshed"));
+    if (galleryBtn)
+      galleryBtn.addEventListener("click", () => notify("Gallery opened"));
   }
 
   // Inventory sample data and rendering
   const inventory = [
     {
       item: "Apples",
+      variety: "Red Delicious",
       qty: 24,
       unit: "units",
       shelf: 3,
@@ -979,7 +655,17 @@
       snapshot: "assets/img/placeholder-produce.jpg",
     },
     {
+      item: "Bananas",
+      variety: "Cavendish",
+      qty: 28,
+      unit: "units",
+      shelf: 6,
+      status: "warning",
+      snapshot: "assets/img/placeholder-produce.jpg",
+    },
+    {
       item: "Potatoes",
+      variety: "Russet",
       qty: 45,
       unit: "units",
       shelf: 21,
@@ -992,7 +678,7 @@
   const aiAlerts = [
     {
       id: 1,
-      icon: "🍎",
+      icon: "ðŸŽ",
       title: "Apples",
       message:
         "AI detected overripening in 3 apples. Recommend immediate removal.",
@@ -1003,8 +689,19 @@
       ],
     },
     {
+      id: 2,
+      icon: "ï¿½",
+      title: "Bananas",
+      message: "Early browning detected on 2 bananas. Monitor closely.",
+      severity: "medium",
+      actions: [
+        { label: "Schedule", type: "primary" },
+        { label: "Image", type: "secondary" },
+      ],
+    },
+    {
       id: 3,
-      icon: "🥔",
+      icon: "ðŸ¥”",
       title: "Potatoes",
       message: "All items optimal. Remaining time: 21 days.",
       severity: "good",
@@ -1043,6 +740,7 @@
           : "";
 
       card.innerHTML = `
+        <div class="ai-alert-icon">${alert.icon}</div>
         <div class="ai-alert-content">
           <div class="ai-alert-header">
             <h3 class="ai-alert-title">${alert.title}</h3>
@@ -1082,6 +780,7 @@
           : `${r.shelf} days left`;
       tr.innerHTML = `
         <td><strong>${r.item}</strong></td>
+        <td>${r.variety}</td>
         <td>${r.qty} ${r.unit}</td>
         <td style="color: ${
           r.status === "critical"
@@ -1099,14 +798,42 @@
   }
 
   function bindInventory() {
-    // This function is deprecated - functionality moved to bindInventoryControls
-    // Keeping empty stub to avoid errors from init() call
+    const search = document.getElementById("inv-search");
+    const filter = document.getElementById("inv-filter");
+    const addBtn = document.getElementById("add-items-btn");
+
+    if (!search || !filter) return;
+
+    if (addBtn) {
+      addBtn.addEventListener("click", () => {
+        alert(
+          "Add Items feature - would open a form to add new inventory items."
+        );
+      });
+    }
+
+    function apply() {
+      const q = (search.value || "").toLowerCase();
+      const f = filter.value || "all";
+      const out = inventory.filter(
+        (r) =>
+          (f === "all" || r.status === f) &&
+          (q === "" ||
+            r.item.toLowerCase().includes(q) ||
+            r.variety.toLowerCase().includes(q))
+      );
+      renderInventory(out);
+    }
+    search.addEventListener("input", apply);
+    filter.addEventListener("change", apply);
+    apply();
   }
 
   // Produce presets with optimal storage conditions
   const producePresets = {
     potatoes: { temp: 7, humidity: 90, ethylene: 20 },
     apples: { temp: 2, humidity: 92, ethylene: 25 },
+    bananas: { temp: 14, humidity: 90, ethylene: 35 },
   };
 
   function bindSettings() {
@@ -1137,7 +864,7 @@
         const newHumidity = parseFloat(humidityInput.value);
         const newEthylene = parseFloat(ethyleneInput.value);
 
-        // Update targets with range (±1°C for temp, ±2.5% for humidity)
+        // Update targets with range (Â±1Â°C for temp, Â±2.5% for humidity)
         targets.temp.min = Math.max(0, newTemp - 1);
         targets.temp.max = Math.min(15, newTemp + 1);
         targets.humidity.min = Math.max(50, newHumidity - 2.5);
@@ -1158,12 +885,12 @@
         if (tempTarget) {
           tempTarget.textContent = `Target: ${targets.temp.min.toFixed(
             0
-          )}–${targets.temp.max.toFixed(0)}°C`;
+          )}â€“${targets.temp.max.toFixed(0)}Â°C`;
         }
         if (humidityTarget) {
           humidityTarget.textContent = `Target: ${Math.round(
             targets.humidity.min
-          )}–${Math.round(targets.humidity.max)}%`;
+          )}â€“${Math.round(targets.humidity.max)}%`;
         }
         if (ethyleneTarget) {
           ethyleneTarget.textContent = `Threshold: ${targets.ethylene.max} ppm`;
@@ -1174,9 +901,9 @@
         if (alertList) {
           const li = document.createElement("li");
           li.className = "alert-item ok";
-          li.textContent = `✓ Settings updated: Temp ${targets.temp.min.toFixed(
+          li.textContent = `âœ“ Settings updated: Temp ${targets.temp.min.toFixed(
             0
-          )}-${targets.temp.max.toFixed(0)}°C, Humidity ${Math.round(
+          )}-${targets.temp.max.toFixed(0)}Â°C, Humidity ${Math.round(
             targets.humidity.min
           )}-${Math.round(targets.humidity.max)}%, Ethylene ${
             targets.ethylene.max
@@ -1229,13 +956,15 @@
 
   // Produce management functions
   const produceIcons = {
-    apples: "🍎",
-    potatoes: "🥔",
-    null: "❓",
+    apples: "ðŸŽ",
+    bananas: "ðŸŒ",
+    potatoes: "ðŸ¥”",
+    null: "â“",
   };
 
   const produceNames = {
     apples: "Apples",
+    bananas: "Bananas",
     potatoes: "Potatoes",
     null: "No produce detected",
   };
@@ -1254,8 +983,8 @@
     if (method) {
       if (produce.type) {
         method.textContent = produce.manualOverride
-          ? "👤 Manually selected"
-          : "🤖 AI detected";
+          ? "ðŸ‘¤ Manually selected"
+          : "ðŸ¤– AI detected";
       } else {
         method.textContent = "Waiting for detection...";
       }
@@ -1278,10 +1007,10 @@
       const vocEl = el("threshold-voc");
 
       if (tempEl) {
-        tempEl.textContent = `${produce.thresholds.temperature.min}–${produce.thresholds.temperature.max}°C`;
+        tempEl.textContent = `${produce.thresholds.temperature.min}â€“${produce.thresholds.temperature.max}Â°C`;
       }
       if (humidEl) {
-        humidEl.textContent = `${produce.thresholds.humidity.min}–${produce.thresholds.humidity.max}%`;
+        humidEl.textContent = `${produce.thresholds.humidity.min}â€“${produce.thresholds.humidity.max}%`;
       }
       if (vocEl) {
         vocEl.textContent = `${(produce.thresholds.voc / 1000).toFixed(0)} ppm`;
@@ -1296,10 +1025,10 @@
       );
 
       if (tempTarget) {
-        tempTarget.textContent = `Target: ${produce.thresholds.temperature.min}–${produce.thresholds.temperature.max}°C`;
+        tempTarget.textContent = `Target: ${produce.thresholds.temperature.min}â€“${produce.thresholds.temperature.max}Â°C`;
       }
       if (humidTarget) {
-        humidTarget.textContent = `Target: ${produce.thresholds.humidity.min}–${produce.thresholds.humidity.max}%`;
+        humidTarget.textContent = `Target: ${produce.thresholds.humidity.min}â€“${produce.thresholds.humidity.max}%`;
       }
     }
   }
@@ -1318,12 +1047,12 @@
       if (data.success) {
         updateProduceDisplay(data.produce);
         showAlert(
-          `✓ Produce set to ${produceNames[produceType]}. Thresholds updated.`,
+          `âœ“ Produce set to ${produceNames[produceType]}. Thresholds updated.`,
           "success"
         );
       }
     } catch (e) {
-      showAlert(`✗ Failed to set produce type: ${e.message}`, "error");
+      showAlert(`âœ— Failed to set produce type: ${e.message}`, "error");
     }
   }
 
@@ -1337,192 +1066,9 @@
         if (selectedProduce) {
           setProduceType(selectedProduce);
         } else {
-          showAlert("⚠️ Please select a produce type", "warning");
+          showAlert("âš ï¸ Please select a produce type", "warning");
         }
       });
-    }
-  }
-
-  // Inventory Management
-  let inventoryItems = [];
-
-  function renderInventory() {
-    const tbody = el("inv-body");
-    if (!tbody) return;
-
-    tbody.innerHTML = "";
-
-    if (inventoryItems.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 24px; color: #9ca3af;">No items in inventory. Click "+ Add Items" to add produce.</td></tr>`;
-      return;
-    }
-
-    inventoryItems.forEach((item) => {
-      const row = document.createElement("tr");
-
-      // Determine status
-      let status = "Good";
-      let statusClass = "good";
-      if (item.daysLeft <= 3) {
-        status = "Critical";
-        statusClass = "critical";
-      } else if (item.daysLeft <= 7) {
-        status = "Warning";
-        statusClass = "warning";
-      }
-
-      const itemIcon = produceIcons[item.type] || "📦";
-      const itemName = produceNames[item.type] || item.type;
-
-      row.innerHTML = `
-        <td>${itemIcon} ${itemName}</td>
-        <td>${item.quantity} units</td>
-        <td style="color: ${
-          statusClass === "critical"
-            ? "#dc2626"
-            : statusClass === "warning"
-            ? "#f59e0b"
-            : "#059669"
-        };">
-          ${item.daysLeft} days left
-        </td>
-        <td style="color: ${
-          statusClass === "critical"
-            ? "#dc2626"
-            : statusClass === "warning"
-            ? "#f59e0b"
-            : "#059669"
-        }; font-weight: 500;">${status}</td>
-        <td>
-          <button 
-            class="delete-item-btn" 
-            data-item-id="${item.id}"
-            style="
-              background: #ef4444;
-              color: white;
-              border: none;
-              padding: 6px 12px;
-              border-radius: 6px;
-              cursor: pointer;
-              font-size: 13px;
-              font-weight: 600;
-            "
-            onmouseover="this.style.background='#dc2626'"
-            onmouseout="this.style.background='#ef4444'"
-          >Delete</button>
-        </td>
-      `;
-      tbody.appendChild(row);
-
-      // Add delete event listener
-      const deleteBtn = row.querySelector(".delete-item-btn");
-      if (deleteBtn) {
-        deleteBtn.addEventListener("click", async () => {
-          console.log("Delete button clicked for item:", item.id);
-          if (confirm(`Delete ${item.quantity} units of ${itemName}?`)) {
-            console.log("User confirmed deletion");
-            await deleteInventoryItem(item.id);
-          } else {
-            console.log("User cancelled deletion");
-          }
-        });
-      }
-    });
-  }
-
-  function bindInventoryControls() {
-    const addBtn = el("add-items-btn");
-    const modal = el("add-inventory-modal");
-    const form = el("add-inventory-form");
-    const cancelBtn = el("cancel-add-item");
-
-    if (!addBtn || !modal || !form) return;
-
-    // Open modal
-    addBtn.addEventListener("click", () => {
-      modal.hidden = false;
-      form.reset();
-    });
-
-    // Close modal
-    cancelBtn.addEventListener("click", () => {
-      modal.hidden = true;
-    });
-
-    // Submit form
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const produceType = el("item-produce-type").value;
-      const quantity = parseInt(el("item-quantity").value);
-      const daysLeft = parseInt(el("item-days-left").value);
-
-      if (!produceType || !quantity || !daysLeft) {
-        showAlert("⚠️ Please fill all fields", "warning");
-        return;
-      }
-
-      try {
-        const res = await fetch("/api/inventory/add", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ produceType, quantity, daysLeft }),
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-          inventoryItems = data.inventory;
-          renderInventory();
-          modal.hidden = true;
-          showAlert(
-            `✓ ${quantity} units of ${produceNames[produceType]} added to inventory`,
-            "success"
-          );
-        } else {
-          showAlert(`✗ Failed to add item: ${data.error}`, "error");
-        }
-      } catch (error) {
-        showAlert(`✗ Error adding item: ${error.message}`, "error");
-      }
-    });
-  }
-
-  async function loadInventory() {
-    try {
-      const res = await fetch("/api/inventory");
-      const data = await res.json();
-
-      if (data.success) {
-        inventoryItems = data.inventory;
-        renderInventory();
-      }
-    } catch (error) {
-      console.error("Error loading inventory:", error);
-    }
-  }
-
-  async function deleteInventoryItem(itemId) {
-    console.log("deleteInventoryItem called with ID:", itemId);
-    try {
-      const res = await fetch(`/api/inventory/delete/${itemId}`, {
-        method: "DELETE",
-      });
-
-      console.log("Delete response status:", res.status);
-      const data = await res.json();
-      console.log("Delete response data:", data);
-
-      if (data.success) {
-        inventoryItems = data.inventory;
-        renderInventory();
-        showAlert("✓ Item deleted successfully", "success");
-      } else {
-        showAlert(`✗ Failed to delete item: ${data.error}`, "error");
-      }
-    } catch (error) {
-      console.error("Error deleting item:", error);
-      showAlert(`✗ Error deleting item: ${error.message}`, "error");
     }
   }
 
@@ -1560,7 +1106,7 @@
       const data = await res.json();
 
       if (!data.success || !data.snapshots || data.snapshots.length === 0) {
-        showAlert("📷 No snapshots available yet", "warning");
+        showAlert("ðŸ“· No snapshots available yet", "warning");
         return;
       }
 
@@ -1583,7 +1129,7 @@
       `;
 
       const closeBtn = document.createElement("button");
-      closeBtn.textContent = "✕ Close Gallery";
+      closeBtn.textContent = "âœ• Close Gallery";
       closeBtn.style.cssText = `
         position: fixed;
         top: 20px;
@@ -1647,42 +1193,23 @@
       document.body.appendChild(modal);
     } catch (e) {
       console.error("Error opening gallery:", e);
-      showAlert("✗ Failed to load gallery", "error");
+      showAlert("âœ— Failed to load gallery", "error");
     }
   }
 
-  // Load latest snapshot from server
-  async function loadLatestSnapshot() {
-    try {
-      // Aggressive cache busting
-      const timestamp = new Date().getTime();
-      const response = await fetch(`/api/latest-snapshot?_=${timestamp}`, {
-        cache: "no-store",
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
+  function bindCameraControls() {
+    const refreshBtn = el("refresh-snapshot");
+    const galleryBtn = el("open-gallery");
+
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => {
+        loadLatestSnapshot();
+        showAlert("ðŸ“· Snapshot refreshed", "success");
       });
-      const data = await response.json();
+    }
 
-      console.log("Latest snapshot data:", data); // Debug log
-
-      const cameraImg = el("camera-img");
-      if (data.snapshot && cameraImg) {
-        // Force reload with timestamp
-        const imageUrl = data.snapshot + "?t=" + timestamp;
-        console.log("Loading image:", imageUrl); // Debug log
-        cameraImg.src = imageUrl;
-        cameraImg.alt = `Snapshot from ${new Date(
-          data.timestamp
-        ).toLocaleString()}`;
-      } else if (cameraImg) {
-        console.warn("No snapshot available");
-        cameraImg.alt = "No snapshot available yet";
-      }
-    } catch (error) {
-      console.error("Error loading snapshot:", error);
+    if (galleryBtn) {
+      galleryBtn.addEventListener("click", openSnapshotGallery);
     }
   }
 
@@ -1711,8 +1238,7 @@
     bindEnvTrendTooltip();
     bindTimeRangeButtons();
     bindProduceControls();
-    bindInventoryControls();
-    loadInventory();
+    bindCameraControls();
     loadLatestSnapshot(); // Load initial snapshot
     setInterval(() => {
       updateMetrics();
@@ -1735,3 +1261,4 @@
 
   document.addEventListener("DOMContentLoaded", init);
 })();
+

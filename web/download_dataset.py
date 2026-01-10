@@ -1,4 +1,4 @@
-"""
+﻿"""
 Download and prepare dataset for training
 Downloads produce freshness dataset with multiple ripeness stages
 """
@@ -23,29 +23,29 @@ def download_roboflow_dataset():
     Includes: fresh, ripe, overripe, and spoiled stages
     """
     
-    print("\n📥 Downloading Produce Freshness Dataset...")
+    print("\nðŸ“¥ Downloading Produce Freshness Dataset...")
     print("\nDataset includes:")
-    print("  ✓ Fresh produce (apples, tomatoes, potatoes)")
-    print("  ✓ Ripe produce (optimal freshness)")
-    print("  ✓ Overripe produce (early spoilage)")
-    print("  ✓ Spoiled/Rotten produce")
+    print("  âœ“ Fresh produce (apples and potatoes)")
+    print("  âœ“ Ripe produce (optimal freshness)")
+    print("  âœ“ Overripe produce (early spoilage)")
+    print("  âœ“ Spoiled/Rotten produce")
     
     # For now, we'll use a manual download approach
     print("\n" + "=" * 60)
     print("DATASET OPTIONS:")
     print("=" * 60)
     
-    print("\n🔥 RECOMMENDED - Roboflow Universe:")
+    print("\nðŸ”¥ RECOMMENDED - Roboflow Universe:")
     print("   1. Go to: https://universe.roboflow.com")
     print("   2. Search for: 'fruit freshness detection'")
     print("   3. Look for datasets with these classes:")
-    print("      - Fresh apples, tomatoes, potatoes")
+    print("      - Fresh apples and potatoes")
     print("      - Ripe/Overripe stages")
     print("      - Spoiled/Rotten produce")
     print("   4. Download as YOLOv8 PyTorch format")
     print("   5. Extract to this folder: dataset/")
     
-    print("\n🎯 ALTERNATIVE - Kaggle Datasets:")
+    print("\nðŸŽ¯ ALTERNATIVE - Kaggle Datasets:")
     print("   Dataset 1: Fruits Fresh and Rotten")
     print("   URL: kaggle.com/datasets/sriramr/fruits-fresh-and-rotten-for-classification")
     print("   - Install: pip install kaggle")
@@ -59,7 +59,7 @@ def download_roboflow_dataset():
 def create_dataset_structure():
     """Create dataset structure for manual setup"""
     
-    print("\n📁 Creating dataset structure...")
+    print("\nðŸ“ Creating dataset structure...")
     
     # Create directories
     dirs = [
@@ -71,7 +71,7 @@ def create_dataset_structure():
     
     for dir_path in dirs:
         os.makedirs(dir_path, exist_ok=True)
-        print(f"✅ Created: {dir_path}")
+        print(f"âœ… Created: {dir_path}")
     
     # Create data.yaml
     data_yaml = {
@@ -81,8 +81,8 @@ def create_dataset_structure():
         'names': {
             0: 'apple_fresh',
             1: 'apple_spoiled',
-            2: 'tomato_fresh',
-            3: 'tomato_spoiled',
+            2: 'potato_fresh',
+            3: 'potato_spoiled',
             4: 'potato_fresh',
             5: 'potato_spoiled',
         }
@@ -92,7 +92,7 @@ def create_dataset_structure():
     with open(yaml_path, 'w') as f:
         yaml.dump(data_yaml, f, default_flow_style=False)
     
-    print(f"\n✅ Created: {yaml_path}")
+    print(f"\nâœ… Created: {yaml_path}")
     
     return yaml_path
     
@@ -141,13 +141,13 @@ Place your training data here:
 ## Structure:
 ```
 dataset/
-├── data.yaml          # Dataset configuration (already created)
-├── train/
-│   ├── images/        # Training images (add .jpg/.png files here)
-│   └── labels/        # Training labels (add .txt files here)
-└── valid/
-    ├── images/        # Validation images
-    └── labels/        # Validation labels
+â”œâ”€â”€ data.yaml          # Dataset configuration (already created)
+â”œâ”€â”€ train/
+â”‚   â”œâ”€â”€ images/        # Training images (add .jpg/.png files here)
+â”‚   â””â”€â”€ labels/        # Training labels (add .txt files here)
+â””â”€â”€ valid/
+    â”œâ”€â”€ images/        # Validation images
+    â””â”€â”€ labels/        # Validation labels
 ```
 
 ## Label Format (YOLO):
@@ -160,8 +160,8 @@ All values normalized 0-1.
 ## Classes:
 0: apple_fresh
 1: apple_spoiled
-2: tomato_fresh
-3: tomato_spoiled
+2: potato_fresh
+3: potato_spoiled
 4: potato_fresh
 5: potato_spoiled
 
@@ -174,17 +174,17 @@ All values normalized 0-1.
     with open('dataset/README.md', 'w') as f:
         f.write(readme)
     
-    print(f"\n✅ Created dataset/README.md with instructions")
+    print(f"\nâœ… Created dataset/README.md with instructions")
     print("\n" + "=" * 60)
 
 if __name__ == "__main__":
     yaml_path = download_roboflow_dataset()
     
     print("\n" + "=" * 60)
-    print("✅ DATASET STRUCTURE READY!")
+    print("âœ… DATASET STRUCTURE READY!")
     print("=" * 60)
-    print(f"\n📄 Configuration file: {yaml_path}")
-    print("\n📋 BEST DATASETS WITH ALL STAGES:")
+    print(f"\nðŸ“„ Configuration file: {yaml_path}")
+    print("\nðŸ“‹ BEST DATASETS WITH ALL STAGES:")
     print("\n1. Roboflow - 'Fruit Freshness Detection'")
     print("   Classes: fresh, ripe, overripe, rotten")
     print("   Link: universe.roboflow.com/search?q=fruit+freshness")
@@ -196,3 +196,4 @@ if __name__ == "__main__":
     print("\n3. Run training after download:")
     print("   python train_model.py")
     print("\n" + "=" * 60)
+

@@ -14,7 +14,7 @@
   <body>
     <header class="app-header gradient" role="banner">
       <div class="brand">
-        <span class="logo" aria-hidden="true">❄️</span>
+        <span class="logo" aria-hidden="true">[COLD]</span>
         <div>
           <h1>Cold Storage Monitor</h1>
           <p class="subtitle">Smart Produce Management System</p>
@@ -72,9 +72,7 @@
         id="alert-banner-dismiss"
         class="alert-dismiss"
         aria-label="Dismiss alert"
-      >
-        ✕
-      </button>
+      ></button>
     </div>
 
     <main class="container" role="main">
@@ -104,9 +102,7 @@
                 id="current-produce-display"
                 style="display: flex; align-items: center; gap: 12px"
               >
-                <span id="current-produce-icon" style="font-size: 48px"
-                  >❓</span
-                >
+                <span id="current-produce-icon" style="font-size: 48px"></span>
                 <div>
                   <div
                     id="current-produce-name"
@@ -154,8 +150,9 @@
                   "
                 >
                   <option value="">-- Select Produce --</option>
-                  <option value="apples">🍎 Apples</option>
-                  <option value="potatoes">🥔 Potatoes</option>
+                  <option value="apples">Apples</option>
+                  <option value="bananas">Bananas</option>
+                  <option value="potatoes">Potatoes</option>
                 </select>
                 <button
                   id="set-produce-btn"
@@ -175,7 +172,7 @@
                 </button>
               </div>
               <p style="font-size: 12px; color: #6b7280; margin-top: 8px">
-                ℹ️ Manual selection overrides AI detection
+                Manual selection overrides AI detection
               </p>
             </div>
           </div>
@@ -218,7 +215,7 @@
                     margin-top: 4px;
                   "
                 >
-                  0–4°C
+                  04C
                 </div>
               </div>
               <div class="threshold-item">
@@ -241,7 +238,7 @@
                     margin-top: 4px;
                   "
                 >
-                  90–95%
+                  9095%
                 </div>
               </div>
               <div class="threshold-item">
@@ -278,18 +275,19 @@
           <article class="card" aria-label="Temperature">
             <header>
               <h3>Temperature</h3>
-              <span class="unit">°C</span>
+              <span class="unit">C</span>
             </header>
             <div class="value" id="temp-value">--</div>
+            <div class="target">Target: 24C</div>
             <div class="bar">
               <span class="bar-fill" id="temp-bar" style="width: 50%"></span>
             </div>
             <footer>
               <div class="trend" id="temp-trend">Stable</div>
               <div class="muted" style="margin-top: 4px">
-                min <span id="temp-min">--</span>°C · avg
-                <span id="temp-avg">--</span>°C · max
-                <span id="temp-max">--</span>°C
+                min <span id="temp-min">--</span>C avg
+                <span id="temp-avg">--</span>C max
+                <span id="temp-max">--</span>C
               </div>
             </footer>
           </article>
@@ -299,6 +297,7 @@
               <span class="unit">%</span>
             </header>
             <div class="value" id="humidity-value">--</div>
+            <div class="target">Target: 8595%</div>
             <div class="bar">
               <span
                 class="bar-fill"
@@ -309,8 +308,8 @@
             <footer>
               <div class="trend" id="humidity-trend">Stable</div>
               <div class="muted" style="margin-top: 4px">
-                min <span id="humidity-min">--</span>% · avg
-                <span id="humidity-avg">--</span>% · max
+                min <span id="humidity-min">--</span>% avg
+                <span id="humidity-avg">--</span>% max
                 <span id="humidity-max">--</span>%
               </div>
             </footer>
@@ -321,6 +320,7 @@
               <span class="unit">ppm</span>
             </header>
             <div class="value" id="ethylene-value">--</div>
+            <div class="target">Threshold: 30 ppm</div>
             <div class="bar">
               <span
                 class="bar-fill warn"
@@ -331,8 +331,8 @@
             <footer>
               <div class="trend" id="ethylene-trend">Stable</div>
               <div class="muted" style="margin-top: 4px">
-                min <span id="ethylene-min">--</span> · avg
-                <span id="ethylene-avg">--</span> · max
+                min <span id="ethylene-min">--</span> avg
+                <span id="ethylene-avg">--</span> max
                 <span id="ethylene-max">--</span> ppm
               </div>
             </footer>
@@ -346,7 +346,7 @@
           <div class="status-grid">
             <div class="status-item">
               <div class="status-header">
-                <span class="status-icon" id="cooling-status-icon">⚙️</span>
+                <span class="status-icon" id="cooling-status-icon"></span>
                 <span class="status-name">Cooling System</span>
               </div>
               <div class="status-indicator" id="cooling-status">
@@ -355,7 +355,7 @@
             </div>
             <div class="status-item">
               <div class="status-header">
-                <span class="status-icon" id="humidifier-status-icon">💧</span>
+                <span class="status-icon" id="humidifier-status-icon"></span>
                 <span class="status-name">Humidifier</span>
               </div>
               <div class="status-indicator" id="humidifier-status">
@@ -364,7 +364,7 @@
             </div>
             <div class="status-item">
               <div class="status-header">
-                <span class="status-icon" id="scrubber-status-icon">🔄</span>
+                <span class="status-icon" id="scrubber-status-icon"></span>
                 <span class="status-name">Air Scrubber</span>
               </div>
               <div class="status-indicator" id="scrubber-status">
@@ -373,7 +373,7 @@
             </div>
             <div class="status-item">
               <div class="status-header">
-                <span class="status-icon" id="camera-status-icon">📷</span>
+                <span class="status-icon" id="camera-status-icon"></span>
                 <span class="status-name">AI Camera</span>
               </div>
               <div class="status-indicator" id="camera-status">
@@ -401,7 +401,7 @@
             <div style="display: flex; flex-direction: column; gap: 12px">
               <div style="display: flex; align-items: center; gap: 12px">
                 <span style="flex: 0 0 120px; font-size: 13px; color: #6b7280"
-                  >KMnO₄ Filter</span
+                  >KMnO Filter</span
                 >
                 <div
                   style="
@@ -489,7 +489,7 @@
             "
           >
             <span style="font-size: 12px; color: #0369a1">
-              <span id="mode-indicator">🤖 AUTO</span>
+              <span id="mode-indicator"> AUTO</span>
             </span>
           </div>
         </div>
@@ -630,10 +630,10 @@
               <thead>
                 <tr>
                   <th scope="col">Item</th>
+                  <th scope="col">Variety</th>
                   <th scope="col">Quantity</th>
                   <th scope="col">Days Left</th>
                   <th scope="col">Status</th>
-                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody id="inv-body">
@@ -682,9 +682,7 @@
                   justify-content: center;
                   font-size: 20px;
                 "
-              >
-                📊
-              </div>
+              ></div>
               <h3 style="margin: 0; font-size: 16px">Shelf Life Prediction</h3>
             </div>
             <p class="muted" style="font-size: 13px; margin-bottom: 12px">
@@ -729,9 +727,7 @@
                   justify-content: center;
                   font-size: 20px;
                 "
-              >
-                💡
-              </div>
+              ></div>
               <h3 style="margin: 0; font-size: 16px">Optimization Tips</h3>
             </div>
             <ul
@@ -744,8 +740,8 @@
                 line-height: 1.8;
               "
             >
-              <li>Reduce temperature by 0.5°C for apples</li>
-              <li>Maintain optimal humidity for produce freshness</li>
+              <li>Reduce temperature by 0.5C for apples</li>
+              <li>Increase humidity for bananas storage</li>
               <li>Keep potatoes in dark, well-ventilated area</li>
             </ul>
           </div>
@@ -773,9 +769,7 @@
                   justify-content: center;
                   font-size: 20px;
                 "
-              >
-                📈
-              </div>
+              ></div>
               <h3 style="margin: 0; font-size: 16px">Usage Forecast</h3>
             </div>
             <p class="muted" style="font-size: 13px; margin-bottom: 10px">
@@ -792,7 +786,7 @@
               "
             >
               <li>Apples (3 days left)</li>
-              <li>Monitor produce freshness regularly</li>
+              <li>Bananas (6 days left)</li>
               <li>Potatoes (21 days left)</li>
             </ol>
           </div>
@@ -837,7 +831,7 @@
                   margin-right: 6px;
                 "
               ></span
-              >Temperature (°C)</span
+              >Temperature (C)</span
             >
             <span style="display: inline-block; margin-right: 12px"
               ><span
@@ -887,10 +881,11 @@
                 <option value="">Custom Settings</option>
                 <option value="potatoes">Potatoes</option>
                 <option value="apples">Apples</option>
+                <option value="bananas">Bananas</option>
               </select>
             </label>
             <label>
-              Temperature target (°C)
+              Temperature target (C)
               <input
                 type="number"
                 id="temp-target-input"
@@ -961,7 +956,7 @@
     </main>
 
     <footer class="app-footer" role="contentinfo">
-      <p>© 2025 Cold Storage Unit</p>
+      <p>(c) 2025 Cold Storage Unit</p>
     </footer>
 
     <script src="assets/js/app.js"></script>
@@ -975,7 +970,7 @@
         aria-labelledby="override-title"
       >
         <h3 id="override-title" style="color: #dc2626; margin-bottom: 12px">
-          ⚠️ Emergency Override Mode
+          Emergency Override Mode
         </h3>
         <div
           style="
@@ -1033,7 +1028,7 @@
             border-radius: 4px;
           "
         >
-          ⚠ Only proceed if you understand the risks and need manual control.
+          Only proceed if you understand the risks and need manual control.
         </p>
         <div class="modal-actions">
           <button
@@ -1135,7 +1130,7 @@
         function updateControlsState() {
           if (isAutoMode) {
             // Auto mode - disable manual controls and turn them off
-            modeIndicator.textContent = "🤖 AUTO";
+            modeIndicator.textContent = " AUTO";
             modeDescription.innerHTML =
               "System is in <strong>Automatic Mode</strong> - PID controllers are managing all components";
             manualControlsGrid.style.opacity = "0.5";
@@ -1154,7 +1149,7 @@
               "Auto";
           } else {
             // Manual mode - enable manual controls, start with OFF state
-            modeIndicator.textContent = "👤 MANUAL";
+            modeIndicator.textContent = " MANUAL";
             modeDescription.innerHTML =
               '<strong style="color: #dc2626;">Manual Override Active</strong> - You are controlling components manually';
             manualControlsGrid.style.opacity = "1";
@@ -1298,86 +1293,5 @@
         });
       })();
     </script>
-
-    <!-- Add Inventory Item Modal -->
-    <div id="add-inventory-modal" class="modal" hidden aria-hidden="true">
-      <div class="modal-content" style="max-width: 500px">
-        <h2 style="margin-top: 0">Add Inventory Item</h2>
-        <form id="add-inventory-form" style="display: grid; gap: 16px">
-          <div>
-            <label
-              for="item-produce-type"
-              style="display: block; margin-bottom: 4px; font-weight: 500"
-              >Produce Type</label
-            >
-            <select
-              id="item-produce-type"
-              required
-              style="
-                width: 100%;
-                padding: 10px;
-                border: 1px solid #d1d5db;
-                border-radius: 6px;
-              "
-            >
-              <option value="">Select produce...</option>
-              <option value="apples">🍎 Apples</option>
-              <option value="potatoes">🥔 Potatoes</option>
-            </select>
-          </div>
-          <div>
-            <label
-              for="item-quantity"
-              style="display: block; margin-bottom: 4px; font-weight: 500"
-              >Quantity (units)</label
-            >
-            <input
-              type="number"
-              id="item-quantity"
-              required
-              min="1"
-              placeholder="e.g., 50"
-              style="
-                width: 100%;
-                padding: 10px;
-                border: 1px solid #d1d5db;
-                border-radius: 6px;
-              "
-            />
-          </div>
-          <div>
-            <label
-              for="item-days-left"
-              style="display: block; margin-bottom: 4px; font-weight: 500"
-              >Expected Shelf Life (days)</label
-            >
-            <input
-              type="number"
-              id="item-days-left"
-              required
-              min="1"
-              placeholder="e.g., 30"
-              style="
-                width: 100%;
-                padding: 10px;
-                border: 1px solid #d1d5db;
-                border-radius: 6px;
-              "
-            />
-          </div>
-          <div style="display: flex; gap: 12px; margin-top: 8px">
-            <button type="submit" class="btn" style="flex: 1">Add Item</button>
-            <button
-              type="button"
-              id="cancel-add-item"
-              class="btn"
-              style="flex: 1; background: #6b7280"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
   </body>
 </html>
