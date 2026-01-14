@@ -3298,5 +3298,2585 @@
     "temperature": 23.70000267,
     "humidity": 74.5,
     "voc": 31523
+  },
+  {
+    "timestamp": "2026-01-14T16:59:19.048Z",
+    "temperature": 23.70000267,
+    "humidity": 74.53333282,
+    "voc": 31525
+  },
+  {
+    "timestamp": "2026-01-14T16:59:34.294Z",
+    "temperature": 23.70000267,
+    "humidity": 74.53333282,
+    "voc": 31508
+  },
+  {
+    "timestamp": "2026-01-14T16:59:49.450Z",
+    "temperature": 23.70000267,
+    "humidity": 74.5,
+    "voc": 31501
+  },
+  {
+    "timestamp": "2026-01-14T17:00:04.641Z",
+    "temperature": 23.70000267,
+    "humidity": 74.5,
+    "voc": 31199
+  },
+  {
+    "timestamp": "2026-01-14T17:00:19.995Z",
+    "temperature": 23.70000267,
+    "humidity": 74.59999847,
+    "voc": 31477
+  },
+  {
+    "timestamp": "2026-01-14T17:00:35.448Z",
+    "temperature": 23.73333168,
+    "humidity": 74.59999847,
+    "voc": 31506
+  },
+  {
+    "timestamp": "2026-01-14T17:00:50.603Z",
+    "temperature": 23.70000267,
+    "humidity": 74.59999847,
+    "voc": 31499
+  },
+  {
+    "timestamp": "2026-01-14T17:01:05.836Z",
+    "temperature": 23.70000267,
+    "humidity": 74.59999847,
+    "voc": 31489
+  },
+  {
+    "timestamp": "2026-01-14T17:01:20.994Z",
+    "temperature": 23.70000267,
+    "humidity": 74.59999847,
+    "voc": 31499
+  },
+  {
+    "timestamp": "2026-01-14T17:01:36.181Z",
+    "temperature": 23.70000267,
+    "humidity": 74.59999847,
+    "voc": 31502
+  },
+  {
+    "timestamp": "2026-01-14T17:01:51.403Z",
+    "temperature": 23.70000267,
+    "humidity": 74.59999847,
+    "voc": 31498
+  },
+  {
+    "timestamp": "2026-01-14T17:02:06.591Z",
+    "temperature": 23.70000267,
+    "humidity": 74.66666412,
+    "voc": 31486
+  },
+  {
+    "timestamp": "2026-01-14T17:02:21.743Z",
+    "temperature": 23.70000267,
+    "humidity": 74.69999695,
+    "voc": 31476
+  },
+  {
+    "timestamp": "2026-01-14T17:02:36.972Z",
+    "temperature": 23.70000267,
+    "humidity": 74.69999695,
+    "voc": 31483
+  },
+  {
+    "timestamp": "2026-01-14T17:02:52.128Z",
+    "temperature": 23.70000267,
+    "humidity": 74.69999695,
+    "voc": 31475
+  },
+  {
+    "timestamp": "2026-01-14T17:03:07.314Z",
+    "temperature": 23.70000267,
+    "humidity": 74.76667023,
+    "voc": 31471
+  },
+  {
+    "timestamp": "2026-01-14T17:03:22.469Z",
+    "temperature": 23.70000267,
+    "humidity": 74.80000305,
+    "voc": 31490
+  },
+  {
+    "timestamp": "2026-01-14T17:03:37.692Z",
+    "temperature": 23.70000267,
+    "humidity": 74.80000305,
+    "voc": 31474
+  },
+  {
+    "timestamp": "2026-01-14T17:03:52.952Z",
+    "temperature": 23.70000267,
+    "humidity": 74.80000305,
+    "voc": 31471
+  },
+  {
+    "timestamp": "2026-01-14T17:04:08.205Z",
+    "temperature": 23.70000267,
+    "humidity": 74.8666687,
+    "voc": 31470
+  },
+  {
+    "timestamp": "2026-01-14T17:04:23.369Z",
+    "temperature": 23.70000267,
+    "humidity": 74.8666687,
+    "voc": 31477
+  },
+  {
+    "timestamp": "2026-01-14T17:04:38.620Z",
+    "temperature": 23.70000267,
+    "humidity": 74.83333588,
+    "voc": 31472
+  },
+  {
+    "timestamp": "2026-01-14T17:04:53.774Z",
+    "temperature": 23.70000267,
+    "humidity": 74.90000153,
+    "voc": 31461
+  },
+  {
+    "timestamp": "2026-01-14T17:05:08.964Z",
+    "temperature": 23.70000267,
+    "humidity": 74.93332672,
+    "voc": 31462
+  },
+  {
+    "timestamp": "2026-01-14T17:05:24.278Z",
+    "temperature": 23.70000267,
+    "humidity": 74.93333435,
+    "voc": 31461
+  },
+  {
+    "timestamp": "2026-01-14T17:05:39.593Z",
+    "temperature": 23.70000267,
+    "humidity": 75,
+    "voc": 31453
+  },
+  {
+    "timestamp": "2026-01-14T17:05:54.802Z",
+    "temperature": 23.70000267,
+    "humidity": 75,
+    "voc": 31463
+  },
+  {
+    "timestamp": "2026-01-14T17:06:09.991Z",
+    "temperature": 23.70000267,
+    "humidity": 75.03333282,
+    "voc": 31440
+  },
+  {
+    "timestamp": "2026-01-14T17:06:25.142Z",
+    "temperature": 23.70000267,
+    "humidity": 75.03333282,
+    "voc": 31437
+  },
+  {
+    "timestamp": "2026-01-14T17:06:40.369Z",
+    "temperature": 23.70000267,
+    "humidity": 75.06667328,
+    "voc": 31434
+  },
+  {
+    "timestamp": "2026-01-14T17:06:55.531Z",
+    "temperature": 23.73333168,
+    "humidity": 75.19999695,
+    "voc": 31392
+  },
+  {
+    "timestamp": "2026-01-14T17:07:10.778Z",
+    "temperature": 23.70000267,
+    "humidity": 75.19999695,
+    "voc": 31411
+  },
+  {
+    "timestamp": "2026-01-14T17:07:25.933Z",
+    "temperature": 23.70000267,
+    "humidity": 75.19999695,
+    "voc": 31414
+  },
+  {
+    "timestamp": "2026-01-14T17:07:41.118Z",
+    "temperature": 23.70000267,
+    "humidity": 75.26667023,
+    "voc": 31281
+  },
+  {
+    "timestamp": "2026-01-14T17:07:56.270Z",
+    "temperature": 23.70000267,
+    "humidity": 75.19999695,
+    "voc": 31401
+  },
+  {
+    "timestamp": "2026-01-14T17:08:11.509Z",
+    "temperature": 23.70000267,
+    "humidity": 75.19999695,
+    "voc": 31410
+  },
+  {
+    "timestamp": "2026-01-14T17:08:26.668Z",
+    "temperature": 23.70000267,
+    "humidity": 75.26667023,
+    "voc": 31418
+  },
+  {
+    "timestamp": "2026-01-14T17:08:41.919Z",
+    "temperature": 23.70000267,
+    "humidity": 75.26667023,
+    "voc": 31397
+  },
+  {
+    "timestamp": "2026-01-14T17:08:57.085Z",
+    "temperature": 23.73333168,
+    "humidity": 75.33333588,
+    "voc": 31393
+  },
+  {
+    "timestamp": "2026-01-14T17:09:12.329Z",
+    "temperature": 23.70000267,
+    "humidity": 75.33333588,
+    "voc": 31397
+  },
+  {
+    "timestamp": "2026-01-14T17:09:27.493Z",
+    "temperature": 23.76666832,
+    "humidity": 75.40000153,
+    "voc": 31388
+  },
+  {
+    "timestamp": "2026-01-14T17:09:42.745Z",
+    "temperature": 23.73333168,
+    "humidity": 75.40000153,
+    "voc": 31388
+  },
+  {
+    "timestamp": "2026-01-14T17:09:57.901Z",
+    "temperature": 23.73333168,
+    "humidity": 75.40000153,
+    "voc": 31393
+  },
+  {
+    "timestamp": "2026-01-14T17:10:13.153Z",
+    "temperature": 23.73333168,
+    "humidity": 75.40000153,
+    "voc": 31401
+  },
+  {
+    "timestamp": "2026-01-14T17:10:28.315Z",
+    "temperature": 23.70000267,
+    "humidity": 75.40000153,
+    "voc": 31374
+  },
+  {
+    "timestamp": "2026-01-14T17:10:43.565Z",
+    "temperature": 23.70000267,
+    "humidity": 75.5,
+    "voc": 31379
+  },
+  {
+    "timestamp": "2026-01-14T17:10:58.720Z",
+    "temperature": 23.73333168,
+    "humidity": 75.56667328,
+    "voc": 31373
+  },
+  {
+    "timestamp": "2026-01-14T17:11:13.904Z",
+    "temperature": 23.73333168,
+    "humidity": 75.59999847,
+    "voc": 31379
+  },
+  {
+    "timestamp": "2026-01-14T17:11:29.057Z",
+    "temperature": 23.70000267,
+    "humidity": 75.59999847,
+    "voc": 31386
+  },
+  {
+    "timestamp": "2026-01-14T17:11:44.282Z",
+    "temperature": 23.70000267,
+    "humidity": 75.53333282,
+    "voc": 31395
+  },
+  {
+    "timestamp": "2026-01-14T17:11:59.455Z",
+    "temperature": 23.70000267,
+    "humidity": 75.56667328,
+    "voc": 31392
+  },
+  {
+    "timestamp": "2026-01-14T17:12:14.694Z",
+    "temperature": 23.70000267,
+    "humidity": 75.59999847,
+    "voc": 31391
+  },
+  {
+    "timestamp": "2026-01-14T17:12:29.850Z",
+    "temperature": 23.70000267,
+    "humidity": 75.66666412,
+    "voc": 31371
+  },
+  {
+    "timestamp": "2026-01-14T17:12:45.040Z",
+    "temperature": 23.70000267,
+    "humidity": 75.73332977,
+    "voc": 31284
+  },
+  {
+    "timestamp": "2026-01-14T17:13:00.189Z",
+    "temperature": 23.70000267,
+    "humidity": 75.93333435,
+    "voc": 31259
+  },
+  {
+    "timestamp": "2026-01-14T17:13:15.413Z",
+    "temperature": 23.70000267,
+    "humidity": 76.03333282,
+    "voc": 31028
+  },
+  {
+    "timestamp": "2026-01-14T17:13:30.569Z",
+    "temperature": 23.70000267,
+    "humidity": 76.29999542,
+    "voc": 31130
+  },
+  {
+    "timestamp": "2026-01-14T17:13:45.758Z",
+    "temperature": 23.70000267,
+    "humidity": 76.43332672,
+    "voc": 31227
+  },
+  {
+    "timestamp": "2026-01-14T17:14:00.978Z",
+    "temperature": 23.70000267,
+    "humidity": 76.40000153,
+    "voc": 31185
+  },
+  {
+    "timestamp": "2026-01-14T17:14:16.176Z",
+    "temperature": 23.70000267,
+    "humidity": 76.33333588,
+    "voc": 31104
+  },
+  {
+    "timestamp": "2026-01-14T17:14:31.399Z",
+    "temperature": 23.70000267,
+    "humidity": 76.30000305,
+    "voc": 31242
+  },
+  {
+    "timestamp": "2026-01-14T17:14:46.592Z",
+    "temperature": 23.70000267,
+    "humidity": 76.30000305,
+    "voc": 31236
+  },
+  {
+    "timestamp": "2026-01-14T17:15:01.813Z",
+    "temperature": 23.70000267,
+    "humidity": 76.33333588,
+    "voc": 31197
+  },
+  {
+    "timestamp": "2026-01-14T17:15:17.007Z",
+    "temperature": 23.70000267,
+    "humidity": 76.30000305,
+    "voc": 31194
+  },
+  {
+    "timestamp": "2026-01-14T17:15:32.222Z",
+    "temperature": 23.70000267,
+    "humidity": 76.3666687,
+    "voc": 31139
+  },
+  {
+    "timestamp": "2026-01-14T17:15:47.412Z",
+    "temperature": 23.70000267,
+    "humidity": 76.40000153,
+    "voc": 31164
+  },
+  {
+    "timestamp": "2026-01-14T17:16:02.563Z",
+    "temperature": 23.70000267,
+    "humidity": 76.40000153,
+    "voc": 31119
+  },
+  {
+    "timestamp": "2026-01-14T17:16:17.785Z",
+    "temperature": 23.70000267,
+    "humidity": 76.43332672,
+    "voc": 31108
+  },
+  {
+    "timestamp": "2026-01-14T17:16:32.942Z",
+    "temperature": 23.70000267,
+    "humidity": 76.40000153,
+    "voc": 31126
+  },
+  {
+    "timestamp": "2026-01-14T17:16:48.209Z",
+    "temperature": 23.70000267,
+    "humidity": 76.33333588,
+    "voc": 31137
+  },
+  {
+    "timestamp": "2026-01-14T17:17:03.403Z",
+    "temperature": 23.70000267,
+    "humidity": 76.30000305,
+    "voc": 31096
+  },
+  {
+    "timestamp": "2026-01-14T17:17:18.632Z",
+    "temperature": 23.70000267,
+    "humidity": 76.3666687,
+    "voc": 31084
+  },
+  {
+    "timestamp": "2026-01-14T17:17:33.784Z",
+    "temperature": 23.70000267,
+    "humidity": 76.43332672,
+    "voc": 31026
+  },
+  {
+    "timestamp": "2026-01-14T17:17:49.026Z",
+    "temperature": 23.70000267,
+    "humidity": 76.53333282,
+    "voc": 31016
+  },
+  {
+    "timestamp": "2026-01-14T17:18:04.180Z",
+    "temperature": 23.70000267,
+    "humidity": 76.53333282,
+    "voc": 31012
+  },
+  {
+    "timestamp": "2026-01-14T17:18:19.368Z",
+    "temperature": 23.70000267,
+    "humidity": 76.59999847,
+    "voc": 30996
+  },
+  {
+    "timestamp": "2026-01-14T17:18:34.521Z",
+    "temperature": 23.70000267,
+    "humidity": 76.6333313,
+    "voc": 30986
+  },
+  {
+    "timestamp": "2026-01-14T17:18:49.772Z",
+    "temperature": 23.70000267,
+    "humidity": 76.66666412,
+    "voc": 30948
+  },
+  {
+    "timestamp": "2026-01-14T17:19:04.935Z",
+    "temperature": 23.70000267,
+    "humidity": 76.69999695,
+    "voc": 30686
+  },
+  {
+    "timestamp": "2026-01-14T17:19:20.159Z",
+    "temperature": 23.70000267,
+    "humidity": 76.80000305,
+    "voc": 30832
+  },
+  {
+    "timestamp": "2026-01-14T17:19:35.339Z",
+    "temperature": 23.70000267,
+    "humidity": 76.80000305,
+    "voc": 30746
+  },
+  {
+    "timestamp": "2026-01-14T17:19:50.573Z",
+    "temperature": 23.70000267,
+    "humidity": 76.83333588,
+    "voc": 30904
+  },
+  {
+    "timestamp": "2026-01-14T17:20:05.726Z",
+    "temperature": 23.70000267,
+    "humidity": 76.80000305,
+    "voc": 30897
+  },
+  {
+    "timestamp": "2026-01-14T17:20:20.922Z",
+    "temperature": 23.70000267,
+    "humidity": 76.80000305,
+    "voc": 30904
+  },
+  {
+    "timestamp": "2026-01-14T17:20:36.139Z",
+    "temperature": 23.70000267,
+    "humidity": 76.80000305,
+    "voc": 30749
+  },
+  {
+    "timestamp": "2026-01-14T17:20:51.327Z",
+    "temperature": 23.70000267,
+    "humidity": 76.80000305,
+    "voc": 30869
+  },
+  {
+    "timestamp": "2026-01-14T17:21:06.481Z",
+    "temperature": 23.70000267,
+    "humidity": 76.80000305,
+    "voc": 30821
+  },
+  {
+    "timestamp": "2026-01-14T17:21:21.701Z",
+    "temperature": 23.70000267,
+    "humidity": 76.80000305,
+    "voc": 30837
+  },
+  {
+    "timestamp": "2026-01-14T17:21:36.859Z",
+    "temperature": 23.70000267,
+    "humidity": 76.8666687,
+    "voc": 30841
+  },
+  {
+    "timestamp": "2026-01-14T17:21:52.044Z",
+    "temperature": 23.70000267,
+    "humidity": 76.8666687,
+    "voc": 30816
+  },
+  {
+    "timestamp": "2026-01-14T17:22:07.475Z",
+    "temperature": 23.70000267,
+    "humidity": 76.90000153,
+    "voc": 30825
+  },
+  {
+    "timestamp": "2026-01-14T17:22:22.667Z",
+    "temperature": 23.70000267,
+    "humidity": 76.93333435,
+    "voc": 30829
+  },
+  {
+    "timestamp": "2026-01-14T17:22:37.820Z",
+    "temperature": 23.70000267,
+    "humidity": 76.93333435,
+    "voc": 30828
+  },
+  {
+    "timestamp": "2026-01-14T17:22:53.045Z",
+    "temperature": 23.70000267,
+    "humidity": 76.90000153,
+    "voc": 30828
+  },
+  {
+    "timestamp": "2026-01-14T17:23:08.212Z",
+    "temperature": 23.70000267,
+    "humidity": 76.90000153,
+    "voc": 30816
+  },
+  {
+    "timestamp": "2026-01-14T17:23:23.487Z",
+    "temperature": 23.70000267,
+    "humidity": 76.90000153,
+    "voc": 30816
+  },
+  {
+    "timestamp": "2026-01-14T17:23:38.640Z",
+    "temperature": 23.73333168,
+    "humidity": 76.96666718,
+    "voc": 30821
+  },
+  {
+    "timestamp": "2026-01-14T17:23:53.869Z",
+    "temperature": 23.73333168,
+    "humidity": 76.93332672,
+    "voc": 30822
+  },
+  {
+    "timestamp": "2026-01-14T17:24:09.024Z",
+    "temperature": 23.70000267,
+    "humidity": 76.93332672,
+    "voc": 30824
+  },
+  {
+    "timestamp": "2026-01-14T17:24:24.218Z",
+    "temperature": 23.73333168,
+    "humidity": 76.93332672,
+    "voc": 30808
+  },
+  {
+    "timestamp": "2026-01-14T17:24:39.537Z",
+    "temperature": 23.73333168,
+    "humidity": 76.90000153,
+    "voc": 30803
+  },
+  {
+    "timestamp": "2026-01-14T17:24:54.725Z",
+    "temperature": 23.70000267,
+    "humidity": 76.93333435,
+    "voc": 30800
+  },
+  {
+    "timestamp": "2026-01-14T17:25:09.878Z",
+    "temperature": 23.70000267,
+    "humidity": 76.93333435,
+    "voc": 30798
+  },
+  {
+    "timestamp": "2026-01-14T17:25:25.104Z",
+    "temperature": 23.73333168,
+    "humidity": 77,
+    "voc": 30813
+  },
+  {
+    "timestamp": "2026-01-14T17:25:40.259Z",
+    "temperature": 23.73333168,
+    "humidity": 76.96666718,
+    "voc": 30817
+  },
+  {
+    "timestamp": "2026-01-14T17:25:55.456Z",
+    "temperature": 23.70000267,
+    "humidity": 77,
+    "voc": 30809
+  },
+  {
+    "timestamp": "2026-01-14T17:26:10.775Z",
+    "temperature": 23.70000267,
+    "humidity": 77,
+    "voc": 30778
+  },
+  {
+    "timestamp": "2026-01-14T17:26:25.961Z",
+    "temperature": 23.70000267,
+    "humidity": 77.03333282,
+    "voc": 30807
+  },
+  {
+    "timestamp": "2026-01-14T17:26:41.166Z",
+    "temperature": 23.73333168,
+    "humidity": 77.09999847,
+    "voc": 30417
+  },
+  {
+    "timestamp": "2026-01-14T17:26:56.578Z",
+    "temperature": 23.76666832,
+    "humidity": 77.26667023,
+    "voc": 30657
+  },
+  {
+    "timestamp": "2026-01-14T17:27:11.871Z",
+    "temperature": 23.76666832,
+    "humidity": 77.23332977,
+    "voc": 30795
+  },
+  {
+    "timestamp": "2026-01-14T17:27:27.082Z",
+    "temperature": 23.70000267,
+    "humidity": 77.19999695,
+    "voc": 30776
+  },
+  {
+    "timestamp": "2026-01-14T17:27:42.245Z",
+    "temperature": 23.70000267,
+    "humidity": 77.19999695,
+    "voc": 30796
+  },
+  {
+    "timestamp": "2026-01-14T17:27:57.479Z",
+    "temperature": 23.70000267,
+    "humidity": 77.16666412,
+    "voc": 30805
+  },
+  {
+    "timestamp": "2026-01-14T17:28:12.637Z",
+    "temperature": 23.76666832,
+    "humidity": 77.09999847,
+    "voc": 30795
+  },
+  {
+    "timestamp": "2026-01-14T17:28:27.915Z",
+    "temperature": 23.73333168,
+    "humidity": 77.09999847,
+    "voc": 30807
+  },
+  {
+    "timestamp": "2026-01-14T17:28:43.071Z",
+    "temperature": 23.70000267,
+    "humidity": 77.09999847,
+    "voc": 30787
+  },
+  {
+    "timestamp": "2026-01-14T17:28:58.297Z",
+    "temperature": 23.76666832,
+    "humidity": 77.1333313,
+    "voc": 30796
+  },
+  {
+    "timestamp": "2026-01-14T17:29:13.461Z",
+    "temperature": 23.70000267,
+    "humidity": 77.19999695,
+    "voc": 30790
+  },
+  {
+    "timestamp": "2026-01-14T17:29:28.714Z",
+    "temperature": 23.73333168,
+    "humidity": 77.23332977,
+    "voc": 30807
+  },
+  {
+    "timestamp": "2026-01-14T17:29:43.882Z",
+    "temperature": 23.73333168,
+    "humidity": 77.23332977,
+    "voc": 30818
+  },
+  {
+    "timestamp": "2026-01-14T17:29:59.129Z",
+    "temperature": 23.70000267,
+    "humidity": 77.26667023,
+    "voc": 30817
+  },
+  {
+    "timestamp": "2026-01-14T17:30:14.284Z",
+    "temperature": 23.70000267,
+    "humidity": 77.30000305,
+    "voc": 30811
+  },
+  {
+    "timestamp": "2026-01-14T17:30:29.530Z",
+    "temperature": 23.70000267,
+    "humidity": 77.30000305,
+    "voc": 30815
+  },
+  {
+    "timestamp": "2026-01-14T17:30:44.686Z",
+    "temperature": 23.70000267,
+    "humidity": 77.30000305,
+    "voc": 30824
+  },
+  {
+    "timestamp": "2026-01-14T17:31:00.042Z",
+    "temperature": 23.70000267,
+    "humidity": 77.33333588,
+    "voc": 30823
+  },
+  {
+    "timestamp": "2026-01-14T17:31:15.200Z",
+    "temperature": 23.70000267,
+    "humidity": 77.30000305,
+    "voc": 30838
+  },
+  {
+    "timestamp": "2026-01-14T17:31:30.451Z",
+    "temperature": 23.70000267,
+    "humidity": 77.33333588,
+    "voc": 30836
+  },
+  {
+    "timestamp": "2026-01-14T17:31:45.616Z",
+    "temperature": 23.70000267,
+    "humidity": 77.3666687,
+    "voc": 30839
+  },
+  {
+    "timestamp": "2026-01-14T17:32:00.864Z",
+    "temperature": 23.70000267,
+    "humidity": 77.40000153,
+    "voc": 30838
+  },
+  {
+    "timestamp": "2026-01-14T17:32:16.027Z",
+    "temperature": 23.70000267,
+    "humidity": 77.40000153,
+    "voc": 30852
+  },
+  {
+    "timestamp": "2026-01-14T17:32:31.281Z",
+    "temperature": 23.70000267,
+    "humidity": 77.40000153,
+    "voc": 30851
+  },
+  {
+    "timestamp": "2026-01-14T17:32:46.444Z",
+    "temperature": 23.70000267,
+    "humidity": 77.46666718,
+    "voc": 30853
+  },
+  {
+    "timestamp": "2026-01-14T17:33:01.693Z",
+    "temperature": 23.70000267,
+    "humidity": 77.5,
+    "voc": 30862
+  },
+  {
+    "timestamp": "2026-01-14T17:33:16.857Z",
+    "temperature": 23.70000267,
+    "humidity": 77.5,
+    "voc": 30846
+  },
+  {
+    "timestamp": "2026-01-14T17:33:32.110Z",
+    "temperature": 23.70000267,
+    "humidity": 77.46666718,
+    "voc": 30832
+  },
+  {
+    "timestamp": "2026-01-14T17:33:47.265Z",
+    "temperature": 23.70000267,
+    "humidity": 77.56667328,
+    "voc": 30593
+  },
+  {
+    "timestamp": "2026-01-14T17:34:02.652Z",
+    "temperature": 23.70000267,
+    "humidity": 77.6333313,
+    "voc": 30829
+  },
+  {
+    "timestamp": "2026-01-14T17:34:17.803Z",
+    "temperature": 23.70000267,
+    "humidity": 77.6333313,
+    "voc": 30845
+  },
+  {
+    "timestamp": "2026-01-14T17:34:33.037Z",
+    "temperature": 23.70000267,
+    "humidity": 77.6333313,
+    "voc": 30854
+  },
+  {
+    "timestamp": "2026-01-14T17:34:48.202Z",
+    "temperature": 23.70000267,
+    "humidity": 77.59999847,
+    "voc": 30852
+  },
+  {
+    "timestamp": "2026-01-14T17:35:03.449Z",
+    "temperature": 23.70000267,
+    "humidity": 77.53333282,
+    "voc": 30868
+  },
+  {
+    "timestamp": "2026-01-14T17:35:18.611Z",
+    "temperature": 23.70000267,
+    "humidity": 77.56666565,
+    "voc": 30870
+  },
+  {
+    "timestamp": "2026-01-14T17:35:33.865Z",
+    "temperature": 23.70000267,
+    "humidity": 77.53333282,
+    "voc": 30874
+  },
+  {
+    "timestamp": "2026-01-14T17:35:49.032Z",
+    "temperature": 23.70000267,
+    "humidity": 77.59999847,
+    "voc": 30865
+  },
+  {
+    "timestamp": "2026-01-14T17:36:04.286Z",
+    "temperature": 23.70000267,
+    "humidity": 77.53333282,
+    "voc": 30877
+  },
+  {
+    "timestamp": "2026-01-14T17:36:19.464Z",
+    "temperature": 23.70000267,
+    "humidity": 77.56667328,
+    "voc": 30884
+  },
+  {
+    "timestamp": "2026-01-14T17:36:34.750Z",
+    "temperature": 23.70000267,
+    "humidity": 77.5,
+    "voc": 30883
+  },
+  {
+    "timestamp": "2026-01-14T17:36:49.940Z",
+    "temperature": 23.70000267,
+    "humidity": 77.56667328,
+    "voc": 30633
+  },
+  {
+    "timestamp": "2026-01-14T17:37:05.193Z",
+    "temperature": 23.70000267,
+    "humidity": 77.59999847,
+    "voc": 30785
+  },
+  {
+    "timestamp": "2026-01-14T17:37:20.373Z",
+    "temperature": 23.70000267,
+    "humidity": 77.53333282,
+    "voc": 30861
+  },
+  {
+    "timestamp": "2026-01-14T17:37:35.639Z",
+    "temperature": 23.70000267,
+    "humidity": 77.56667328,
+    "voc": 30871
+  },
+  {
+    "timestamp": "2026-01-14T17:37:50.793Z",
+    "temperature": 23.70000267,
+    "humidity": 77.5,
+    "voc": 30873
+  },
+  {
+    "timestamp": "2026-01-14T17:38:06.018Z",
+    "temperature": 23.70000267,
+    "humidity": 77.5,
+    "voc": 30747
+  },
+  {
+    "timestamp": "2026-01-14T17:38:21.180Z",
+    "temperature": 23.70000267,
+    "humidity": 77.53333282,
+    "voc": 30593
+  },
+  {
+    "timestamp": "2026-01-14T17:38:36.481Z",
+    "temperature": 23.70000267,
+    "humidity": 77.59999847,
+    "voc": 30768
+  },
+  {
+    "timestamp": "2026-01-14T17:38:51.693Z",
+    "temperature": 23.70000267,
+    "humidity": 77.59999847,
+    "voc": 30852
+  },
+  {
+    "timestamp": "2026-01-14T17:39:06.878Z",
+    "temperature": 23.70000267,
+    "humidity": 77.59999847,
+    "voc": 30715
+  },
+  {
+    "timestamp": "2026-01-14T17:39:22.037Z",
+    "temperature": 23.70000267,
+    "humidity": 77.59999847,
+    "voc": 30862
+  },
+  {
+    "timestamp": "2026-01-14T17:39:37.498Z",
+    "temperature": 23.70000267,
+    "humidity": 77.56666565,
+    "voc": 30854
+  },
+  {
+    "timestamp": "2026-01-14T17:39:52.722Z",
+    "temperature": 23.70000267,
+    "humidity": 77.53333282,
+    "voc": 30873
+  },
+  {
+    "timestamp": "2026-01-14T17:40:07.977Z",
+    "temperature": 23.70000267,
+    "humidity": 77.5,
+    "voc": 30889
+  },
+  {
+    "timestamp": "2026-01-14T17:40:23.147Z",
+    "temperature": 23.70000267,
+    "humidity": 77.5,
+    "voc": 30873
+  },
+  {
+    "timestamp": "2026-01-14T17:40:38.403Z",
+    "temperature": 23.70000267,
+    "humidity": 77.46666718,
+    "voc": 30889
+  },
+  {
+    "timestamp": "2026-01-14T17:40:53.565Z",
+    "temperature": 23.70000267,
+    "humidity": 77.43332672,
+    "voc": 30877
+  },
+  {
+    "timestamp": "2026-01-14T17:41:08.809Z",
+    "temperature": 23.70000267,
+    "humidity": 77.46666718,
+    "voc": 30900
+  },
+  {
+    "timestamp": "2026-01-14T17:41:23.968Z",
+    "temperature": 23.70000267,
+    "humidity": 77.5,
+    "voc": 30890
+  },
+  {
+    "timestamp": "2026-01-14T17:41:39.226Z",
+    "temperature": 23.70000267,
+    "humidity": 77.43332672,
+    "voc": 30900
+  },
+  {
+    "timestamp": "2026-01-14T17:41:54.386Z",
+    "temperature": 23.70000267,
+    "humidity": 77.40000153,
+    "voc": 30900
+  },
+  {
+    "timestamp": "2026-01-14T17:42:09.625Z",
+    "temperature": 23.70000267,
+    "humidity": 77.40000153,
+    "voc": 30905
+  },
+  {
+    "timestamp": "2026-01-14T17:42:24.808Z",
+    "temperature": 23.73333168,
+    "humidity": 77.40000153,
+    "voc": 30877
+  },
+  {
+    "timestamp": "2026-01-14T17:42:40.040Z",
+    "temperature": 23.70000267,
+    "humidity": 77.40000153,
+    "voc": 30904
+  },
+  {
+    "timestamp": "2026-01-14T17:42:55.209Z",
+    "temperature": 23.70000267,
+    "humidity": 77.40000153,
+    "voc": 30892
+  },
+  {
+    "timestamp": "2026-01-14T17:43:10.486Z",
+    "temperature": 23.73333168,
+    "humidity": 77.40000153,
+    "voc": 30905
+  },
+  {
+    "timestamp": "2026-01-14T17:43:25.707Z",
+    "temperature": 23.73333168,
+    "humidity": 77.40000153,
+    "voc": 30843
+  },
+  {
+    "timestamp": "2026-01-14T17:43:40.887Z",
+    "temperature": 23.70000267,
+    "humidity": 77.5,
+    "voc": 30882
+  },
+  {
+    "timestamp": "2026-01-14T17:43:56.039Z",
+    "temperature": 23.70000267,
+    "humidity": 77.5,
+    "voc": 30900
+  },
+  {
+    "timestamp": "2026-01-14T17:44:11.271Z",
+    "temperature": 23.73333168,
+    "humidity": 77.40000153,
+    "voc": 30903
+  },
+  {
+    "timestamp": "2026-01-14T17:44:26.426Z",
+    "temperature": 23.70000267,
+    "humidity": 77.40000153,
+    "voc": 30912
+  },
+  {
+    "timestamp": "2026-01-14T17:44:41.714Z",
+    "temperature": 23.70000267,
+    "humidity": 77.40000153,
+    "voc": 30925
+  },
+  {
+    "timestamp": "2026-01-14T17:44:57.247Z",
+    "temperature": 23.70000267,
+    "humidity": 77.40000153,
+    "voc": 30913
+  },
+  {
+    "timestamp": "2026-01-14T18:03:43.769Z",
+    "temperature": 23.39999962,
+    "humidity": 77.8666687,
+    "voc": 31041
+  },
+  {
+    "timestamp": "2026-01-14T18:03:59.201Z",
+    "temperature": 23.43333435,
+    "humidity": 78,
+    "voc": 31050
+  },
+  {
+    "timestamp": "2026-01-14T18:04:15.128Z",
+    "temperature": 23.39999962,
+    "humidity": 78.03333282,
+    "voc": 31059
+  },
+  {
+    "timestamp": "2026-01-14T18:04:30.422Z",
+    "temperature": 23.39999962,
+    "humidity": 78.03333282,
+    "voc": 31061
+  },
+  {
+    "timestamp": "2026-01-14T18:04:45.847Z",
+    "temperature": 23.43333435,
+    "humidity": 78,
+    "voc": 31059
+  },
+  {
+    "timestamp": "2026-01-14T18:05:01.106Z",
+    "temperature": 23.43333435,
+    "humidity": 78,
+    "voc": 31051
+  },
+  {
+    "timestamp": "2026-01-14T18:05:16.280Z",
+    "temperature": 23.43333435,
+    "humidity": 78,
+    "voc": 31053
+  },
+  {
+    "timestamp": "2026-01-14T18:05:31.517Z",
+    "temperature": 23.43333435,
+    "humidity": 78,
+    "voc": 31051
+  },
+  {
+    "timestamp": "2026-01-14T18:05:46.670Z",
+    "temperature": 23.43333435,
+    "humidity": 78.03333282,
+    "voc": 31047
+  },
+  {
+    "timestamp": "2026-01-14T18:06:02.369Z",
+    "temperature": 23.46666718,
+    "humidity": 78,
+    "voc": 31054
+  },
+  {
+    "timestamp": "2026-01-14T18:06:17.697Z",
+    "temperature": 23.46666718,
+    "humidity": 78.03333282,
+    "voc": 31033
+  },
+  {
+    "timestamp": "2026-01-14T18:06:32.949Z",
+    "temperature": 23.46666718,
+    "humidity": 78.03333282,
+    "voc": 31034
+  },
+  {
+    "timestamp": "2026-01-14T18:06:48.538Z",
+    "temperature": 23.46666718,
+    "humidity": 78.03333282,
+    "voc": 31031
+  },
+  {
+    "timestamp": "2026-01-14T18:07:04.209Z",
+    "temperature": 23.5,
+    "humidity": 78.09999847,
+    "voc": 31034
+  },
+  {
+    "timestamp": "2026-01-14T18:07:19.440Z",
+    "temperature": 23.46666718,
+    "humidity": 78.09999847,
+    "voc": 31028
+  },
+  {
+    "timestamp": "2026-01-14T18:07:34.697Z",
+    "temperature": 23.5,
+    "humidity": 78.09999847,
+    "voc": 31014
+  },
+  {
+    "timestamp": "2026-01-14T18:07:50.301Z",
+    "temperature": 23.5,
+    "humidity": 78.09999847,
+    "voc": 31012
+  },
+  {
+    "timestamp": "2026-01-14T18:08:06.235Z",
+    "temperature": 23.5,
+    "humidity": 78.09999847,
+    "voc": 31006
+  },
+  {
+    "timestamp": "2026-01-14T18:08:21.392Z",
+    "temperature": 23.5,
+    "humidity": 78.09999847,
+    "voc": 31011
+  },
+  {
+    "timestamp": "2026-01-14T18:08:36.880Z",
+    "temperature": 23.5,
+    "humidity": 78.09999847,
+    "voc": 30995
+  },
+  {
+    "timestamp": "2026-01-14T18:08:52.055Z",
+    "temperature": 23.5,
+    "humidity": 78.09999847,
+    "voc": 30990
+  },
+  {
+    "timestamp": "2026-01-14T18:09:07.285Z",
+    "temperature": 23.5,
+    "humidity": 78.1333313,
+    "voc": 30969
+  },
+  {
+    "timestamp": "2026-01-14T18:09:22.443Z",
+    "temperature": 23.5,
+    "humidity": 78.19999695,
+    "voc": 30967
+  },
+  {
+    "timestamp": "2026-01-14T18:09:37.718Z",
+    "temperature": 23.5,
+    "humidity": 78.16666412,
+    "voc": 30952
+  },
+  {
+    "timestamp": "2026-01-14T18:09:53.039Z",
+    "temperature": 23.5,
+    "humidity": 78.16666412,
+    "voc": 30942
+  },
+  {
+    "timestamp": "2026-01-14T18:10:08.296Z",
+    "temperature": 23.5,
+    "humidity": 78.16666412,
+    "voc": 30922
+  },
+  {
+    "timestamp": "2026-01-14T18:10:23.451Z",
+    "temperature": 23.5,
+    "humidity": 78.16666412,
+    "voc": 30910
+  },
+  {
+    "timestamp": "2026-01-14T18:10:38.748Z",
+    "temperature": 23.5,
+    "humidity": 78.1333313,
+    "voc": 30904
+  },
+  {
+    "timestamp": "2026-01-14T18:10:53.973Z",
+    "temperature": 23.5,
+    "humidity": 78.1333313,
+    "voc": 30898
+  },
+  {
+    "timestamp": "2026-01-14T18:11:09.555Z",
+    "temperature": 23.5,
+    "humidity": 78.09999847,
+    "voc": 30891
+  },
+  {
+    "timestamp": "2026-01-14T18:11:24.707Z",
+    "temperature": 23.5,
+    "humidity": 78.09999847,
+    "voc": 30896
+  },
+  {
+    "timestamp": "2026-01-14T18:11:39.940Z",
+    "temperature": 23.5,
+    "humidity": 78.09999847,
+    "voc": 30895
+  },
+  {
+    "timestamp": "2026-01-14T18:11:55.095Z",
+    "temperature": 23.5,
+    "humidity": 78.09999847,
+    "voc": 30877
+  },
+  {
+    "timestamp": "2026-01-14T18:12:10.284Z",
+    "temperature": 23.5,
+    "humidity": 78.09999847,
+    "voc": 30848
+  },
+  {
+    "timestamp": "2026-01-14T18:12:25.536Z",
+    "temperature": 23.5,
+    "humidity": 78.16666412,
+    "voc": 30814
+  },
+  {
+    "timestamp": "2026-01-14T18:12:40.772Z",
+    "temperature": 23.5,
+    "humidity": 78.23332977,
+    "voc": 30790
+  },
+  {
+    "timestamp": "2026-01-14T18:12:55.960Z",
+    "temperature": 23.5,
+    "humidity": 78.26667023,
+    "voc": 30771
+  },
+  {
+    "timestamp": "2026-01-14T18:13:11.552Z",
+    "temperature": 23.5,
+    "humidity": 78.30000305,
+    "voc": 30766
+  },
+  {
+    "timestamp": "2026-01-14T18:13:26.847Z",
+    "temperature": 23.5,
+    "humidity": 78.30000305,
+    "voc": 30779
+  },
+  {
+    "timestamp": "2026-01-14T18:13:42.110Z",
+    "temperature": 23.5,
+    "humidity": 78.30000305,
+    "voc": 30766
+  },
+  {
+    "timestamp": "2026-01-14T18:13:57.262Z",
+    "temperature": 23.5,
+    "humidity": 78.30000305,
+    "voc": 30773
+  },
+  {
+    "timestamp": "2026-01-14T18:14:12.519Z",
+    "temperature": 23.5,
+    "humidity": 78.30000305,
+    "voc": 30760
+  },
+  {
+    "timestamp": "2026-01-14T18:14:27.689Z",
+    "temperature": 23.53333282,
+    "humidity": 78.30000305,
+    "voc": 30724
+  },
+  {
+    "timestamp": "2026-01-14T18:14:42.924Z",
+    "temperature": 23.5,
+    "humidity": 78.33333588,
+    "voc": 30697
+  },
+  {
+    "timestamp": "2026-01-14T18:14:58.090Z",
+    "temperature": 23.5,
+    "humidity": 78.40000153,
+    "voc": 30719
+  },
+  {
+    "timestamp": "2026-01-14T18:15:13.334Z",
+    "temperature": 23.53333282,
+    "humidity": 78.3666687,
+    "voc": 30700
+  },
+  {
+    "timestamp": "2026-01-14T18:15:28.504Z",
+    "temperature": 23.5,
+    "humidity": 78.3666687,
+    "voc": 30687
+  },
+  {
+    "timestamp": "2026-01-14T18:15:43.752Z",
+    "temperature": 23.53333282,
+    "humidity": 78.40000153,
+    "voc": 30688
+  },
+  {
+    "timestamp": "2026-01-14T18:15:58.914Z",
+    "temperature": 23.5,
+    "humidity": 78.3666687,
+    "voc": 30471
+  },
+  {
+    "timestamp": "2026-01-14T18:16:14.674Z",
+    "temperature": 23.53333282,
+    "humidity": 78.46666718,
+    "voc": 30629
+  },
+  {
+    "timestamp": "2026-01-14T18:16:29.835Z",
+    "temperature": 23.5,
+    "humidity": 78.5,
+    "voc": 30628
+  },
+  {
+    "timestamp": "2026-01-14T18:16:45.119Z",
+    "temperature": 23.5,
+    "humidity": 78.59999847,
+    "voc": 30621
+  },
+  {
+    "timestamp": "2026-01-14T18:17:00.339Z",
+    "temperature": 23.5,
+    "humidity": 78.5,
+    "voc": 30642
+  },
+  {
+    "timestamp": "2026-01-14T18:17:15.700Z",
+    "temperature": 23.5,
+    "humidity": 78.5,
+    "voc": 30621
+  },
+  {
+    "timestamp": "2026-01-14T18:17:31.076Z",
+    "temperature": 23.56666565,
+    "humidity": 78.5,
+    "voc": 30607
+  },
+  {
+    "timestamp": "2026-01-14T18:17:46.320Z",
+    "temperature": 23.60000038,
+    "humidity": 78.43332672,
+    "voc": 30604
+  },
+  {
+    "timestamp": "2026-01-14T18:18:01.474Z",
+    "temperature": 23.60000038,
+    "humidity": 78.40000153,
+    "voc": 30611
+  },
+  {
+    "timestamp": "2026-01-14T18:18:16.817Z",
+    "temperature": 23.53333282,
+    "humidity": 78.40000153,
+    "voc": 30563
+  },
+  {
+    "timestamp": "2026-01-14T18:18:32.222Z",
+    "temperature": 23.60000038,
+    "humidity": 78.5,
+    "voc": 30582
+  },
+  {
+    "timestamp": "2026-01-14T18:18:47.581Z",
+    "temperature": 23.60000038,
+    "humidity": 78.53333282,
+    "voc": 30563
+  },
+  {
+    "timestamp": "2026-01-14T18:19:02.745Z",
+    "temperature": 23.60000038,
+    "humidity": 78.59999847,
+    "voc": 30547
+  },
+  {
+    "timestamp": "2026-01-14T18:19:17.990Z",
+    "temperature": 23.60000038,
+    "humidity": 78.59999847,
+    "voc": 30575
+  },
+  {
+    "timestamp": "2026-01-14T18:19:33.156Z",
+    "temperature": 23.60000038,
+    "humidity": 78.53333282,
+    "voc": 30573
+  },
+  {
+    "timestamp": "2026-01-14T18:19:48.402Z",
+    "temperature": 23.60000038,
+    "humidity": 78.53333282,
+    "voc": 30554
+  },
+  {
+    "timestamp": "2026-01-14T18:20:03.738Z",
+    "temperature": 23.60000038,
+    "humidity": 78.5,
+    "voc": 30557
+  },
+  {
+    "timestamp": "2026-01-14T18:20:18.992Z",
+    "temperature": 23.60000038,
+    "humidity": 78.53333282,
+    "voc": 30532
+  },
+  {
+    "timestamp": "2026-01-14T18:20:34.186Z",
+    "temperature": 23.60000038,
+    "humidity": 78.59999847,
+    "voc": 30536
+  },
+  {
+    "timestamp": "2026-01-14T18:20:49.535Z",
+    "temperature": 23.60000038,
+    "humidity": 78.59999847,
+    "voc": 30531
+  },
+  {
+    "timestamp": "2026-01-14T18:21:04.689Z",
+    "temperature": 23.60000038,
+    "humidity": 78.56666565,
+    "voc": 30547
+  },
+  {
+    "timestamp": "2026-01-14T18:21:19.969Z",
+    "temperature": 23.60000038,
+    "humidity": 78.56667328,
+    "voc": 30522
+  },
+  {
+    "timestamp": "2026-01-14T18:21:35.177Z",
+    "temperature": 23.60000038,
+    "humidity": 78.59999847,
+    "voc": 30517
+  },
+  {
+    "timestamp": "2026-01-14T18:21:50.354Z",
+    "temperature": 23.60000038,
+    "humidity": 78.59999847,
+    "voc": 30539
+  },
+  {
+    "timestamp": "2026-01-14T18:22:05.508Z",
+    "temperature": 23.60000038,
+    "humidity": 78.59999847,
+    "voc": 30500
+  },
+  {
+    "timestamp": "2026-01-14T18:22:20.782Z",
+    "temperature": 23.60000038,
+    "humidity": 78.66666412,
+    "voc": 30501
+  },
+  {
+    "timestamp": "2026-01-14T18:22:36.091Z",
+    "temperature": 23.60000038,
+    "humidity": 78.59999847,
+    "voc": 30516
+  },
+  {
+    "timestamp": "2026-01-14T18:22:51.286Z",
+    "temperature": 23.60000038,
+    "humidity": 78.59999847,
+    "voc": 30514
+  },
+  {
+    "timestamp": "2026-01-14T18:23:06.477Z",
+    "temperature": 23.60000038,
+    "humidity": 78.53333282,
+    "voc": 30524
+  },
+  {
+    "timestamp": "2026-01-14T18:23:21.689Z",
+    "temperature": 23.60000038,
+    "humidity": 78.53333282,
+    "voc": 30508
+  },
+  {
+    "timestamp": "2026-01-14T18:23:36.842Z",
+    "temperature": 23.60000038,
+    "humidity": 78.56667328,
+    "voc": 30508
+  },
+  {
+    "timestamp": "2026-01-14T18:23:52.310Z",
+    "temperature": 23.53333282,
+    "humidity": 78.56666565,
+    "voc": 30523
+  },
+  {
+    "timestamp": "2026-01-14T18:24:07.465Z",
+    "temperature": 23.56666565,
+    "humidity": 78.59999847,
+    "voc": 30521
+  },
+  {
+    "timestamp": "2026-01-14T18:24:22.696Z",
+    "temperature": 23.60000038,
+    "humidity": 78.59999847,
+    "voc": 30514
+  },
+  {
+    "timestamp": "2026-01-14T18:24:37.851Z",
+    "temperature": 23.56666565,
+    "humidity": 78.59999847,
+    "voc": 30527
+  },
+  {
+    "timestamp": "2026-01-14T18:24:53.068Z",
+    "temperature": 23.5,
+    "humidity": 78.59999847,
+    "voc": 30518
+  },
+  {
+    "timestamp": "2026-01-14T18:25:08.266Z",
+    "temperature": 23.5,
+    "humidity": 78.59999847,
+    "voc": 30550
+  },
+  {
+    "timestamp": "2026-01-14T18:25:23.453Z",
+    "temperature": 23.5,
+    "humidity": 78.53333282,
+    "voc": 30542
+  },
+  {
+    "timestamp": "2026-01-14T18:25:38.606Z",
+    "temperature": 23.5,
+    "humidity": 78.53333282,
+    "voc": 30521
+  },
+  {
+    "timestamp": "2026-01-14T18:25:53.826Z",
+    "temperature": 23.5,
+    "humidity": 78.6333313,
+    "voc": 30516
+  },
+  {
+    "timestamp": "2026-01-14T18:26:08.986Z",
+    "temperature": 23.5,
+    "humidity": 78.66666412,
+    "voc": 30522
+  },
+  {
+    "timestamp": "2026-01-14T18:26:24.239Z",
+    "temperature": 23.5,
+    "humidity": 78.69999695,
+    "voc": 30522
+  },
+  {
+    "timestamp": "2026-01-14T18:26:39.395Z",
+    "temperature": 23.5,
+    "humidity": 78.69999695,
+    "voc": 30540
+  },
+  {
+    "timestamp": "2026-01-14T18:26:54.588Z",
+    "temperature": 23.5,
+    "humidity": 78.69999695,
+    "voc": 30565
+  },
+  {
+    "timestamp": "2026-01-14T18:27:09.808Z",
+    "temperature": 23.5,
+    "humidity": 78.69999695,
+    "voc": 30569
+  },
+  {
+    "timestamp": "2026-01-14T18:27:24.998Z",
+    "temperature": 23.5,
+    "humidity": 78.66666412,
+    "voc": 30562
+  },
+  {
+    "timestamp": "2026-01-14T18:27:40.153Z",
+    "temperature": 23.5,
+    "humidity": 78.66666412,
+    "voc": 30567
+  },
+  {
+    "timestamp": "2026-01-14T18:27:55.412Z",
+    "temperature": 23.5,
+    "humidity": 78.59999847,
+    "voc": 30554
+  },
+  {
+    "timestamp": "2026-01-14T18:28:10.634Z",
+    "temperature": 23.46666718,
+    "humidity": 78.66666412,
+    "voc": 30548
+  },
+  {
+    "timestamp": "2026-01-14T18:28:25.827Z",
+    "temperature": 23.43333435,
+    "humidity": 78.69999695,
+    "voc": 30570
+  },
+  {
+    "timestamp": "2026-01-14T18:28:41.083Z",
+    "temperature": 23.46666718,
+    "humidity": 78.73332977,
+    "voc": 30540
+  },
+  {
+    "timestamp": "2026-01-14T18:28:56.311Z",
+    "temperature": 23.43333435,
+    "humidity": 78.8666687,
+    "voc": 30543
+  },
+  {
+    "timestamp": "2026-01-14T18:29:11.466Z",
+    "temperature": 23.39999962,
+    "humidity": 78.93333435,
+    "voc": 30537
+  },
+  {
+    "timestamp": "2026-01-14T18:29:26.922Z",
+    "temperature": 23.39999962,
+    "humidity": 79,
+    "voc": 30544
+  },
+  {
+    "timestamp": "2026-01-14T18:29:42.077Z",
+    "temperature": 23.39999962,
+    "humidity": 79,
+    "voc": 30543
+  },
+  {
+    "timestamp": "2026-01-14T18:29:57.388Z",
+    "temperature": 23.39999962,
+    "humidity": 79,
+    "voc": 30539
+  },
+  {
+    "timestamp": "2026-01-14T18:30:12.943Z",
+    "temperature": 23.39999962,
+    "humidity": 79,
+    "voc": 30538
+  },
+  {
+    "timestamp": "2026-01-14T18:30:28.295Z",
+    "temperature": 23.39999962,
+    "humidity": 79.03333282,
+    "voc": 30521
+  },
+  {
+    "timestamp": "2026-01-14T18:30:43.512Z",
+    "temperature": 23.39999962,
+    "humidity": 79.1333313,
+    "voc": 30524
+  },
+  {
+    "timestamp": "2026-01-14T18:30:58.798Z",
+    "temperature": 23.39999962,
+    "humidity": 79.16666412,
+    "voc": 30517
+  },
+  {
+    "timestamp": "2026-01-14T18:31:13.957Z",
+    "temperature": 23.39999962,
+    "humidity": 79.16666412,
+    "voc": 30520
+  },
+  {
+    "timestamp": "2026-01-14T18:31:29.413Z",
+    "temperature": 23.39999962,
+    "humidity": 79.26667023,
+    "voc": 30544
+  },
+  {
+    "timestamp": "2026-01-14T18:31:44.565Z",
+    "temperature": 23.39999962,
+    "humidity": 79.19999695,
+    "voc": 30550
+  },
+  {
+    "timestamp": "2026-01-14T18:31:59.803Z",
+    "temperature": 23.39999962,
+    "humidity": 79.23332977,
+    "voc": 30524
+  },
+  {
+    "timestamp": "2026-01-14T18:32:14.962Z",
+    "temperature": 23.39999962,
+    "humidity": 79.19999695,
+    "voc": 30521
+  },
+  {
+    "timestamp": "2026-01-14T18:32:30.211Z",
+    "temperature": 23.39999962,
+    "humidity": 79.26667023,
+    "voc": 30535
+  },
+  {
+    "timestamp": "2026-01-14T18:32:45.367Z",
+    "temperature": 23.39999962,
+    "humidity": 79.30000305,
+    "voc": 30525
+  },
+  {
+    "timestamp": "2026-01-14T18:33:00.564Z",
+    "temperature": 23.39999962,
+    "humidity": 79.30000305,
+    "voc": 30531
+  },
+  {
+    "timestamp": "2026-01-14T18:33:15.816Z",
+    "temperature": 23.39999962,
+    "humidity": 79.30000305,
+    "voc": 30532
+  },
+  {
+    "timestamp": "2026-01-14T18:33:31.056Z",
+    "temperature": 23.39999962,
+    "humidity": 79.3666687,
+    "voc": 30521
+  },
+  {
+    "timestamp": "2026-01-14T18:33:46.211Z",
+    "temperature": 23.39999962,
+    "humidity": 79.3666687,
+    "voc": 30514
+  },
+  {
+    "timestamp": "2026-01-14T18:34:01.481Z",
+    "temperature": 23.39999962,
+    "humidity": 79.43333435,
+    "voc": 30508
+  },
+  {
+    "timestamp": "2026-01-14T18:34:16.801Z",
+    "temperature": 23.39999962,
+    "humidity": 79.5,
+    "voc": 30516
+  },
+  {
+    "timestamp": "2026-01-14T18:34:31.995Z",
+    "temperature": 23.39999962,
+    "humidity": 79.5,
+    "voc": 30502
+  },
+  {
+    "timestamp": "2026-01-14T18:34:47.213Z",
+    "temperature": 23.36666679,
+    "humidity": 79.5,
+    "voc": 30527
+  },
+  {
+    "timestamp": "2026-01-14T18:35:02.407Z",
+    "temperature": 23.39999962,
+    "humidity": 79.53333282,
+    "voc": 30538
+  },
+  {
+    "timestamp": "2026-01-14T18:35:17.562Z",
+    "temperature": 23.39999962,
+    "humidity": 79.5,
+    "voc": 30522
+  },
+  {
+    "timestamp": "2026-01-14T18:35:32.782Z",
+    "temperature": 23.39999962,
+    "humidity": 79.5,
+    "voc": 30535
+  },
+  {
+    "timestamp": "2026-01-14T18:35:47.973Z",
+    "temperature": 23.33333397,
+    "humidity": 79.5,
+    "voc": 30545
+  },
+  {
+    "timestamp": "2026-01-14T18:36:03.233Z",
+    "temperature": 23.36666679,
+    "humidity": 79.5,
+    "voc": 30544
+  },
+  {
+    "timestamp": "2026-01-14T18:36:18.485Z",
+    "temperature": 23.36666679,
+    "humidity": 79.43332672,
+    "voc": 30561
+  },
+  {
+    "timestamp": "2026-01-14T18:36:33.730Z",
+    "temperature": 23.29999733,
+    "humidity": 79.40000153,
+    "voc": 30565
+  },
+  {
+    "timestamp": "2026-01-14T18:36:48.893Z",
+    "temperature": 23.29999733,
+    "humidity": 79.40000153,
+    "voc": 30555
+  },
+  {
+    "timestamp": "2026-01-14T18:37:04.120Z",
+    "temperature": 23.29999733,
+    "humidity": 79.40000153,
+    "voc": 30539
+  },
+  {
+    "timestamp": "2026-01-14T18:37:19.284Z",
+    "temperature": 23.29999733,
+    "humidity": 79.40000153,
+    "voc": 30553
+  },
+  {
+    "timestamp": "2026-01-14T18:37:34.531Z",
+    "temperature": 23.29999733,
+    "humidity": 79.33333588,
+    "voc": 30562
+  },
+  {
+    "timestamp": "2026-01-14T18:37:49.693Z",
+    "temperature": 23.29999733,
+    "humidity": 79.23332977,
+    "voc": 30595
+  },
+  {
+    "timestamp": "2026-01-14T18:38:04.881Z",
+    "temperature": 23.29999733,
+    "humidity": 79.09999847,
+    "voc": 30626
+  },
+  {
+    "timestamp": "2026-01-14T18:38:20.098Z",
+    "temperature": 23.29999733,
+    "humidity": 78.90000153,
+    "voc": 30681
+  },
+  {
+    "timestamp": "2026-01-14T18:38:35.292Z",
+    "temperature": 23.29999733,
+    "humidity": 78.66666412,
+    "voc": 30694
+  },
+  {
+    "timestamp": "2026-01-14T18:38:50.513Z",
+    "temperature": 23.29999733,
+    "humidity": 78.56666565,
+    "voc": 30658
+  },
+  {
+    "timestamp": "2026-01-14T18:39:05.908Z",
+    "temperature": 23.29999733,
+    "humidity": 78.6333313,
+    "voc": 30637
+  },
+  {
+    "timestamp": "2026-01-14T18:39:21.069Z",
+    "temperature": 23.29999733,
+    "humidity": 78.69999695,
+    "voc": 30645
+  },
+  {
+    "timestamp": "2026-01-14T18:39:36.296Z",
+    "temperature": 23.29999733,
+    "humidity": 78.80000305,
+    "voc": 30655
+  },
+  {
+    "timestamp": "2026-01-14T18:39:51.472Z",
+    "temperature": 23.29999733,
+    "humidity": 78.80000305,
+    "voc": 30666
+  },
+  {
+    "timestamp": "2026-01-14T18:40:06.696Z",
+    "temperature": 23.29999733,
+    "humidity": 78.73332977,
+    "voc": 30672
+  },
+  {
+    "timestamp": "2026-01-14T18:40:21.859Z",
+    "temperature": 23.29999733,
+    "humidity": 78.69999695,
+    "voc": 30689
+  },
+  {
+    "timestamp": "2026-01-14T18:40:37.108Z",
+    "temperature": 23.29999733,
+    "humidity": 78.69999695,
+    "voc": 30703
+  },
+  {
+    "timestamp": "2026-01-14T18:40:52.271Z",
+    "temperature": 23.29999733,
+    "humidity": 78.59999847,
+    "voc": 30717
+  },
+  {
+    "timestamp": "2026-01-14T18:41:07.523Z",
+    "temperature": 23.29999733,
+    "humidity": 78.53333282,
+    "voc": 30716
+  },
+  {
+    "timestamp": "2026-01-14T18:41:22.687Z",
+    "temperature": 23.29999733,
+    "humidity": 78.5,
+    "voc": 30747
+  },
+  {
+    "timestamp": "2026-01-14T18:41:37.970Z",
+    "temperature": 23.29999733,
+    "humidity": 78.43332672,
+    "voc": 30745
+  },
+  {
+    "timestamp": "2026-01-14T18:41:53.120Z",
+    "temperature": 23.26666832,
+    "humidity": 78.43332672,
+    "voc": 30753
+  },
+  {
+    "timestamp": "2026-01-14T18:42:08.335Z",
+    "temperature": 23.29999733,
+    "humidity": 78.30000305,
+    "voc": 30775
+  },
+  {
+    "timestamp": "2026-01-14T18:42:23.527Z",
+    "temperature": 23.26666832,
+    "humidity": 78.23332977,
+    "voc": 30798
+  },
+  {
+    "timestamp": "2026-01-14T18:42:38.785Z",
+    "temperature": 23.26666832,
+    "humidity": 78.1333313,
+    "voc": 30801
+  },
+  {
+    "timestamp": "2026-01-14T18:42:53.989Z",
+    "temperature": 23.20000267,
+    "humidity": 78.03333282,
+    "voc": 30822
+  },
+  {
+    "timestamp": "2026-01-14T18:43:09.187Z",
+    "temperature": 23.23333168,
+    "humidity": 78,
+    "voc": 30828
+  },
+  {
+    "timestamp": "2026-01-14T18:43:24.340Z",
+    "temperature": 23.20000267,
+    "humidity": 77.90000153,
+    "voc": 30823
+  },
+  {
+    "timestamp": "2026-01-14T18:43:39.579Z",
+    "temperature": 23.20000267,
+    "humidity": 77.90000153,
+    "voc": 30843
+  },
+  {
+    "timestamp": "2026-01-14T18:43:54.744Z",
+    "temperature": 23.23333168,
+    "humidity": 77.80000305,
+    "voc": 30851
+  },
+  {
+    "timestamp": "2026-01-14T18:44:10.023Z",
+    "temperature": 23.20000267,
+    "humidity": 77.80000305,
+    "voc": 30838
+  },
+  {
+    "timestamp": "2026-01-14T18:44:25.176Z",
+    "temperature": 23.20000267,
+    "humidity": 77.93332672,
+    "voc": 30851
+  },
+  {
+    "timestamp": "2026-01-14T18:44:40.408Z",
+    "temperature": 23.20000267,
+    "humidity": 77.93332672,
+    "voc": 30861
+  },
+  {
+    "timestamp": "2026-01-14T18:44:55.563Z",
+    "temperature": 23.20000267,
+    "humidity": 77.8666687,
+    "voc": 30870
+  },
+  {
+    "timestamp": "2026-01-14T18:45:10.754Z",
+    "temperature": 23.20000267,
+    "humidity": 77.83333588,
+    "voc": 30873
+  },
+  {
+    "timestamp": "2026-01-14T18:45:25.944Z",
+    "temperature": 23.20000267,
+    "humidity": 77.69999695,
+    "voc": 30888
+  },
+  {
+    "timestamp": "2026-01-14T18:45:41.141Z",
+    "temperature": 23.20000267,
+    "humidity": 77.59999847,
+    "voc": 30882
+  },
+  {
+    "timestamp": "2026-01-14T18:45:56.317Z",
+    "temperature": 23.20000267,
+    "humidity": 77.59999847,
+    "voc": 30898
+  },
+  {
+    "timestamp": "2026-01-14T18:46:11.553Z",
+    "temperature": 23.20000267,
+    "humidity": 77.46666718,
+    "voc": 30982
+  },
+  {
+    "timestamp": "2026-01-14T18:46:26.712Z",
+    "temperature": 23.20000267,
+    "humidity": 77.16666412,
+    "voc": 31028
+  },
+  {
+    "timestamp": "2026-01-14T18:46:41.988Z",
+    "temperature": 23.20000267,
+    "humidity": 76.93332672,
+    "voc": 31026
+  },
+  {
+    "timestamp": "2026-01-14T18:46:57.210Z",
+    "temperature": 23.20000267,
+    "humidity": 76.80000305,
+    "voc": 31014
+  },
+  {
+    "timestamp": "2026-01-14T18:47:12.534Z",
+    "temperature": 23.20000267,
+    "humidity": 76.73332977,
+    "voc": 31035
+  },
+  {
+    "timestamp": "2026-01-14T18:47:27.723Z",
+    "temperature": 23.20000267,
+    "humidity": 76.66666412,
+    "voc": 31035
+  },
+  {
+    "timestamp": "2026-01-14T18:47:42.956Z",
+    "temperature": 23.20000267,
+    "humidity": 76.66666412,
+    "voc": 31021
+  },
+  {
+    "timestamp": "2026-01-14T18:47:58.135Z",
+    "temperature": 23.20000267,
+    "humidity": 76.6333313,
+    "voc": 31103
+  },
+  {
+    "timestamp": "2026-01-14T18:48:13.324Z",
+    "temperature": 23.20000267,
+    "humidity": 76.43333435,
+    "voc": 31154
+  },
+  {
+    "timestamp": "2026-01-14T18:48:28.477Z",
+    "temperature": 23.20000267,
+    "humidity": 76.09999847,
+    "voc": 31136
+  },
+  {
+    "timestamp": "2026-01-14T18:48:43.727Z",
+    "temperature": 23.20000267,
+    "humidity": 76.16666412,
+    "voc": 31088
+  },
+  {
+    "timestamp": "2026-01-14T18:48:58.923Z",
+    "temperature": 23.20000267,
+    "humidity": 76.3666687,
+    "voc": 31069
+  },
+  {
+    "timestamp": "2026-01-14T18:49:14.157Z",
+    "temperature": 23.20000267,
+    "humidity": 76.53333282,
+    "voc": 31085
+  },
+  {
+    "timestamp": "2026-01-14T18:49:29.374Z",
+    "temperature": 23.20000267,
+    "humidity": 76.56667328,
+    "voc": 31108
+  },
+  {
+    "timestamp": "2026-01-14T18:49:44.566Z",
+    "temperature": 23.20000267,
+    "humidity": 76.59999847,
+    "voc": 31093
+  },
+  {
+    "timestamp": "2026-01-14T18:49:59.819Z",
+    "temperature": 23.20000267,
+    "humidity": 76.69999695,
+    "voc": 31102
+  },
+  {
+    "timestamp": "2026-01-14T18:50:15.038Z",
+    "temperature": 23.20000267,
+    "humidity": 76.59999847,
+    "voc": 31129
+  },
+  {
+    "timestamp": "2026-01-14T18:50:30.203Z",
+    "temperature": 23.20000267,
+    "humidity": 76.56666565,
+    "voc": 31116
+  },
+  {
+    "timestamp": "2026-01-14T18:50:45.392Z",
+    "temperature": 23.13333321,
+    "humidity": 76.56667328,
+    "voc": 31119
+  },
+  {
+    "timestamp": "2026-01-14T18:51:00.610Z",
+    "temperature": 23.16666603,
+    "humidity": 76.5,
+    "voc": 31129
+  },
+  {
+    "timestamp": "2026-01-14T18:51:15.836Z",
+    "temperature": 23.20000267,
+    "humidity": 76.5,
+    "voc": 31140
+  },
+  {
+    "timestamp": "2026-01-14T18:51:31.020Z",
+    "temperature": 23.20000267,
+    "humidity": 76.5,
+    "voc": 31148
+  },
+  {
+    "timestamp": "2026-01-14T18:51:46.215Z",
+    "temperature": 23.20000267,
+    "humidity": 76.46666718,
+    "voc": 31140
+  },
+  {
+    "timestamp": "2026-01-14T18:52:01.432Z",
+    "temperature": 23.20000267,
+    "humidity": 76.5,
+    "voc": 31116
+  },
+  {
+    "timestamp": "2026-01-14T18:52:16.625Z",
+    "temperature": 23.13333321,
+    "humidity": 76.56667328,
+    "voc": 31117
+  },
+  {
+    "timestamp": "2026-01-14T18:52:31.843Z",
+    "temperature": 23.13333321,
+    "humidity": 76.59999847,
+    "voc": 31139
+  },
+  {
+    "timestamp": "2026-01-14T18:52:47.039Z",
+    "temperature": 23.10000038,
+    "humidity": 76.59999847,
+    "voc": 31149
+  },
+  {
+    "timestamp": "2026-01-14T18:53:02.259Z",
+    "temperature": 23.10000038,
+    "humidity": 76.53333282,
+    "voc": 31143
+  },
+  {
+    "timestamp": "2026-01-14T18:53:17.451Z",
+    "temperature": 23.13333321,
+    "humidity": 76.5,
+    "voc": 31137
+  },
+  {
+    "timestamp": "2026-01-14T18:53:32.667Z",
+    "temperature": 23.10000038,
+    "humidity": 76.56667328,
+    "voc": 31136
+  },
+  {
+    "timestamp": "2026-01-14T18:53:47.864Z",
+    "temperature": 23.10000038,
+    "humidity": 76.59999847,
+    "voc": 31143
+  },
+  {
+    "timestamp": "2026-01-14T18:54:03.114Z",
+    "temperature": 23.10000038,
+    "humidity": 76.59999847,
+    "voc": 31141
+  },
+  {
+    "timestamp": "2026-01-14T18:54:18.629Z",
+    "temperature": 23.10000038,
+    "humidity": 76.59999847,
+    "voc": 31128
+  },
+  {
+    "timestamp": "2026-01-14T18:54:33.800Z",
+    "temperature": 23.10000038,
+    "humidity": 76.59999847,
+    "voc": 31107
+  },
+  {
+    "timestamp": "2026-01-14T18:54:48.997Z",
+    "temperature": 23.10000038,
+    "humidity": 76.6333313,
+    "voc": 31117
+  },
+  {
+    "timestamp": "2026-01-14T18:55:04.222Z",
+    "temperature": 23.10000038,
+    "humidity": 76.66666412,
+    "voc": 31107
+  },
+  {
+    "timestamp": "2026-01-14T18:55:19.467Z",
+    "temperature": 23.10000038,
+    "humidity": 76.59999847,
+    "voc": 31096
+  },
+  {
+    "timestamp": "2026-01-14T18:55:34.632Z",
+    "temperature": 23.10000038,
+    "humidity": 76.59999847,
+    "voc": 31101
+  },
+  {
+    "timestamp": "2026-01-14T18:55:49.822Z",
+    "temperature": 23.10000038,
+    "humidity": 76.59999847,
+    "voc": 31111
+  },
+  {
+    "timestamp": "2026-01-14T18:56:05.034Z",
+    "temperature": 23.10000038,
+    "humidity": 76.6333313,
+    "voc": 31109
+  },
+  {
+    "timestamp": "2026-01-14T18:56:20.231Z",
+    "temperature": 23.10000038,
+    "humidity": 76.69999695,
+    "voc": 31131
+  },
+  {
+    "timestamp": "2026-01-14T18:56:35.459Z",
+    "temperature": 23.10000038,
+    "humidity": 76.69999695,
+    "voc": 31121
+  },
+  {
+    "timestamp": "2026-01-14T18:56:50.949Z",
+    "temperature": 23.10000038,
+    "humidity": 76.69999695,
+    "voc": 31125
+  },
+  {
+    "timestamp": "2026-01-14T18:57:06.102Z",
+    "temperature": 23.10000038,
+    "humidity": 76.69999695,
+    "voc": 31122
+  },
+  {
+    "timestamp": "2026-01-14T18:57:21.329Z",
+    "temperature": 23.10000038,
+    "humidity": 76.69999695,
+    "voc": 31125
+  },
+  {
+    "timestamp": "2026-01-14T18:57:36.490Z",
+    "temperature": 23.10000038,
+    "humidity": 76.69999695,
+    "voc": 31117
+  },
+  {
+    "timestamp": "2026-01-14T18:57:51.805Z",
+    "temperature": 23.10000038,
+    "humidity": 76.73332977,
+    "voc": 31126
+  },
+  {
+    "timestamp": "2026-01-14T18:58:07.138Z",
+    "temperature": 23.10000038,
+    "humidity": 76.76667023,
+    "voc": 31130
+  },
+  {
+    "timestamp": "2026-01-14T18:58:22.484Z",
+    "temperature": 23.10000038,
+    "humidity": 76.73332977,
+    "voc": 31134
+  },
+  {
+    "timestamp": "2026-01-14T18:58:37.645Z",
+    "temperature": 23.10000038,
+    "humidity": 76.73332977,
+    "voc": 31162
+  },
+  {
+    "timestamp": "2026-01-14T18:58:52.924Z",
+    "temperature": 23.10000038,
+    "humidity": 76.69999695,
+    "voc": 31168
+  },
+  {
+    "timestamp": "2026-01-14T18:59:08.140Z",
+    "temperature": 23.10000038,
+    "humidity": 76.69999695,
+    "voc": 31177
+  },
+  {
+    "timestamp": "2026-01-14T18:59:23.426Z",
+    "temperature": 23.10000038,
+    "humidity": 76.66666412,
+    "voc": 31171
+  },
+  {
+    "timestamp": "2026-01-14T18:59:38.955Z",
+    "temperature": 23.10000038,
+    "humidity": 76.66666412,
+    "voc": 31177
+  },
+  {
+    "timestamp": "2026-01-14T18:59:54.208Z",
+    "temperature": 23.10000038,
+    "humidity": 76.59999847,
+    "voc": 31184
+  },
+  {
+    "timestamp": "2026-01-14T19:00:09.367Z",
+    "temperature": 23.10000038,
+    "humidity": 76.59999847,
+    "voc": 31191
+  },
+  {
+    "timestamp": "2026-01-14T19:00:24.625Z",
+    "temperature": 23.10000038,
+    "humidity": 76.59999847,
+    "voc": 31186
+  },
+  {
+    "timestamp": "2026-01-14T19:00:39.788Z",
+    "temperature": 23.10000038,
+    "humidity": 76.59999847,
+    "voc": 31199
+  },
+  {
+    "timestamp": "2026-01-14T19:00:55.344Z",
+    "temperature": 23.10000038,
+    "humidity": 76.5,
+    "voc": 31209
+  },
+  {
+    "timestamp": "2026-01-14T19:01:10.499Z",
+    "temperature": 23.10000038,
+    "humidity": 76.53333282,
+    "voc": 31211
+  },
+  {
+    "timestamp": "2026-01-14T19:01:25.757Z",
+    "temperature": 23.10000038,
+    "humidity": 76.46666718,
+    "voc": 31215
+  },
+  {
+    "timestamp": "2026-01-14T19:01:40.949Z",
+    "temperature": 23.13333321,
+    "humidity": 76.46666718,
+    "voc": 31244
+  },
+  {
+    "timestamp": "2026-01-14T19:01:56.344Z",
+    "temperature": 23.16666603,
+    "humidity": 76.43332672,
+    "voc": 31234
+  },
+  {
+    "timestamp": "2026-01-14T19:02:11.527Z",
+    "temperature": 23.16666603,
+    "humidity": 76.40000153,
+    "voc": 31229
+  },
+  {
+    "timestamp": "2026-01-14T19:02:27.090Z",
+    "temperature": 23.20000267,
+    "humidity": 76.40000153,
+    "voc": 31234
+  },
+  {
+    "timestamp": "2026-01-14T19:02:42.254Z",
+    "temperature": 23.13333321,
+    "humidity": 76.3666687,
+    "voc": 31236
+  },
+  {
+    "timestamp": "2026-01-14T19:02:57.808Z",
+    "temperature": 23.20000267,
+    "humidity": 76.3666687,
+    "voc": 31246
+  },
+  {
+    "timestamp": "2026-01-14T19:03:12.967Z",
+    "temperature": 23.16666603,
+    "humidity": 76.30000305,
+    "voc": 31242
+  },
+  {
+    "timestamp": "2026-01-14T19:03:28.262Z",
+    "temperature": 23.20000267,
+    "humidity": 76.26667023,
+    "voc": 31238
+  },
+  {
+    "timestamp": "2026-01-14T19:03:43.789Z",
+    "temperature": 23.20000267,
+    "humidity": 76.23332977,
+    "voc": 31253
+  },
+  {
+    "timestamp": "2026-01-14T19:03:59.044Z",
+    "temperature": 23.20000267,
+    "humidity": 76.19999695,
+    "voc": 31259
+  },
+  {
+    "timestamp": "2026-01-14T19:04:14.203Z",
+    "temperature": 23.20000267,
+    "humidity": 76.19999695,
+    "voc": 31246
+  },
+  {
+    "timestamp": "2026-01-14T19:04:29.587Z",
+    "temperature": 23.20000267,
+    "humidity": 76.19999695,
+    "voc": 31261
+  },
+  {
+    "timestamp": "2026-01-14T19:04:44.817Z",
+    "temperature": 23.20000267,
+    "humidity": 76.09999847,
+    "voc": 31249
+  },
+  {
+    "timestamp": "2026-01-14T19:05:00.091Z",
+    "temperature": 23.20000267,
+    "humidity": 76.09999847,
+    "voc": 31261
+  },
+  {
+    "timestamp": "2026-01-14T19:05:15.247Z",
+    "temperature": 23.20000267,
+    "humidity": 76.09999847,
+    "voc": 31265
+  },
+  {
+    "timestamp": "2026-01-14T19:05:30.590Z",
+    "temperature": 23.20000267,
+    "humidity": 76,
+    "voc": 31261
+  },
+  {
+    "timestamp": "2026-01-14T19:05:45.752Z",
+    "temperature": 23.20000267,
+    "humidity": 76.03333282,
+    "voc": 31279
+  },
+  {
+    "timestamp": "2026-01-14T19:06:01.041Z",
+    "temperature": 23.20000267,
+    "humidity": 76,
+    "voc": 31304
+  },
+  {
+    "timestamp": "2026-01-14T19:06:16.463Z",
+    "temperature": 23.20000267,
+    "humidity": 75.96666718,
+    "voc": 31307
+  },
+  {
+    "timestamp": "2026-01-14T19:06:31.813Z",
+    "temperature": 23.20000267,
+    "humidity": 75.90000153,
+    "voc": 31292
+  },
+  {
+    "timestamp": "2026-01-14T19:06:46.991Z",
+    "temperature": 23.20000267,
+    "humidity": 75.90000153,
+    "voc": 31248
   }
 ]

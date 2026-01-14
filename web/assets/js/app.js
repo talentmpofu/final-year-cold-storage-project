@@ -432,15 +432,40 @@
     const alerts = [];
     if (temp > targets.temp.max + 0.5)
       alerts.push({
-        type: "warn",
-        text: "Temperature is rising above target.",
+        type: "err",
+        text: `Temperature ${temp.toFixed(1)}°C is above safe range (max ${
+          targets.temp.max
+        }°C) — cooling system activated.`,
+      });
+    else if (temp < targets.temp.min - 0.5)
+      alerts.push({
+        type: "err",
+        text: `Temperature ${temp.toFixed(1)}°C is below safe range (min ${
+          targets.temp.min
+        }°C) — heating required.`,
       });
     if (humidity < targets.humidity.min - 3)
-      alerts.push({ type: "warn", text: "Humidity is dropping below target." });
+      alerts.push({
+        type: "err",
+        text: `Humidity ${humidity.toFixed(1)}% is below safe range (min ${
+          targets.humidity.min
+        }%) — humidifier activated.`,
+      });
+    else if (humidity > targets.humidity.max + 3)
+      alerts.push({
+        type: "err",
+        text: `Humidity ${humidity.toFixed(1)}% is above safe range (max ${
+          targets.humidity.max
+        }%) — dehumidifier activated.`,
+      });
     if (ethylene > targets.ethylene.max) {
       alerts.push({
         type: "err",
-        text: "VOC/Ethylene concentration high — air scrubber activated automatically.",
+        text: `VOC/Ethylene ${ethylene.toFixed(
+          1
+        )}ppm is above safe threshold (max ${
+          targets.ethylene.max
+        }ppm) — air scrubber activated.`,
       });
       // Auto-activate scrubber when VOCs are high
       if (systemStatus.scrubber !== "active") {
@@ -474,31 +499,15 @@
         li.textContent = a.text;
         alertList.appendChild(li);
       });
-      // Pick the most severe alert to show in banner
-      const priorityOrder = { err: 3, warn: 2, ok: 1 };
-      const topAlert = alerts.sort(
-        (a, b) => (priorityOrder[b.type] || 0) - (priorityOrder[a.type] || 0)
-      )[0];
-      if (banner && bannerText && topAlert) {
-        bannerText.textContent = topAlert.text;
+      // Show ALL alerts in banner, not just the first one
+      if (banner && bannerText && alerts.length > 0) {
+        const allAlertTexts = alerts.map((a) => a.text).join(" • ");
+        bannerText.textContent = allAlertTexts;
         banner.hidden = false;
-        // adjust banner color based on type
-        if (topAlert.type === "err") {
-          banner.style.background = "#fee2e2";
-          banner.style.color = "#7f1d1d";
-          banner.style.borderTopColor = "#fecaca";
-          banner.style.borderBottomColor = "#fecaca";
-        } else if (topAlert.type === "warn") {
-          banner.style.background = "#fef3c7";
-          banner.style.color = "#78350f";
-          banner.style.borderTopColor = "#fde68a";
-          banner.style.borderBottomColor = "#fde68a";
-        } else {
-          banner.style.background = "#dcfce7";
-          banner.style.color = "#064e3b";
-          banner.style.borderTopColor = "#bbf7d0";
-          banner.style.borderBottomColor = "#bbf7d0";
-        }
+        // adjust banner color to red for errors
+        banner.style.background = "#fee2e2";
+        banner.style.color = "#7f1d1d";
+        banner.style.borderBottomColor = "#fecaca";
         // auto-hide after 10 seconds
         clearTimeout(window.__alertBannerTimer);
         window.__alertBannerTimer = setTimeout(() => {
