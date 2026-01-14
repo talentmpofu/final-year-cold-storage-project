@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Version Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 40px;
+        text-align: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        min-height: 100vh;
+      }
+      .box {
+        background: white;
+        color: #333;
+        padding: 40px;
+        border-radius: 16px;
+        max-width: 500px;
+        margin: 0 auto;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+      h1 {
+        margin: 0 0 20px 0;
+        font-size: 32px;
+      }
+      .version {
+        font-size: 48px;
+        font-weight: bold;
+        color: #667eea;
+        margin: 20px 0;
+      }
+      button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>🎉 NEW VERSION LOADED!</h1>
+      <div class="version">v3.0</div>
+      <p>If you see this page, the server is working correctly!</p>
+      <p>
+        <strong>Date:</strong>
+        <?php echo date('Y-m-d H:i:s'); ?>
+        January 14, 2026 - 4:30 PM
+      </p>
+      <button onclick="window.location.href='/'">Go to Dashboard</button>
+    </div>
+  </body>
+</html>

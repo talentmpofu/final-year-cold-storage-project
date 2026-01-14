@@ -1,9 +1,16 @@
 [
   {
-    "id": 1768052375912,
+    "id": 1768401721483,
+    "type": "potatoes",
+    "quantity": 3,
+    "daysLeft": 21,
+    "addedAt": "2026-01-14T14:42:01.483Z"
+  },
+  {
+    "id": 1768401923879,
     "type": "apples",
-    "quantity": 2,
-    "daysLeft": 20,
-    "addedAt": "2026-01-10T13:39:35.912Z"
+    "quantity": 3,
+    "daysLeft": 3,
+    "addedAt": "2026-01-14T14:45:23.879Z"
   }
 ]

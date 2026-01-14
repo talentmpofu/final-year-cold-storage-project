@@ -5,12 +5,18 @@ const multer = require("multer");
 const axios = require("axios");
 const FormData = require("form-data");
 const fs = require("fs");
+const cron = require("node-cron");
 const { getProduceSettings } = require("./produceDatabase");
 const {
   checkAndAlert,
   verifyEmailConfig,
   sendTestEmail,
 } = require("./emailConfig");
+const {
+  addMetricToHistory,
+  sendReport,
+  saveHistoryToFile,
+} = require("./reportGenerator");
 
 // Load environment variables
 require("dotenv").config();
@@ -33,6 +39,21 @@ const upload = multer({
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Prevent caching for HTML files
+app.use((req, res, next) => {
+  if (
+    req.url.endsWith(".html") ||
+    req.url === "/" ||
+    req.url === "/index.html"
+  ) {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  }
+  next();
+});
+
 app.use(express.static(__dirname));
 app.use("/snapshots", express.static(snapshotsDir));
 
@@ -65,6 +86,9 @@ app.post("/api/metrics", (req, res) => {
     ...req.body,
     timestamp: new Date().toISOString(),
   };
+
+  // Add to report history
+  addMetricToHistory(latestMetrics);
 
   // Check thresholds and send alerts if needed
   checkAndAlert(latestMetrics, currentProduce.thresholds, currentProduce.type);
@@ -483,4 +507,77 @@ app.listen(PORT, "0.0.0.0", async () => {
   const dashboardUrl = `http://localhost:${PORT}/login.html`;
   console.log(`🚀 Opening login page: ${dashboardUrl}\n`);
   open(dashboardUrl);
+
+  // Schedule automated reports
+  setupAutomatedReports();
+});
+
+// ============================================
+// AUTOMATED REPORT SCHEDULING
+// ============================================
+
+function setupAutomatedReports() {
+  const emailConfig = require("./emailConfig");
+  const recipientEmail = emailConfig.user; // Send to same email
+
+  // Daily report - Every day at 8:00 AM
+  cron.schedule("0 8 * * *", async () => {
+    console.log("📧 Sending daily automated report...");
+    await sendReport("daily", currentProduce, recipientEmail);
+  });
+
+  // Weekly report - Every Monday at 9:00 AM
+  cron.schedule("0 9 * * 1", async () => {
+    console.log("📧 Sending weekly automated report...");
+    await sendReport("weekly", currentProduce, recipientEmail);
+  });
+
+  console.log("⏰ Automated reports scheduled:");
+  console.log("   📅 Daily report: Every day at 8:00 AM");
+  console.log("   📅 Weekly report: Every Monday at 9:00 AM");
+  console.log(`   📧 Recipient: ${recipientEmail}\n`);
+}
+
+// API endpoint to manually trigger a report
+app.post("/api/reports/send", async (req, res) => {
+  const { type, email } = req.body; // type: 'daily' or 'weekly'
+
+  if (!type || !["daily", "weekly"].includes(type)) {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid report type. Must be 'daily' or 'weekly'",
+    });
+  }
+
+  const emailConfig = require("./emailConfig");
+  const recipientEmail = email || emailConfig.user;
+
+  try {
+    const result = await sendReport(type, currentProduce, recipientEmail);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ============================================
+// GRACEFUL SHUTDOWN - Save data before exit
+// ============================================
+
+function gracefulShutdown(signal) {
+  console.log(`\n⚠️  ${signal} received, shutting down gracefully...`);
+
+  // Save metrics history to file
+  console.log("💾 Saving metrics history...");
+  saveHistoryToFile();
+
+  console.log("✅ Shutdown complete");
+  process.exit(0);
+}
+
+// Handle shutdown signals
+process.on("SIGINT", () => gracefulShutdown("SIGINT")); // Ctrl+C
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM")); // Kill command
+process.on("exit", () => {
+  console.log("👋 Server stopped");
 });

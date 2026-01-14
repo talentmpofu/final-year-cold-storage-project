@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Clear Cache</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        text-align: center;
+        background: #f0f0f0;
+      }
+      .box {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        max-width: 400px;
+        margin: 50px auto;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+      }
+      #status {
+        margin-top: 20px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>🗑️ Clear App Cache</h1>
+      <p>
+        Click the button below to clear all cached data and service workers.
+      </p>
+      <button onclick="clearEverything()">Clear Cache & Reload</button>
+      <div id="status"></div>
+    </div>
+
+    <script>
+      async function clearEverything() {
+        const status = document.getElementById("status");
+        status.innerHTML = "Clearing...";
+
+        // Unregister all service workers
+        if ("serviceWorker" in navigator) {
+          const registrations =
+            await navigator.serviceWorker.getRegistrations();
+          for (let registration of registrations) {
+            await registration.unregister();
+            console.log("Unregistered:", registration);
+          }
+        }
+
+        // Clear all caches
+        if ("caches" in window) {
+          const cacheNames = await caches.keys();
+          for (let cacheName of cacheNames) {
+            await caches.delete(cacheName);
+            console.log("Deleted cache:", cacheName);
+          }
+        }
+
+        status.innerHTML = "✅ Cleared! Redirecting...";
+
+        // Redirect to main page
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1000);
+      }
+    </script>
+  </body>
+</html>

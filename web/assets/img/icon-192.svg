@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="192" height="192" rx="40" fill="url(#grad)"/>
+  
+  <!-- Snowflake icon -->
+  <g transform="translate(96, 96)" fill="white">
+    <!-- Center circle -->
+    <circle cx="0" cy="0" r="8"/>
+    
+    <!-- Vertical line -->
+    <rect x="-3" y="-45" width="6" height="90" rx="3"/>
+    
+    <!-- Horizontal line -->
+    <rect x="-45" y="-3" width="90" height="6" rx="3"/>
+    
+    <!-- Diagonal line 1 -->
+    <rect x="-3" y="-45" width="6" height="90" rx="3" transform="rotate(45)"/>
+    
+    <!-- Diagonal line 2 -->
+    <rect x="-3" y="-45" width="6" height="90" rx="3" transform="rotate(-45)"/>
+    
+    <!-- Top arms -->
+    <path d="M 0,-45 L -8,-35 M 0,-45 L 8,-35"/>
+    <path d="M -45,0 L -35,-8 M -45,0 L -35,8"/>
+    <path d="M 45,0 L 35,-8 M 45,0 L 35,8"/>
+    <path d="M 0,45 L -8,35 M 0,45 L 8,35"/>
+    
+    <path d="M -32,-32 L -38,-24 M -32,-32 L -24,-38"/>
+    <path d="M 32,-32 L 24,-38 M 32,-32 L 38,-24"/>
+    <path d="M -32,32 L -38,24 M -32,32 L -24,38"/>
+    <path d="M 32,32 L 24,38 M 32,32 L 38,24"/>
+  </g>
+  
+  <!-- "COLD" text -->
+  <text x="96" y="155" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">COLD</text>
+</svg>

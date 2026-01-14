@@ -4,6 +4,44 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Cold Storage Unit Dashboard</title>
+
+    <!-- PWA Meta Tags -->
+    <meta
+      name="description"
+      content="Smart Cold Storage Unit Monitoring System with AI Produce Detection"
+    />
+    <meta name="theme-color" content="#667eea" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Cold Storage" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/assets/img/icon-192.png" />
+    <link
+      rel="apple-touch-icon"
+      sizes="192x192"
+      href="/assets/img/icon-192.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="512x512"
+      href="/assets/img/icon-512.png"
+    />
+
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="/assets/img/icon-192.png"
+    />
+
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
@@ -52,9 +90,14 @@
         </script>
       </nav>
       <!-- Primary navigation removed for top-down single-page flow -->
-      <div class="system-status" aria-live="polite">
-        <span class="status-dot online" aria-hidden="true"></span>
-        <span class="status-text">System Online</span>
+      <div class="system-status" aria-live="polite" id="header-status">
+        <span class="status-text" id="header-status-text">🟢 Connected</span>
+        <span
+          class="status-text"
+          id="header-last-updated"
+          style="margin-left: 8px; font-size: 11px; opacity: 0.8"
+          >Updated just now</span
+        >
       </div>
       <button id="logout-btn" class="section-link" style="margin-left: 12px">
         Logout
@@ -76,6 +119,8 @@
         ✕
       </button>
     </div>
+
+    <!-- Status banner removed - using header status only -->
 
     <main class="container" role="main">
       <!-- Produce Selection Section -->
@@ -1379,5 +1424,190 @@
         </form>
       </div>
     </div>
+
+    <!-- PWA Install Banner -->
+    <div
+      id="pwa-install-banner"
+      style="
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        z-index: 10000;
+      "
+    >
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 15px;
+        "
+      >
+        <div style="flex: 1; min-width: 200px">
+          <div style="font-size: 20px; margin-bottom: 5px">
+            ❄️ Install Cold Storage App
+          </div>
+          <div style="font-size: 14px; opacity: 0.9">
+            Add to your home screen for quick access and offline use
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px">
+          <button
+            id="pwa-install-btn"
+            style="
+              background: white;
+              color: #667eea;
+              border: none;
+              padding: 12px 24px;
+              border-radius: 8px;
+              font-weight: 600;
+              cursor: pointer;
+              font-size: 14px;
+            "
+          >
+            Install
+          </button>
+          <button
+            id="pwa-dismiss-btn"
+            style="
+              background: rgba(255, 255, 255, 0.2);
+              color: white;
+              border: none;
+              padding: 12px 24px;
+              border-radius: 8px;
+              font-weight: 600;
+              cursor: pointer;
+              font-size: 14px;
+            "
+          >
+            Later
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PWA & Service Worker Script -->
+    <script>
+      // Register Service Worker - TEMPORARILY DISABLED FOR CACHE REFRESH
+      if ("serviceWorker" in navigator && false) {
+        window.addEventListener("load", () => {
+          // Clear old caches on load
+          caches.keys().then((cacheNames) => {
+            cacheNames.forEach((cacheName) => {
+              if (cacheName !== "cold-storage-v3") {
+                caches.delete(cacheName);
+                console.log("🗑️ Deleted old cache:", cacheName);
+              }
+            });
+          });
+
+          navigator.serviceWorker
+            .register("/service-worker.js")
+            .then((registration) => {
+              console.log("✅ Service Worker registered:", registration.scope);
+
+              // Check for updates
+              registration.addEventListener("updatefound", () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener("statechange", () => {
+                  if (
+                    newWorker.state === "installed" &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    console.log("🔄 New version available! Please refresh.");
+                    // Optionally show update notification
+                    if (confirm("New version available! Reload to update?")) {
+                      window.location.reload();
+                    }
+                  }
+                });
+              });
+            })
+            .catch((error) => {
+              console.error("❌ Service Worker registration failed:", error);
+            });
+        });
+      }
+
+      // PWA Install Prompt
+      let deferredPrompt;
+      const installBanner = document.getElementById("pwa-install-banner");
+      const installBtn = document.getElementById("pwa-install-btn");
+      const dismissBtn = document.getElementById("pwa-dismiss-btn");
+
+      window.addEventListener("beforeinstallprompt", (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        // Save the event for later use
+        deferredPrompt = e;
+
+        // Show custom install banner
+        if (!localStorage.getItem("pwa-install-dismissed")) {
+          installBanner.style.display = "block";
+        }
+      });
+
+      installBtn.addEventListener("click", async () => {
+        if (!deferredPrompt) {
+          return;
+        }
+
+        // Show the install prompt
+        deferredPrompt.prompt();
+
+        // Wait for the user's response
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response: ${outcome}`);
+
+        // Clear the deferred prompt
+        deferredPrompt = null;
+        installBanner.style.display = "none";
+      });
+
+      dismissBtn.addEventListener("click", () => {
+        installBanner.style.display = "none";
+        localStorage.setItem("pwa-install-dismissed", "true");
+      });
+
+      // Listen for successful install
+      window.addEventListener("appinstalled", () => {
+        console.log("✅ PWA installed successfully!");
+        installBanner.style.display = "none";
+        deferredPrompt = null;
+      });
+
+      // Request notification permission
+      if ("Notification" in window && navigator.serviceWorker) {
+        if (Notification.permission === "default") {
+          // Show notification request after 30 seconds
+          setTimeout(() => {
+            if (confirm("Enable notifications for temperature alerts?")) {
+              Notification.requestPermission().then((permission) => {
+                console.log("Notification permission:", permission);
+              });
+            }
+          }, 30000);
+        }
+      }
+
+      // Online/Offline status
+      window.addEventListener("online", () => {
+        console.log("🌐 Back online!");
+        // Optionally show toast notification
+      });
+
+      window.addEventListener("offline", () => {
+        console.log("📡 Offline mode - using cached data");
+        // Optionally show toast notification
+      });
+    </script>
   </body>
 </html>

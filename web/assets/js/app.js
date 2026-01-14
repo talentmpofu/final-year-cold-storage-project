@@ -1714,6 +1714,10 @@
     bindInventoryControls();
     loadInventory();
     loadLatestSnapshot(); // Load initial snapshot
+
+    // Initialize offline/online detection
+    setupOfflineDetection();
+
     setInterval(() => {
       updateMetrics();
       updateFilterHealth();
@@ -1732,6 +1736,89 @@
       }
     });
   }
+
+  // Offline/Online Detection and Auto-Refresh
+  let lastDataUpdateTime = Date.now();
+  let isCurrentlyOffline = false;
+
+  function setupOfflineDetection() {
+    // Only update header status - no separate banner
+    const headerStatusText = document.getElementById("header-status-text");
+    const headerLastUpdated = document.getElementById("header-last-updated");
+
+    // Update "last updated" timestamp every second
+    setInterval(() => {
+      const secondsAgo = Math.floor((Date.now() - lastDataUpdateTime) / 1000);
+      let timeText;
+      if (secondsAgo < 5) {
+        timeText = `Updated just now`;
+      } else if (secondsAgo < 60) {
+        timeText = `Updated ${secondsAgo}s ago`;
+      } else if (secondsAgo < 3600) {
+        const minutesAgo = Math.floor(secondsAgo / 60);
+        timeText = `Updated ${minutesAgo}m ago`;
+      } else {
+        const hoursAgo = Math.floor(secondsAgo / 3600);
+        timeText = `Updated ${hoursAgo}h ago`;
+      }
+
+      if (headerLastUpdated) headerLastUpdated.textContent = timeText;
+    }, 1000);
+
+    // Listen for online/offline events
+    window.addEventListener("offline", () => {
+      isCurrentlyOffline = true;
+      if (headerStatusText) {
+        headerStatusText.textContent = "🔴 Offline";
+      }
+      console.log("⚠️ Connection lost - offline mode");
+    });
+
+    window.addEventListener("online", () => {
+      isCurrentlyOffline = false;
+      if (headerStatusText) {
+        headerStatusText.textContent = "🟢 Connected";
+      }
+      console.log("✅ Connection restored - fetching fresh data");
+
+      // Auto-refresh data when coming back online
+      setTimeout(() => {
+        updateMetrics();
+        updateFilterHealth();
+        loadLatestSnapshot();
+      }, 500);
+    });
+
+    // Check initial state
+    if (!navigator.onLine) {
+      isCurrentlyOffline = true;
+      if (statusBanner) {
+        statusBanner.classList.add("offline");
+      }
+      if (statusIndicator) {
+        statusIndicator.textContent = "🔴 Offline - showing cached data";
+      }
+    }
+  }
+
+  // Intercept fetch to update lastDataUpdateTime
+  const originalFetch = window.fetch;
+  window.fetch = function (...args) {
+    return originalFetch
+      .apply(this, args)
+      .then((response) => {
+        // If successful API call, update timestamp
+        if (response.ok && args[0] && args[0].includes("/api/")) {
+          lastDataUpdateTime = Date.now();
+        }
+        return response;
+      })
+      .catch((error) => {
+        // Network error - likely offline
+        console.warn("Fetch error (possibly offline):", error);
+        throw error;
+      });
+  };
 
   document.addEventListener("DOMContentLoaded", init);
 })();
