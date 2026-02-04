@@ -39,7 +39,7 @@ const char *serverUrl = "http://172.20.10.2:3000/api/upload-image";
 
 // Timing
 unsigned long lastCaptureTime = 0;
-const unsigned long captureInterval = 1800000; // Capture every 30 minutes
+const unsigned long captureInterval = 300000; // Capture every 5 minutes
 
 // Function declarations
 void connectWiFi();
@@ -97,33 +97,44 @@ void loop()
 
 void connectWiFi()
 {
+  Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   Serial.print("📡 Connecting to WiFi: ");
   Serial.println(ssid);
 
   WiFi.begin(ssid, password);
 
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20)
+  while (WiFi.status() != WL_CONNECTED && attempts < 30)
   {
     delay(500);
     Serial.print(".");
     attempts++;
   }
+  Serial.println();
 
   if (WiFi.status() == WL_CONNECTED)
   {
-    Serial.println("\n✓ WiFi connected");
+    Serial.println("✓ WiFi connected successfully!");
     Serial.print("📍 IP Address: ");
     Serial.println(WiFi.localIP());
     Serial.print("📶 Signal Strength: ");
     Serial.print(WiFi.RSSI());
-    Serial.println(" dBm\n");
+    Serial.println(" dBm");
+    Serial.print("🌐 Gateway: ");
+    Serial.println(WiFi.gatewayIP());
+    Serial.print("🖧  Subnet Mask: ");
+    Serial.println(WiFi.subnetMask());
+    Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
   }
   else
   {
     Serial.println("\n✗ WiFi connection failed!");
-    Serial.println("⚠️  Restarting ESP32-CAM...\n");
-    delay(3000);
+    Serial.println("⚠️  Please check:");
+    Serial.println("   1. WiFi SSID and password are correct");
+    Serial.println("   2. Router is powered on and in range");
+    Serial.println("   3. WiFi network is 2.4GHz (ESP32 doesn't support 5GHz)");
+    Serial.println("\n⚠️  Restarting ESP32-CAM in 5 seconds...\n");
+    delay(5000);
     ESP.restart();
   }
 }
@@ -209,7 +220,8 @@ bool initCamera()
 
 void captureAndSendImage()
 {
-  Serial.println("📸 Capturing image...");
+  Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  Serial.println("📸 Starting image capture...");
 
   // Turn on flash for better lighting
   digitalWrite(FLASH_LED_PIN, HIGH);
@@ -231,75 +243,103 @@ void captureAndSendImage()
 
   if (!fb)
   {
-    Serial.println("✗ Camera capture failed");
+    Serial.println("✗ Camera capture failed!");
     return;
   }
 
-  Serial.printf("✓ Image captured: %d bytes, %dx%d pixels\n",
-                fb->len, fb->width, fb->height);
+  Serial.printf("✓ Image captured successfully!\n");
+  Serial.printf("   Size: %d bytes\n", fb->len);
+  Serial.printf("   Resolution: %dx%d pixels\n", fb->width, fb->height);
+  Serial.printf("   Format: JPEG\n");
 
   // Send image to server
-  if (WiFi.status() == WL_CONNECTED)
+  if (WiFi.status() != WL_CONNECTED)
   {
-    HTTPClient http;
+    Serial.println("✗ WiFi disconnected!");
+    Serial.println("⚠️  Attempting to reconnect...");
+    esp_camera_fb_return(fb);
+    connectWiFi();
+    return;
+  }
 
-    Serial.print("📤 Uploading to server... ");
+  Serial.println("\n📤 Uploading to web app...");
+  Serial.printf("   Server: %s\n", serverUrl);
 
-    http.begin(serverUrl);
-    http.addHeader("Content-Type", "multipart/form-data; boundary=ESP32CAMBoundary");
+  HTTPClient http;
+  http.begin(serverUrl);
+  http.setTimeout(15000); // 15 second timeout
 
-    // Build multipart form data
-    String boundary = "ESP32CAMBoundary";
-    String header = "--" + boundary + "\r\n";
-    header += "Content-Disposition: form-data; name=\"image\"; filename=\"produce.jpg\"\r\n";
-    header += "Content-Type: image/jpeg\r\n\r\n";
+  // Build proper multipart/form-data
+  String boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
 
-    String footer = "\r\n--" + boundary + "--\r\n";
+  String contentType = "multipart/form-data; boundary=" + boundary;
+  http.addHeader("Content-Type", contentType);
 
-    uint32_t totalLen = header.length() + fb->len + footer.length();
+  // Build multipart body
+  String header = "--" + boundary + "\r\n";
+  header += "Content-Disposition: form-data; name=\"image\"; filename=\"esp32cam.jpg\"\r\n";
+  header += "Content-Type: image/jpeg\r\n\r\n";
 
-    // Allocate buffer for complete request
-    uint8_t *requestBuffer = (uint8_t *)malloc(totalLen);
-    if (requestBuffer == NULL)
-    {
-      Serial.println("✗ Failed to allocate memory");
-      esp_camera_fb_return(fb);
-      return;
-    }
+  String footer = "\r\n--" + boundary + "--\r\n";
 
-    // Build complete request
-    memcpy(requestBuffer, header.c_str(), header.length());
-    memcpy(requestBuffer + header.length(), fb->buf, fb->len);
-    memcpy(requestBuffer + header.length() + fb->len, footer.c_str(), footer.length());
+  uint32_t totalLen = header.length() + fb->len + footer.length();
 
-    // Send POST request
-    int httpResponseCode = http.POST(requestBuffer, totalLen);
+  Serial.printf("   Total payload: %d bytes\n", totalLen);
 
-    free(requestBuffer);
-
-    if (httpResponseCode > 0)
-    {
-      Serial.printf("Success! (HTTP %d)\n", httpResponseCode);
-
-      String response = http.getString();
-      Serial.println("📥 Server response:");
-      Serial.println(response);
-    }
-    else
-    {
-      Serial.printf("Failed! Error: %s\n", http.errorToString(httpResponseCode).c_str());
-    }
-
+  // Allocate buffer for complete request
+  uint8_t *requestBuffer = (uint8_t *)malloc(totalLen);
+  if (requestBuffer == NULL)
+  {
+    Serial.println("✗ Failed to allocate memory!");
+    esp_camera_fb_return(fb);
     http.end();
+    return;
+  }
+
+  // Build complete request
+  uint32_t pos = 0;
+  memcpy(requestBuffer + pos, header.c_str(), header.length());
+  pos += header.length();
+  memcpy(requestBuffer + pos, fb->buf, fb->len);
+  pos += fb->len;
+  memcpy(requestBuffer + pos, footer.c_str(), footer.length());
+
+  Serial.println("   Sending data...");
+
+  // Send POST request
+  int httpResponseCode = http.POST(requestBuffer, totalLen);
+
+  free(requestBuffer);
+
+  if (httpResponseCode > 0)
+  {
+    Serial.printf("\n✓ Upload successful! (HTTP %d)\n", httpResponseCode);
+
+    String response = http.getString();
+    Serial.println("\n📥 Server response:");
+    Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    Serial.println(response);
+    Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   }
   else
   {
-    Serial.println("✗ WiFi disconnected, cannot send image");
-    connectWiFi(); // Try to reconnect
+    Serial.printf("\n✗ Upload failed! (HTTP %d)\n", httpResponseCode);
+    Serial.printf("   Error: %s\n", http.errorToString(httpResponseCode).c_str());
+
+    if (httpResponseCode == -1)
+    {
+      Serial.println("   → Connection refused. Is the server running?");
+    }
+    else if (httpResponseCode == -11)
+    {
+      Serial.println("   → Timeout. Check network connection.");
+    }
   }
+
+  http.end();
 
   // Return frame buffer
   esp_camera_fb_return(fb);
 
-  Serial.println();
+  Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 }
