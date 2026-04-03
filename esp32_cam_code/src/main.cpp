@@ -14,7 +14,7 @@ const char *ssid = "Talent";
 const char *password = "talent401";
 
 // Server endpoint
-const char *serverUrl = "http://172.20.10.2:3000/api/upload-image";
+const char *serverUrl = "http://172.20.10.3:3000/api/upload-image";
 
 // Camera pins for AI-Thinker ESP32-CAM
 #define PWDN_GPIO_NUM 32

@@ -56,8 +56,8 @@ const char *ssid = "Talent";
 const char *password = "talent401";
 
 // Backend API endpoint - UPDATE THIS WITH YOUR SERVER IP
-const char *serverUrl = "http://172.20.10.2:3000/api/metrics";
-const char *thresholdsUrl = "http://172.20.10.2:3000/api/thresholds";
+const char *serverUrl = "http://172.20.10.3:3000/api/metrics";
+const char *thresholdsUrl = "http://172.20.10.3:3000/api/thresholds";
 
 // Pin definitions
 #define DHT_PIN 4      // GPIO 4 for DHT22 data pin
