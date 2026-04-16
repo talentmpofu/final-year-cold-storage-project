@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -10,7 +10,7 @@
       name="description"
       content="Smart Cold Storage Unit Monitoring System with AI Produce Detection"
     />
-    <meta name="theme-color" content="#667eea" />
+    <meta name="theme-color" content="#b6daf7" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
@@ -50,58 +50,49 @@
     <link rel="stylesheet" href="assets/css/styles.css" />
   </head>
   <body>
-    <header class="app-header gradient" role="banner">
+    <header class="app-header" role="banner">
       <div class="brand">
-        <span class="logo" aria-hidden="true">❄️</span>
         <div>
           <h1>Cold Storage Monitor</h1>
-          <p class="subtitle">Smart Produce Management System</p>
+          <p class="subtitle">Real-time Monitoring System</p>
         </div>
       </div>
-      <nav class="header-sections" aria-label="Quick sections">
-        <a class="section-link" href="#dashboard">Live Metrics</a>
-        <a class="section-link" href="#controls">System Override</a>
-        <a class="section-link" href="#camera">Camera Snapshot</a>
-        <a class="section-link" href="#alerts">Alerts</a>
-        <script>
-          // Gate dashboard behind a simple local session
-          (function () {
-            try {
-              const raw = localStorage.getItem("csu_auth");
-              if (!raw) {
-                window.location.href = "./login.html";
-                return;
-              }
-              const sess = JSON.parse(raw);
-              // optional: expire after 12 hours
-              const TWELVE_HOURS = 12 * 60 * 60 * 1000;
-              if (
-                !sess ||
-                !sess.email ||
-                Date.now() - (sess.ts || 0) > TWELVE_HOURS
-              ) {
-                localStorage.removeItem("csu_auth");
-                window.location.href = "./login.html";
-              }
-            } catch (e) {
-              window.location.href = "./login.html";
-            }
-          })();
-        </script>
-      </nav>
-      <!-- Primary navigation removed for top-down single-page flow -->
       <div class="system-status" aria-live="polite" id="header-status">
-        <span class="status-text" id="header-status-text">🟢 Connected</span>
+        <span class="status-indicator" id="header-status-text">Connected</span>
         <span
-          class="status-text"
-          id="header-last-updated"
-          style="margin-left: 8px; font-size: 11px; opacity: 0.8"
-          >Updated just now</span
+          class="status-indicator status-indicator--neutral"
+          id="header-inference-text"
+          >Inference: checking...</span
+        >
+        <span class="status-time" id="header-last-updated"
+          >Last update: just now</span
         >
       </div>
-      <button id="logout-btn" class="section-link" style="margin-left: 12px">
-        Logout
-      </button>
+      <button id="logout-btn" class="logout-btn">Sign Out</button>
+      <script>
+        // Gate dashboard behind a simple local session
+        (function () {
+          try {
+            const raw = localStorage.getItem("csu_auth");
+            if (!raw) {
+              window.location.href = "./login.html";
+              return;
+            }
+            const sess = JSON.parse(raw);
+            const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+            if (
+              !sess ||
+              !sess.email ||
+              Date.now() - (sess.ts || 0) > TWELVE_HOURS
+            ) {
+              localStorage.removeItem("csu_auth");
+              window.location.href = "./login.html";
+            }
+          } catch (e) {
+            window.location.href = "./login.html";
+          }
+        })();
+      </script>
     </header>
     <div
       id="alert-banner"
@@ -110,904 +101,862 @@
       aria-live="assertive"
       hidden
     >
-      <span id="alert-banner-text" class="alert-banner-text"></span>
-      <button
-        id="alert-banner-dismiss"
-        class="alert-dismiss"
-        aria-label="Dismiss alert"
-      >
-        ✕
-      </button>
+      <span id="alert-banner-text"></span>
     </div>
 
-    <!-- Status banner removed - using header status only -->
+    <main class="container dashboard-shell" role="main">
+      <aside class="dashboard-sidebar" aria-label="Dashboard sections">
+        <div class="sidebar-brand">
+          <h2>Dashboard</h2>
+        </div>
+        <nav class="sidebar-nav">
+          <a href="#produce-selection" class="nav-link">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M9 7v10M15 7v10" />
+            </svg>
+            <span>Storage Info</span>
+          </a>
+          <a href="#dashboard" class="nav-link">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <path d="M3 14h7v7H3z" />
+            </svg>
+            <span>Live Metrics</span>
+          </a>
+          <a href="#controls" class="nav-link">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="1" />
+              <circle cx="12" cy="5" r="1" />
+              <circle cx="12" cy="19" r="1" />
+              <path d="M12 8v2M12 14v2M8.5 12h3M12.5 12h3" />
+            </svg>
+            <span>System Controls</span>
+          </a>
+          <a href="#view-ai-alerts" class="nav-link">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M8 16H7a4 4 0 01-4-4V8a4 4 0 014-4h10a4 4 0 014 4v4a4 4 0 01-4 4h-1M10 20h4M12 17v3"
+              />
+            </svg>
+            <span>AI & Inventory</span>
+          </a>
+          <a href="#view-analytics" class="nav-link">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <polyline points="3 6 7 18 12 9 16 18 21 6" />
+            </svg>
+            <span>Trends</span>
+          </a>
+          <a href="#view-recommendations" class="nav-link">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M12 3a7 7 0 00-7 7c0 2.2 1 4.1 2.6 5.4L8 19h8l.4-3.6A7 7 0 0012 3z"
+              />
+              <path d="M9 22h6" />
+            </svg>
+            <span>Insights</span>
+          </a>
+          <a href="#view-settings" class="nav-link">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6m-17.78 7.78l4.24-4.24m5.08-5.08l4.24-4.24"
+              />
+            </svg>
+            <span>Settings</span>
+          </a>
+          <a href="#camera" class="nav-link">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
+              />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+            <span>Camera</span>
+          </a>
+        </nav>
+      </aside>
 
-    <main class="container" role="main">
-      <!-- Produce Selection Section -->
-      <section
-        class="view"
-        id="produce-selection"
-        aria-labelledby="produce-title"
-        style="padding-bottom: 24px"
-      >
-        <h2 id="produce-title">Produce Detection & Selection</h2>
-        <div class="card">
-          <div
-            style="
-              display: flex;
-              gap: 20px;
-              align-items: center;
-              flex-wrap: wrap;
-            "
-          >
-            <!-- Current Produce Display -->
-            <div style="flex: 1; min-width: 250px">
-              <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #6b7280">
-                Currently Stored:
-              </h3>
-              <div
-                id="current-produce-display"
-                style="display: flex; align-items: center; gap: 12px"
-              >
-                <span id="current-produce-icon" style="font-size: 48px"
-                  >❓</span
-                >
-                <div>
-                  <div
-                    id="current-produce-name"
-                    style="font-size: 24px; font-weight: 600; color: #1f2937"
+      <div class="dashboard-content">
+        <!-- Overview Section -->
+        <section
+          class="dashboard-section"
+          id="produce-selection"
+          aria-labelledby="produce-title"
+        >
+          <h2 id="produce-title">Storage Information</h2>
+          <div class="card">
+            <!-- Current Thresholds -->
+            <div class="thresholds-section">
+              <div class="thresholds-header">
+                <label class="label-small">Active Thresholds</label>
+                <div class="current-stored-inline" aria-live="polite">
+                  <span class="current-stored-label">Currently Stored</span>
+                  <span id="current-produce-name" class="stored-pill"
+                    >Not detected</span
                   >
-                    No produce detected
-                  </div>
-                  <div
-                    id="current-produce-method"
-                    style="font-size: 14px; color: #6b7280; margin-top: 4px"
+                  <span id="current-produce-method" class="stored-meta"
+                    >Waiting for detection...</span
                   >
-                    Waiting for detection...
-                  </div>
-                  <div
+                  <span
                     id="current-produce-confidence"
-                    style="font-size: 12px; color: #9ca3af; margin-top: 2px"
-                  ></div>
+                    class="stored-confidence"
+                  ></span>
                 </div>
               </div>
-            </div>
-
-            <!-- Manual Selection -->
-            <div
-              style="
-                flex: 1;
-                min-width: 250px;
-                padding-left: 20px;
-                border-left: 2px solid #e5e7eb;
-              "
-            >
-              <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #6b7280">
-                Manual Override:
-              </h3>
-              <div style="display: flex; gap: 10px; align-items: center">
-                <select
-                  id="manual-produce-select"
-                  class="produce-select"
-                  style="
-                    flex: 1;
-                    padding: 10px;
-                    font-size: 14px;
-                    border: 2px solid #d1d5db;
-                    border-radius: 8px;
-                    background: white;
-                  "
-                >
-                  <option value="">-- Select Produce --</option>
-                  <option value="apples">🍎 Apples</option>
-                  <option value="potatoes">🥔 Potatoes</option>
-                </select>
-                <button
-                  id="set-produce-btn"
-                  class="btn-primary"
-                  style="
-                    padding: 10px 20px;
-                    font-size: 14px;
-                    font-weight: 600;
-                    background: #3b82f6;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    cursor: pointer;
-                  "
-                >
-                  Set
-                </button>
-              </div>
-              <p style="font-size: 12px; color: #6b7280; margin-top: 8px">
-                ℹ️ Manual selection overrides AI detection
-              </p>
-            </div>
-          </div>
-
-          <!-- Current Thresholds -->
-          <div
-            style="
-              margin-top: 20px;
-              padding-top: 20px;
-              border-top: 2px solid #e5e7eb;
-            "
-          >
-            <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #6b7280">
-              Active Storage Thresholds:
-            </h3>
-            <div
-              style="
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 16px;
-              "
-            >
-              <div class="threshold-item">
-                <div
-                  style="
-                    font-size: 12px;
-                    color: #6b7280;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                  "
-                >
-                  Temperature
+              <div class="thresholds-grid">
+                <div class="threshold-item">
+                  <span class="threshold-label">Temperature</span>
+                  <span id="threshold-temp" class="threshold-value">0–4°C</span>
                 </div>
-                <div
-                  id="threshold-temp"
-                  style="
-                    font-size: 18px;
-                    font-weight: 600;
-                    color: #1f2937;
-                    margin-top: 4px;
-                  "
-                >
-                  0–4°C
+                <div class="threshold-item">
+                  <span class="threshold-label">Humidity</span>
+                  <span id="threshold-humidity" class="threshold-value"
+                    >90–95%</span
+                  >
                 </div>
-              </div>
-              <div class="threshold-item">
-                <div
-                  style="
-                    font-size: 12px;
-                    color: #6b7280;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                  "
-                >
-                  Humidity
-                </div>
-                <div
-                  id="threshold-humidity"
-                  style="
-                    font-size: 18px;
-                    font-weight: 600;
-                    color: #1f2937;
-                    margin-top: 4px;
-                  "
-                >
-                  90–95%
-                </div>
-              </div>
-              <div class="threshold-item">
-                <div
-                  style="
-                    font-size: 12px;
-                    color: #6b7280;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                  "
-                >
-                  VOC Threshold
-                </div>
-                <div
-                  id="threshold-voc"
-                  style="
-                    font-size: 18px;
-                    font-weight: 600;
-                    color: #1f2937;
-                    margin-top: 4px;
-                  "
-                >
-                  30 ppm
+                <div class="threshold-item">
+                  <span class="threshold-label">VOC Limit</span>
+                  <span id="threshold-voc" class="threshold-value">30 ppm</span>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="view" id="dashboard" aria-labelledby="metrics-title">
-        <h2 id="metrics-title">Live Metrics</h2>
-        <div class="grid">
-          <article class="card" aria-label="Temperature">
-            <header>
-              <h3>Temperature</h3>
-              <span class="unit">°C</span>
-            </header>
-            <div class="value" id="temp-value">--</div>
-            <div class="bar">
-              <span class="bar-fill" id="temp-bar" style="width: 50%"></span>
-            </div>
-            <footer>
-              <div class="trend" id="temp-trend">Stable</div>
-              <div class="muted" style="margin-top: 4px">
-                min <span id="temp-min">--</span>°C · avg
-                <span id="temp-avg">--</span>°C · max
-                <span id="temp-max">--</span>°C
+        <section
+          class="dashboard-section"
+          id="dashboard"
+          aria-labelledby="metrics-title"
+        >
+          <h2 id="metrics-title">Live Metrics</h2>
+          <div class="grid">
+            <article class="card metric-card" aria-label="Temperature">
+              <header class="metric-card-head">
+                <div class="metric-title-wrap">
+                  <h3>Temperature</h3>
+                </div>
+                <span class="unit-pill">°C</span>
+              </header>
+              <div class="metric-gauge" id="temp-ring">
+                <div class="metric-gauge-inner">
+                  <div class="metric-gauge-percent" id="temp-percent">0%</div>
+                  <div class="metric-gauge-value">
+                    <span id="temp-value">--</span
+                    ><span class="metric-gauge-unit">°C</span>
+                  </div>
+                </div>
               </div>
-            </footer>
-          </article>
-          <article class="card" aria-label="Humidity">
-            <header>
-              <h3>Humidity</h3>
-              <span class="unit">%</span>
-            </header>
-            <div class="value" id="humidity-value">--</div>
-            <div class="bar">
-              <span
-                class="bar-fill"
-                id="humidity-bar"
-                style="width: 70%"
-              ></span>
-            </div>
-            <footer>
-              <div class="trend" id="humidity-trend">Stable</div>
-              <div class="muted" style="margin-top: 4px">
-                min <span id="humidity-min">--</span>% · avg
-                <span id="humidity-avg">--</span>% · max
-                <span id="humidity-max">--</span>%
+              <footer class="metric-card-foot">
+                <div class="trend" id="temp-trend">Stable</div>
+                <div class="metric-stats">
+                  <span><strong id="temp-min">--</strong> min</span>
+                  <span><strong id="temp-avg">--</strong> avg</span>
+                  <span><strong id="temp-max">--</strong> max</span>
+                </div>
+              </footer>
+            </article>
+            <article class="card metric-card" aria-label="Humidity">
+              <header class="metric-card-head">
+                <div class="metric-title-wrap">
+                  <h3>Humidity</h3>
+                </div>
+                <span class="unit-pill">%</span>
+              </header>
+              <div class="metric-gauge" id="humidity-ring">
+                <div class="metric-gauge-inner">
+                  <div class="metric-gauge-percent" id="humidity-percent">
+                    0%
+                  </div>
+                  <div class="metric-gauge-value">
+                    <span id="humidity-value">--</span
+                    ><span class="metric-gauge-unit">%</span>
+                  </div>
+                </div>
               </div>
-            </footer>
-          </article>
-          <article class="card" aria-label="Ethylene/VOCs">
-            <header>
-              <h3>Ethylene/VOCs</h3>
-              <span class="unit">ppm</span>
-            </header>
-            <div class="value" id="ethylene-value">--</div>
-            <div class="bar">
-              <span
-                class="bar-fill warn"
-                id="ethylene-bar"
-                style="width: 30%"
-              ></span>
-            </div>
-            <footer>
-              <div class="trend" id="ethylene-trend">Stable</div>
-              <div class="muted" style="margin-top: 4px">
-                min <span id="ethylene-min">--</span> · avg
-                <span id="ethylene-avg">--</span> · max
-                <span id="ethylene-max">--</span> ppm
+              <footer class="metric-card-foot">
+                <div class="trend" id="humidity-trend">Stable</div>
+                <div class="metric-stats">
+                  <span><strong id="humidity-min">--</strong> min</span>
+                  <span><strong id="humidity-avg">--</strong> avg</span>
+                  <span><strong id="humidity-max">--</strong> max</span>
+                </div>
+              </footer>
+            </article>
+            <article class="card metric-card" aria-label="Ethylene/VOCs">
+              <header class="metric-card-head">
+                <div class="metric-title-wrap">
+                  <h3>Ethylene/VOCs</h3>
+                </div>
+                <span class="unit-pill">ppm</span>
+              </header>
+              <div class="metric-gauge" id="ethylene-ring">
+                <div class="metric-gauge-inner">
+                  <div class="metric-gauge-percent" id="ethylene-percent">
+                    0%
+                  </div>
+                  <div class="metric-gauge-value">
+                    <span id="ethylene-value">--</span
+                    ><span class="metric-gauge-unit">ppm</span>
+                  </div>
+                </div>
               </div>
-            </footer>
-          </article>
-        </div>
+              <footer class="metric-card-foot">
+                <div class="trend" id="ethylene-trend">Stable</div>
+                <div class="metric-stats">
+                  <span><strong id="ethylene-min">--</strong> min</span>
+                  <span><strong id="ethylene-avg">--</strong> avg</span>
+                  <span><strong id="ethylene-max">--</strong> max</span>
+                </div>
+              </footer>
+            </article>
+          </div>
 
-        <div class="card" style="margin-top: 20px">
-          <header>
+          <div class="card section-card">
             <h3>System Status</h3>
-          </header>
-          <div class="status-grid">
-            <div class="status-item">
-              <div class="status-header">
-                <span class="status-icon" id="cooling-status-icon">⚙️</span>
+            <div class="status-grid">
+              <div class="status-item" id="cooling-status">
                 <span class="status-name">Cooling System</span>
-              </div>
-              <div class="status-indicator" id="cooling-status">
                 <span class="status-badge active">Active</span>
               </div>
-            </div>
-            <div class="status-item">
-              <div class="status-header">
-                <span class="status-icon" id="humidifier-status-icon">💧</span>
+              <div class="status-item" id="humidifier-status">
                 <span class="status-name">Humidifier</span>
-              </div>
-              <div class="status-indicator" id="humidifier-status">
                 <span class="status-badge active">Active</span>
               </div>
-            </div>
-            <div class="status-item">
-              <div class="status-header">
-                <span class="status-icon" id="scrubber-status-icon">🔄</span>
+              <div class="status-item" id="scrubber-status">
                 <span class="status-name">Air Scrubber</span>
-              </div>
-              <div class="status-indicator" id="scrubber-status">
                 <span class="status-badge standby">Standby</span>
               </div>
-            </div>
-            <div class="status-item">
-              <div class="status-header">
-                <span class="status-icon" id="camera-status-icon">📷</span>
+              <div class="status-item" id="camera-status">
                 <span class="status-name">AI Camera</span>
-              </div>
-              <div class="status-indicator" id="camera-status">
                 <span class="status-badge active">Active</span>
               </div>
             </div>
-          </div>
-          <div
-            style="
-              margin-top: 18px;
-              padding-top: 18px;
-              border-top: 1px solid #e5e7eb;
-            "
-          >
-            <h4
-              style="
-                font-size: 14px;
-                font-weight: 600;
-                color: #374151;
-                margin: 0 0 12px 0;
-              "
-            >
-              Filter Health
-            </h4>
-            <div style="display: flex; flex-direction: column; gap: 12px">
-              <div style="display: flex; align-items: center; gap: 12px">
-                <span style="flex: 0 0 120px; font-size: 13px; color: #6b7280"
-                  >KMnO₄ Filter</span
-                >
-                <div
-                  style="
-                    flex: 1;
-                    background: #f3f4f6;
-                    height: 8px;
-                    border-radius: 4px;
-                    overflow: hidden;
-                  "
-                >
-                  <div
-                    id="kmno4-bar"
-                    style="
-                      background: linear-gradient(90deg, #0ea5e9, #38bdf8);
-                      height: 100%;
-                      width: 78%;
-                      transition: width 0.3s ease;
-                    "
-                  ></div>
+            <div class="filter-health">
+              <h4>Filter Health</h4>
+              <div class="filter-item">
+                <span class="filter-label">KMnO₄ Filter</span>
+                <div class="filter-bar">
+                  <div id="kmno4-bar" class="filter-fill"></div>
                 </div>
-                <span
-                  id="kmno4-percent"
-                  style="
-                    flex: 0 0 40px;
-                    font-size: 13px;
-                    font-weight: 600;
-                    color: #374151;
-                    text-align: right;
-                  "
-                  >78%</span
-                >
+                <span id="kmno4-percent" class="filter-percent">78%</span>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="controls" id="controls" aria-labelledby="controls-title">
-        <h2 id="controls-title">System Override Controls</h2>
-
-        <!-- Auto/Manual Mode Toggle -->
-        <div
-          class="card"
-          style="
-            margin-bottom: 20px;
-            padding: 20px;
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border: 2px solid #0ea5e9;
-          "
+        <section
+          class="dashboard-section"
+          id="controls"
+          aria-labelledby="controls-title"
         >
-          <div
-            style="
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              margin-bottom: 8px;
-            "
-          >
-            <div>
-              <h3 style="margin: 0 0 4px 0; font-size: 16px; color: #0c4a6e">
-                Control Mode
-              </h3>
-              <p
-                style="margin: 0; font-size: 13px; color: #075985"
-                id="control-mode-description"
-              >
-                System is in <strong>Automatic Mode</strong> - PID controllers
-                are managing all components
-              </p>
-            </div>
-            <label class="toggle-switch" style="transform: scale(1.2)">
-              <input type="checkbox" id="auto-manual-toggle" checked />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          <div
-            style="
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              margin-top: 12px;
-              padding: 8px 12px;
-              background: rgba(255, 255, 255, 0.7);
-              border-radius: 6px;
-            "
-          >
-            <span style="font-size: 12px; color: #0369a1">
-              <span id="mode-indicator">🤖 AUTO</span>
-            </span>
-          </div>
-        </div>
+          <h2 id="controls-title">System Controls</h2>
 
-        <div class="controls-grid" id="manual-controls-grid">
-          <div class="control-card">
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-              "
-            >
-              <h3>Cooling</h3>
-              <span class="toggle-status" id="cooling-status-text">Active</span>
+          <div class="card controls-compact">
+            <!-- Mode Toggle -->
+            <div class="control-mode-bar">
+              <div class="mode-toggle-group">
+                <span>Mode:</span>
+                <label class="toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="auto-manual-toggle"
+                    checked
+                    aria-label="Automatic/Manual mode"
+                  />
+                  <span class="toggle-slider"></span>
+                </label>
+                <span id="mode-indicator" class="mode-text">Automatic</span>
+              </div>
             </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="cooling-toggle" checked />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          <div class="control-card">
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-              "
-            >
-              <h3>Humidifier</h3>
-              <span class="toggle-status" id="humidifier-status-text"
-                >Active</span
-              >
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="humidifier-toggle" checked />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          <div class="control-card">
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-              "
-            >
-              <h3>Ethylene/VOCs Scrubbing</h3>
-              <span class="toggle-status" id="scrubber-status-text"
-                >Standby</span
-              >
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="scrubber-toggle" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
-      </section>
 
-      <section
-        class="view"
-        id="view-ai-alerts"
-        aria-labelledby="ai-alerts-title"
-      >
-        <h2 id="ai-alerts-title">AI Quality Alerts</h2>
-        <div
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-          "
+            <!-- System Controls Row -->
+            <div class="controls-row">
+              <div class="control-item">
+                <div class="control-label">
+                  <span class="control-name">Cooling</span>
+                  <span class="control-status" id="cooling-status-text"
+                    >Auto</span
+                  >
+                </div>
+                <label class="toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="cooling-toggle"
+                    checked
+                    aria-label="Cooling control"
+                  />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="control-item">
+                <div class="control-label">
+                  <span class="control-name">Humidifier</span>
+                  <span class="control-status" id="humidifier-status-text"
+                    >Auto</span
+                  >
+                </div>
+                <label class="toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="humidifier-toggle"
+                    checked
+                    aria-label="Humidifier control"
+                  />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="control-item">
+                <div class="control-label">
+                  <span class="control-name">Ethylene/VOCs</span>
+                  <span class="control-status" id="scrubber-status-text"
+                    >Auto</span
+                  >
+                </div>
+                <label class="toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="scrubber-toggle"
+                    aria-label="Ethylene/VOCs scrubber control"
+                  />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="view"
+          id="view-ai-alerts"
+          aria-labelledby="ai-alerts-title"
         >
-          <span class="muted">Real-time AI monitoring</span>
-          <span
-            class="status-badge"
-            id="alert-count"
-            style="
-              background: #ef4444;
-              color: white;
-              padding: 4px 12px;
-              border-radius: 12px;
-              font-size: 13px;
-            "
-            >2 Active</span
-          >
-        </div>
-        <div id="ai-alerts-list" style="display: grid; gap: 12px">
-          <!-- AI alerts populated by JS -->
-        </div>
-      </section>
-
-      <section
-        class="view"
-        id="view-inventory"
-        aria-labelledby="inventory-title"
-      >
-        <div
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-          "
-        >
-          <h2 id="inventory-title" style="margin: 0">Inventory Overview</h2>
-        </div>
-        <div class="inventory-controls">
-          <input
-            id="inv-search"
-            type="search"
-            placeholder="Search produce..."
-            aria-label="Search inventory"
-          />
-          <select id="inv-filter" aria-label="Filter by status">
-            <option value="all">All status</option>
-            <option value="critical">Critical</option>
-            <option value="warning">Warning</option>
-            <option value="good">Good</option>
-          </select>
-          <button
-            class="btn"
-            id="add-items-btn"
-            style="
-              padding: 10px 12px;
-              font-size: 14px;
-              flex: 0 0 auto;
-              width: auto;
-            "
-          >
-            + Add Items
-          </button>
-        </div>
-        <div class="card">
-          <div class="table-wrap">
-            <table class="table" aria-label="Inventory table">
+          <h2 id="ai-alerts-title">AI Quality Alerts & Camera Summary</h2>
+          <div class="section-toolbar">
+            <span class="muted">Real-time AI monitoring system</span>
+            <span class="status-badge status-pill-danger" id="alert-count"
+              >No Active Alerts</span
+            >
+          </div>
+          <div class="camera-summary-table-wrap">
+            <table class="camera-summary-table" id="camera-inventory-summary">
               <thead>
                 <tr>
                   <th scope="col">Item</th>
-                  <th scope="col">Quantity</th>
-                  <th scope="col">Days Left</th>
+                  <th scope="col">Total Detected</th>
+                  <th scope="col">Good</th>
+                  <th scope="col">Bad</th>
                   <th scope="col">Status</th>
-                  <th scope="col">Actions</th>
                 </tr>
               </thead>
-              <tbody id="inv-body">
-                <!-- populated by JS -->
+              <tbody>
+                <tr>
+                  <td>Apples</td>
+                  <td id="camera-apples-total">0</td>
+                  <td id="camera-apples-good">0</td>
+                  <td id="camera-apples-bad">0</td>
+                  <td id="camera-apples-status">Healthy</td>
+                </tr>
+                <tr>
+                  <td>Potatoes</td>
+                  <td id="camera-potatoes-total">0</td>
+                  <td id="camera-potatoes-good">0</td>
+                  <td id="camera-potatoes-bad">0</td>
+                  <td id="camera-potatoes-status">Healthy</td>
+                </tr>
               </tbody>
             </table>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section
-        class="view"
-        id="view-predictions"
-        aria-labelledby="predictions-title"
-      >
-        <h2 id="predictions-title">Predictive Analytics & Recommendations</h2>
-        <div
-          class="grid"
-          style="
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
-            margin-top: 16px;
-          "
+        <section
+          class="view"
+          id="view-analytics"
+          aria-labelledby="analytics-title"
         >
-          <div
-            class="card"
-            style="background: #eff6ff; border: 1px solid #bfdbfe"
-          >
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                margin-bottom: 12px;
-              "
-            >
-              <div
-                style="
-                  background: #3b82f6;
-                  color: white;
-                  width: 40px;
-                  height: 40px;
-                  border-radius: 10px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-size: 20px;
-                "
-              >
-                📊
+          <h2>Environmental Trends</h2>
+          <div class="card analytics-card">
+            <header class="analytics-header">
+              <h3>Environmental Trends</h3>
+              <div class="analytics-range">
+                <button class="time-range-btn active" data-range="24h">
+                  24H
+                </button>
+                <button class="time-range-btn" data-range="7d">7D</button>
+                <button class="time-range-btn" data-range="30d">30D</button>
               </div>
-              <h3 style="margin: 0; font-size: 16px">Shelf Life Prediction</h3>
+            </header>
+            <div class="analytics-chart-wrap">
+              <canvas
+                id="env-trend"
+                width="1200"
+                height="360"
+                class="spark"
+              ></canvas>
+              <div id="env-tooltip" class="env-tooltip" hidden></div>
             </div>
-            <p class="muted" style="font-size: 13px; margin-bottom: 12px">
-              Based on current conditions and AI analysis:
-            </p>
-            <div
-              style="
-                font-size: 32px;
-                font-weight: 700;
-                color: #1e40af;
-                margin-bottom: 4px;
-              "
-              id="avg-shelf-life"
-            >
-              6.2 days
-            </div>
-            <p class="muted" style="font-size: 12px">
-              Average across all items
-            </p>
-          </div>
-          <div
-            class="card"
-            style="background: #f0fdf4; border: 1px solid #bbf7d0"
-          >
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                margin-bottom: 12px;
-              "
-            >
-              <div
-                style="
-                  background: #22c55e;
-                  color: white;
-                  width: 40px;
-                  height: 40px;
-                  border-radius: 10px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-size: 20px;
-                "
+            <footer class="trend-legend muted">
+              <span class="legend-item"
+                ><span class="legend-swatch temperature"></span>Temperature
+                (°C)</span
               >
-                💡
-              </div>
-              <h3 style="margin: 0; font-size: 16px">Optimization Tips</h3>
-            </div>
-            <ul
-              id="optimization-tips"
-              style="
-                margin: 0;
-                padding-left: 18px;
-                font-size: 13px;
-                color: #166534;
-                line-height: 1.8;
-              "
-            >
-              <li>Reduce temperature by 0.5°C for apples</li>
-              <li>Maintain optimal humidity for produce freshness</li>
-              <li>Keep potatoes in dark, well-ventilated area</li>
-            </ul>
-          </div>
-          <div
-            class="card"
-            style="background: #faf5ff; border: 1px solid #e9d5ff"
-          >
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                margin-bottom: 12px;
-              "
-            >
-              <div
-                style="
-                  background: #a855f7;
-                  color: white;
-                  width: 40px;
-                  height: 40px;
-                  border-radius: 10px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-size: 20px;
-                "
+              <span class="legend-item"
+                ><span class="legend-swatch humidity"></span>Humidity (%)</span
               >
-                📈
-              </div>
-              <h3 style="margin: 0; font-size: 16px">Usage Forecast</h3>
-            </div>
-            <p class="muted" style="font-size: 13px; margin-bottom: 10px">
-              Recommended consumption order:
-            </p>
-            <ol
-              id="usage-forecast"
-              style="
-                margin: 0;
-                padding-left: 18px;
-                font-size: 13px;
-                color: #6b21a8;
-                line-height: 1.8;
-              "
+              <span class="legend-item"
+                ><span class="legend-swatch ethylene"></span>Ethylene/VOCs
+                (ppm)</span
+              >
+            </footer>
+            <div
+              class="analytics-export-actions"
+              role="group"
+              aria-label="Export data and reports"
             >
-              <li>Apples (3 days left)</li>
-              <li>Monitor produce freshness regularly</li>
-              <li>Potatoes (21 days left)</li>
-            </ol>
-          </div>
-        </div>
-      </section>
-
-      <section
-        class="view"
-        id="view-analytics"
-        aria-labelledby="analytics-title"
-      >
-        <h2>Environmental Trends</h2>
-        <div class="card">
-          <header>
-            <h3>Environmental Trends</h3>
-            <div style="display: flex; gap: 8px">
-              <button class="time-range-btn active" data-range="24h">
-                24H
+              <button
+                class="camera-btn camera-btn-secondary analytics-export-btn"
+                id="export-logs-csv"
+                type="button"
+              >
+                Download Logs CSV
               </button>
-              <button class="time-range-btn" data-range="7d">7D</button>
-              <button class="time-range-btn" data-range="30d">30D</button>
-            </div>
-          </header>
-          <div style="position: relative">
-            <canvas
-              id="env-trend"
-              width="1200"
-              height="360"
-              class="spark"
-            ></canvas>
-            <div id="env-tooltip" class="env-tooltip" hidden></div>
-          </div>
-          <footer class="muted" style="margin-top: 8px">
-            <span style="display: inline-block; margin-right: 12px"
-              ><span
-                style="
-                  background: #ef4444;
-                  width: 30px;
-                  height: 12px;
-                  border-radius: 2px;
-                  display: inline-block;
-                  margin-right: 6px;
-                "
-              ></span
-              >Temperature (°C)</span
-            >
-            <span style="display: inline-block; margin-right: 12px"
-              ><span
-                style="
-                  background: #0ea5e9;
-                  width: 30px;
-                  height: 12px;
-                  border-radius: 2px;
-                  display: inline-block;
-                  margin-right: 6px;
-                "
-              ></span
-              >Humidity (%)</span
-            >
-            <span style="display: inline-block"
-              ><span
-                style="
-                  background: #f59e0b;
-                  width: 30px;
-                  height: 12px;
-                  border-radius: 2px;
-                  display: inline-block;
-                  margin-right: 6px;
-                "
-              ></span
-              >Ethylene/VOCs (ppm)</span
-            >
-          </footer>
-        </div>
-      </section>
-
-      <section class="view" id="view-settings" aria-labelledby="settings-title">
-        <h2 id="settings-title">Storage Settings</h2>
-        <div class="card">
-          <form class="settings-form" id="settings-form">
-            <label>
-              Produce Type
-              <select
-                id="produce-preset"
-                style="
-                  padding: 10px;
-                  border: 1px solid #d1d5db;
-                  border-radius: 6px;
-                  font-size: 14px;
-                "
+              <button
+                class="camera-btn camera-btn-secondary analytics-export-btn"
+                id="export-trends-csv"
+                type="button"
               >
-                <option value="">Custom Settings</option>
-                <option value="potatoes">Potatoes</option>
-                <option value="apples">Apples</option>
-              </select>
-            </label>
-            <label>
-              Temperature target (°C)
-              <input
-                type="number"
-                id="temp-target-input"
-                min="0"
-                max="15"
-                step="0.1"
-                value="3"
-              />
-            </label>
-            <label>
-              Humidity target (%)
-              <input
-                type="number"
-                id="humidity-target-input"
-                min="50"
-                max="100"
-                step="1"
-                value="90"
-              />
-            </label>
-            <label>
-              Ethylene threshold (ppm)
-              <input
-                type="number"
-                id="ethylene-threshold-input"
-                min="0"
-                max="50"
-                step="1"
-                value="30"
-              />
-            </label>
+                Download Trends CSV
+              </button>
+              <button
+                class="camera-btn camera-btn-primary analytics-export-btn"
+                id="export-summary-pdf"
+                type="button"
+              >
+                Download Summary PDF
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="view"
+          id="view-recommendations"
+          aria-labelledby="recommendations-title"
+        >
+          <h2 id="recommendations-title">Analytics & Recommendations</h2>
+          <div class="insights-grid recommendations-grid">
+            <article class="insight-card">
+              <div class="insight-head">
+                <div>
+                  <h3 class="insight-title">Shelf Life Forecast</h3>
+                  <p class="insight-subtitle">
+                    Condition-based outlook from temperature, humidity, and VOC
+                    thresholds
+                  </p>
+                </div>
+              </div>
+              <div class="forecast-stack">
+                <div class="forecast-row">
+                  <span>Apples</span>
+                  <strong id="forecast-apples">Assessing...</strong>
+                </div>
+                <div class="forecast-row">
+                  <span>Potatoes</span>
+                  <strong id="forecast-potatoes">Assessing...</strong>
+                </div>
+                <div class="forecast-note" id="forecast-summary">
+                  Waiting for live conditions to evaluate whether shelf life is
+                  likely improving.
+                </div>
+              </div>
+            </article>
+
+            <article class="insight-card">
+              <div class="insight-head">
+                <div>
+                  <h3 class="insight-title">Environmental Diagnosis</h3>
+                  <p class="insight-subtitle">
+                    Current trend direction and storage stability
+                  </p>
+                </div>
+              </div>
+              <div class="insight-value" id="environment-score">--</div>
+              <p class="forecast-note" id="environment-summary">
+                Temperature, humidity, and ethylene trend analysis will appear
+                here.
+              </p>
+            </article>
+
+            <article class="insight-card">
+              <div class="insight-head">
+                <div>
+                  <h3 class="insight-title">Recommended Actions</h3>
+                  <p class="insight-subtitle">
+                    Practical steps to improve shelf life now
+                  </p>
+                </div>
+              </div>
+              <ul
+                class="insight-list recommendation-list"
+                id="recommendation-list"
+              >
+                <li>Waiting for live metrics...</li>
+              </ul>
+            </article>
+
+            <article class="insight-card">
+              <div class="insight-head">
+                <div>
+                  <h3 class="insight-title">Inspection Priority</h3>
+                  <p class="insight-subtitle">Items to check or move first</p>
+                </div>
+              </div>
+              <ol
+                class="insight-list insight-list--ordered priority-list"
+                id="priority-list"
+              >
+                <li>Waiting for live metrics...</li>
+              </ol>
+            </article>
+          </div>
+        </section>
+
+        <section
+          class="view"
+          id="view-settings"
+          aria-labelledby="settings-title"
+        >
+          <h2 id="settings-title">Storage Settings</h2>
+          <div class="card settings-card">
+            <div class="settings-table-wrapper">
+              <table class="settings-table">
+                <thead>
+                  <tr>
+                    <th>Threshold Profile</th>
+                    <th colspan="2">Temperature range (°C)</th>
+                    <th colspan="2">Humidity range (%)</th>
+                    <th>Ethylene threshold (ppm)</th>
+                  </tr>
+                  <tr class="settings-table-subheader">
+                    <th></th>
+                    <th>Min</th>
+                    <th>Max</th>
+                    <th>Min</th>
+                    <th>Max</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Custom (Mixed Storage) -->
+                  <tr data-profile="custom">
+                    <td class="profile-name">Custom (Mixed Storage)</td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="custom"
+                        data-field="temp-min"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="4"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="custom"
+                        data-field="temp-max"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="7"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="custom"
+                        data-field="humidity-min"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="85"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="custom"
+                        data-field="humidity-max"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="95"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="custom"
+                        data-field="voc"
+                        min="0"
+                        max="50000"
+                        step="1"
+                        value="30000"
+                      />
+                    </td>
+                  </tr>
+                  <!-- Apples -->
+                  <tr data-profile="apples">
+                    <td class="profile-name">Apples</td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="apples"
+                        data-field="temp-min"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="1"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="apples"
+                        data-field="temp-max"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="4"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="apples"
+                        data-field="humidity-min"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="85"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="apples"
+                        data-field="humidity-max"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="95"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="apples"
+                        data-field="voc"
+                        min="0"
+                        max="50000"
+                        step="1"
+                        value="30000"
+                      />
+                    </td>
+                  </tr>
+                  <!-- Potatoes -->
+                  <tr data-profile="potatoes">
+                    <td class="profile-name">Potatoes</td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="potatoes"
+                        data-field="temp-min"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="7"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="potatoes"
+                        data-field="temp-max"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="10"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="potatoes"
+                        data-field="humidity-min"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="85"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="potatoes"
+                        data-field="humidity-max"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="95"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="potatoes"
+                        data-field="voc"
+                        min="0"
+                        max="50000"
+                        step="1"
+                        value="30000"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="settings-actions">
+              <p class="muted settings-info">
+                Edit threshold values for each profile. Active thresholds will
+                automatically update when saved based on detected produce type.
+              </p>
+              <button
+                type="button"
+                id="settings-save-btn"
+                class="btn btn-primary"
+                title="Save all threshold settings"
+              >
+                Save Settings
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="camera" id="camera" aria-labelledby="camera-title">
+          <h2 id="camera-title">Camera Snapshot</h2>
+          <div class="camera-frame">
+            <img
+              id="camera-img"
+              src="assets/img/icon-512.svg"
+              alt="Latest interval snapshot of stored produce"
+            />
+          </div>
+          <div class="camera-actions">
             <button
-              type="submit"
-              class="btn"
-              style="margin-top: 16px; width: 100%"
+              class="btn camera-btn camera-btn-primary"
+              id="refresh-snapshot"
+              type="button"
             >
-              Save & Apply Settings
+              Refresh Snapshot
             </button>
-          </form>
-        </div>
-      </section>
-
-      <section class="camera" id="camera" aria-labelledby="camera-title">
-        <h2 id="camera-title">Camera Snapshot</h2>
-        <div class="camera-frame">
-          <img
-            id="camera-img"
-            src="assets/img/placeholder-produce.jpg"
-            alt="Live snapshot of stored produce"
-          />
-        </div>
-        <div class="camera-actions">
-          <button class="btn" id="refresh-snapshot" type="button">
-            Refresh Snapshot
-          </button>
-          <button class="btn" id="open-gallery" type="button">
-            Open Gallery
-          </button>
-        </div>
-      </section>
-
-      <section class="alerts" id="alerts" aria-labelledby="alerts-title">
-        <h2 id="alerts-title">Alerts</h2>
-        <ul class="alert-list" id="alert-list" role="list">
-          <li class="alert-item ok">No active alerts</li>
-        </ul>
-      </section>
+            <button
+              class="btn camera-btn camera-btn-secondary"
+              id="open-gallery"
+              type="button"
+            >
+              Open Gallery
+            </button>
+          </div>
+          <p class="muted">
+            Snapshots are captured at intervals and may not update continuously.
+          </p>
+        </section>
+      </div>
     </main>
 
     <footer class="app-footer" role="contentinfo">
       <p>© 2025 Cold Storage Unit</p>
     </footer>
+
+    <div
+      id="settings-save-toast"
+      class="save-toast"
+      role="status"
+      aria-live="polite"
+      hidden
+    >
+      Saved!
+    </div>
 
     <script src="assets/js/app.js"></script>
 
@@ -1019,80 +968,20 @@
         aria-modal="true"
         aria-labelledby="override-title"
       >
-        <h3 id="override-title" style="color: #dc2626; margin-bottom: 12px">
-          ⚠️ Emergency Override Mode
-        </h3>
-        <div
-          style="
-            background: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            padding: 12px 16px;
-            margin-bottom: 16px;
-            border-radius: 4px;
-          "
-        >
-          <p
-            style="color: #78350f; font-size: 14px; margin: 0; line-height: 1.6"
-          >
-            <strong>You are about to disable automatic PID control.</strong>
-            These controls override automatic regulation and should only be used
-            for testing, maintenance, or emergency situations.
-          </p>
-        </div>
-        <p class="muted" style="margin-bottom: 12px">
-          When you switch to manual mode:
-        </p>
-        <ul
-          style="
-            color: #6b7280;
-            font-size: 14px;
-            margin: 0 0 16px 20px;
-            line-height: 1.8;
-          "
-        >
-          <li>
-            The system will
-            <strong>stop automatically regulating</strong> temperature,
-            humidity, and air quality
-          </li>
-          <li>
-            You will have <strong>full manual control</strong> over cooling,
-            humidifier, and scrubbing systems
-          </li>
-          <li>
-            Produce quality may be <strong>at risk</strong> if manual settings
-            are incorrect
-          </li>
-          <li>
-            The system normally manages all components automatically based on
-            sensor readings
-          </li>
+        <h3 id="override-title">Emergency Override Mode</h3>
+        <p><strong>Manual mode turns off automatic PID control.</strong></p>
+        <ul>
+          <li>Automatic regulation stops</li>
+          <li>You control cooling, humidifier, and scrubber manually</li>
         </ul>
-        <p
-          style="
-            font-weight: 600;
-            color: #dc2626;
-            margin-top: 16px;
-            padding: 12px;
-            background: #fee;
-            border-radius: 4px;
-          "
-        >
-          ⚠ Only proceed if you understand the risks and need manual control.
+        <p class="modal-callout modal-callout-danger modal-callout-text">
+          Use only when required. Wrong settings can reduce produce quality.
         </p>
         <div class="modal-actions">
-          <button
-            id="override-confirm"
-            class="btn"
-            style="background: #dc2626; border-color: #dc2626"
-          >
+          <button id="override-confirm" class="btn btn-danger">
             Yes, enable manual override
           </button>
-          <button
-            id="override-cancel"
-            class="btn"
-            style="background: #6b7280; border-color: #6b7280"
-          >
+          <button id="override-cancel" class="btn btn-secondary">
             No, keep automatic mode
           </button>
         </div>
@@ -1112,14 +1001,10 @@
           You will need to sign in again to access the dashboard.
         </p>
         <div class="modal-actions">
-          <button id="logout-confirm" class="btn">Yes, log out</button>
-          <button
-            id="logout-cancel"
-            class="btn"
-            style="background: #6b7280; border-color: #6b7280"
-          >
-            No, stay
+          <button id="logout-confirm" class="btn btn-danger">
+            Yes, log out
           </button>
+          <button id="logout-cancel" class="btn btn-secondary">No, stay</button>
         </div>
       </div>
     </div>
@@ -1163,10 +1048,10 @@
         const autoManualToggle = document.getElementById("auto-manual-toggle");
         const modeIndicator = document.getElementById("mode-indicator");
         const modeDescription = document.getElementById(
-          "control-mode-description"
+          "control-mode-description",
         );
         const manualControlsGrid = document.getElementById(
-          "manual-controls-grid"
+          "manual-controls-grid",
         );
         const coolingToggle = document.getElementById("cooling-toggle");
         const humidifierToggle = document.getElementById("humidifier-toggle");
@@ -1180,44 +1065,57 @@
         function updateControlsState() {
           if (isAutoMode) {
             // Auto mode - disable manual controls and turn them off
-            modeIndicator.textContent = "🤖 AUTO";
-            modeDescription.innerHTML =
-              "System is in <strong>Automatic Mode</strong> - PID controllers are managing all components";
-            manualControlsGrid.style.opacity = "0.5";
-            manualControlsGrid.style.pointerEvents = "none";
-            coolingToggle.disabled = true;
-            coolingToggle.checked = false;
-            humidifierToggle.disabled = true;
-            humidifierToggle.checked = false;
-            scrubberToggle.disabled = true;
-            scrubberToggle.checked = false;
-            // Update status text
-            document.getElementById("cooling-status-text").textContent = "Auto";
-            document.getElementById("humidifier-status-text").textContent =
-              "Auto";
-            document.getElementById("scrubber-status-text").textContent =
-              "Auto";
+            if (modeIndicator) modeIndicator.textContent = "Automatic";
+            if (modeDescription) {
+              modeDescription.innerHTML =
+                "System is in <strong>Automatic Mode</strong> - PID controllers are managing all components";
+            }
+            if (manualControlsGrid) {
+              manualControlsGrid.style.opacity = "0.5";
+              manualControlsGrid.style.pointerEvents = "none";
+            }
+            if (coolingToggle) {
+              coolingToggle.disabled = true;
+            }
+            if (humidifierToggle) {
+              humidifierToggle.disabled = true;
+            }
+            if (scrubberToggle) {
+              scrubberToggle.disabled = true;
+            }
           } else {
             // Manual mode - enable manual controls, start with OFF state
-            modeIndicator.textContent = "👤 MANUAL";
-            modeDescription.innerHTML =
-              '<strong style="color: #dc2626;">Manual Override Active</strong> - You are controlling components manually';
-            manualControlsGrid.style.opacity = "1";
-            manualControlsGrid.style.pointerEvents = "auto";
-            coolingToggle.disabled = false;
-            humidifierToggle.disabled = false;
-            scrubberToggle.disabled = false;
+            if (modeIndicator) modeIndicator.textContent = "Manual";
+            if (modeDescription) {
+              modeDescription.innerHTML =
+                '<strong style="color: #d95d66;">Manual Override Active</strong> - You are controlling components manually';
+            }
+            if (manualControlsGrid) {
+              manualControlsGrid.style.opacity = "1";
+              manualControlsGrid.style.pointerEvents = "auto";
+            }
+            if (coolingToggle) coolingToggle.disabled = false;
+            if (humidifierToggle) humidifierToggle.disabled = false;
+            if (scrubberToggle) scrubberToggle.disabled = false;
 
             // Start with all toggles OFF when entering manual mode
-            coolingToggle.checked = false;
-            humidifierToggle.checked = false;
-            scrubberToggle.checked = false;
+            if (coolingToggle) coolingToggle.checked = false;
+            if (humidifierToggle) humidifierToggle.checked = false;
+            if (scrubberToggle) scrubberToggle.checked = false;
 
             // Update status text in override section
-            document.getElementById("cooling-status-text").textContent = "Off";
-            document.getElementById("humidifier-status-text").textContent =
-              "Off";
-            document.getElementById("scrubber-status-text").textContent = "Off";
+            const coolingStatus = document.getElementById(
+              "cooling-status-text",
+            );
+            const humidifierStatus = document.getElementById(
+              "humidifier-status-text",
+            );
+            const scrubberStatus = document.getElementById(
+              "scrubber-status-text",
+            );
+            if (coolingStatus) coolingStatus.textContent = "Off";
+            if (humidifierStatus) humidifierStatus.textContent = "Off";
+            if (scrubberStatus) scrubberStatus.textContent = "Off";
 
             // Update System Status badges to reflect manual control state
             updateSystemStatusBadges();
@@ -1226,13 +1124,13 @@
 
         function updateSystemStatusBadges() {
           const coolingBadge = document.querySelector(
-            "#cooling-status .status-badge"
+            "#cooling-status .status-badge",
           );
           const humidifierBadge = document.querySelector(
-            "#humidifier-status .status-badge"
+            "#humidifier-status .status-badge",
           );
           const scrubberBadge = document.querySelector(
-            "#scrubber-status .status-badge"
+            "#scrubber-status .status-badge",
           );
 
           if (!isAutoMode) {
@@ -1276,16 +1174,11 @@
 
         // Handle Auto/Manual toggle
         if (autoManualToggle) {
-          autoManualToggle.addEventListener("change", function (e) {
-            if (!this.checked) {
-              // User wants to switch to manual mode - show confirmation
-              e.preventDefault();
-              openOverrideModal();
-            } else {
-              // Switching back to auto mode - no confirmation needed
-              isAutoMode = true;
-              updateControlsState();
-            }
+          autoManualToggle.addEventListener("change", function () {
+            // Checked = Automatic, Unchecked = Manual
+            isAutoMode = this.checked;
+            updateControlsState();
+            closeOverrideModal();
           });
         }
 
@@ -1312,35 +1205,47 @@
         updateControlsState();
 
         // Add event listeners to manual control toggles to update System Status
-        coolingToggle.addEventListener("change", function () {
-          if (!isAutoMode) {
-            document.getElementById("cooling-status-text").textContent = this
-              .checked
-              ? "Active"
-              : "Off";
-            updateSystemStatusBadges();
-          }
-        });
+        if (coolingToggle) {
+          coolingToggle.addEventListener("change", function () {
+            if (!isAutoMode) {
+              const coolingStatus = document.getElementById(
+                "cooling-status-text",
+              );
+              if (coolingStatus) {
+                coolingStatus.textContent = this.checked ? "Active" : "Off";
+              }
+              updateSystemStatusBadges();
+            }
+          });
+        }
 
-        humidifierToggle.addEventListener("change", function () {
-          if (!isAutoMode) {
-            document.getElementById("humidifier-status-text").textContent = this
-              .checked
-              ? "Active"
-              : "Off";
-            updateSystemStatusBadges();
-          }
-        });
+        if (humidifierToggle) {
+          humidifierToggle.addEventListener("change", function () {
+            if (!isAutoMode) {
+              const humidifierStatus = document.getElementById(
+                "humidifier-status-text",
+              );
+              if (humidifierStatus) {
+                humidifierStatus.textContent = this.checked ? "Active" : "Off";
+              }
+              updateSystemStatusBadges();
+            }
+          });
+        }
 
-        scrubberToggle.addEventListener("change", function () {
-          if (!isAutoMode) {
-            document.getElementById("scrubber-status-text").textContent = this
-              .checked
-              ? "Active"
-              : "Off";
-            updateSystemStatusBadges();
-          }
-        });
+        if (scrubberToggle) {
+          scrubberToggle.addEventListener("change", function () {
+            if (!isAutoMode) {
+              const scrubberStatus = document.getElementById(
+                "scrubber-status-text",
+              );
+              if (scrubberStatus) {
+                scrubberStatus.textContent = this.checked ? "Active" : "Off";
+              }
+              updateSystemStatusBadges();
+            }
+          });
+        }
       })();
     </script>
 
@@ -1434,8 +1339,8 @@
         bottom: 20px;
         left: 20px;
         right: 20px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: linear-gradient(135deg, #b6daf7 0%, #a4cdef 100%);
+        color: #1f4d73;
         padding: 20px;
         border-radius: 12px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
@@ -1464,7 +1369,7 @@
             id="pwa-install-btn"
             style="
               background: white;
-              color: #667eea;
+              color: #1f4d73;
               border: none;
               padding: 12px 24px;
               border-radius: 8px;
@@ -1478,8 +1383,8 @@
           <button
             id="pwa-dismiss-btn"
             style="
-              background: rgba(255, 255, 255, 0.2);
-              color: white;
+              background: rgba(255, 255, 255, 0.45);
+              color: #1f4d73;
               border: none;
               padding: 12px 24px;
               border-radius: 8px;

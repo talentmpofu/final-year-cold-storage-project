@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -68,8 +68,47 @@
         width: auto;
         padding: 10px 24px;
       }
+      .auth-submit {
+        appearance: none;
+        border: 1px solid #b6daf7;
+        background: #b6daf7;
+        color: #1f4d73;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        border-radius: 10px;
+        padding: 10px 22px;
+        cursor: pointer;
+        box-shadow: 0 6px 14px rgba(182, 218, 247, 0.45);
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.2s ease,
+          background 0.2s ease;
+      }
+      .auth-submit:hover {
+        background: #a4cdef;
+        border-color: #a4cdef;
+        box-shadow: 0 8px 16px rgba(182, 218, 247, 0.55);
+        transform: translateY(-1px);
+      }
+      .auth-submit:active {
+        background: #98c4ea;
+        border-color: #98c4ea;
+        transform: translateY(0);
+        box-shadow: 0 4px 10px rgba(182, 218, 247, 0.45);
+      }
+      .auth-submit:focus-visible {
+        outline: 3px solid rgba(182, 218, 247, 0.75);
+        outline-offset: 2px;
+      }
+      .auth-submit:disabled {
+        cursor: not-allowed;
+        opacity: 0.65;
+        box-shadow: none;
+        transform: none;
+      }
       .link {
-        color: var(--primary);
+        color: #b6daf7;
         text-decoration: none;
         font-size: 13px;
       }
@@ -129,7 +168,7 @@
           </label>
           <div class="auth-actions">
             <a class="link" href="#" id="forgot-link">Forgot password?</a>
-            <button class="btn" type="submit">Sign in</button>
+            <button class="btn auth-submit" type="submit">Sign in</button>
           </div>
         </form>
       </div>
@@ -169,7 +208,7 @@
           try {
             localStorage.setItem(
               "csu_failed_login",
-              JSON.stringify({ count: count, timestamp: Date.now() })
+              JSON.stringify({ count: count, timestamp: Date.now() }),
             );
           } catch {}
         }
@@ -205,7 +244,7 @@
               // If backend not available, log to console
               console.warn(
                 "Backend API not available. Alert logged locally:",
-                err
+                err,
               );
               return null;
             });
@@ -258,14 +297,17 @@
                 .querySelectorAll("input, button")
                 .forEach((el) => (el.disabled = true));
 
-              setTimeout(() => {
-                form
-                  .querySelectorAll("input, button")
-                  .forEach((el) => (el.disabled = false));
-                errorBox.style.display = "none";
-                warningBox.style.display = "none";
-                resetFailedAttempts();
-              }, 5 * 60 * 1000); // 5 minutes lockout
+              setTimeout(
+                () => {
+                  form
+                    .querySelectorAll("input, button")
+                    .forEach((el) => (el.disabled = false));
+                  errorBox.style.display = "none";
+                  warningBox.style.display = "none";
+                  resetFailedAttempts();
+                },
+                5 * 60 * 1000,
+              ); // 5 minutes lockout
             }
 
             return;
@@ -277,7 +319,7 @@
           // Set session and redirect
           localStorage.setItem(
             "csu_auth",
-            JSON.stringify({ email: em, ts: Date.now() })
+            JSON.stringify({ email: em, ts: Date.now() }),
           );
           window.location.href = "./index.html";
         });

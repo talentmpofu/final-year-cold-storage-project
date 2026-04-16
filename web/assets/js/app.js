@@ -17,41 +17,43 @@
   const targets = {
     temp: { min: 2, max: 4 },
     humidity: { min: 85, max: 95 },
-    ethylene: { max: 30 }, // VOCs threshold: 30 ppm (30000 raw / 1000)
+    ethylene: { max: 30 }, // VOCs threshold: 30 ppm
   };
   const MAX_POINTS = 50;
-  let currentTimeRange = "24h"; // Default time range
+  let currentTimeRange = "24h";
+  let alertDismissedUntil = 0;
+  let dismissedAlertText = "";
+  let currentProduceContext = {
+    type: null,
+    thresholds: null,
+  };
+
+  function isBannerSuppressed(message) {
+    const localSuppressed =
+      Date.now() < alertDismissedUntil && message === dismissedAlertText;
+    const globalSuppressed =
+      Date.now() < (window.__bannerManualDismissUntil || 0) &&
+      message === (window.__dismissedBannerMessage || "");
+    return localSuppressed || globalSuppressed;
+  }
 
   async function fetchMetrics() {
     try {
       const res = await fetch("/api/metrics", { cache: "no-store" });
       if (!res.ok) throw new Error("bad status");
       const data = await res.json();
-      console.log("📊 Fetched data from API:", data);
-      // Expected shape:
-      // {
-      //   temperature: { value: Number },
-      //   humidity: { value: Number },
-      //   vocs: { value: Number },
-      //   produce: { type, detectedAt, manualOverride, confidence, thresholds },
-      //   timestamp: ISOString
-      // }
 
-      // Update produce information if available
       if (data.produce) {
         updateProduceDisplay(data.produce);
       }
 
-      const result = {
+      return {
         temp: Number(data?.temperature?.value),
         humidity: Number(data?.humidity?.value),
-        ethylene: Number(data?.vocs?.value) / 1000.0, // VOCs converted to ppm for display
+        ethylene: Number(data?.vocs?.value) / 1000.0,
         produce: data.produce,
       };
-      console.log("📈 Parsed metrics:", result);
-      return result;
     } catch (e) {
-      console.error("❌ Error fetching metrics:", e);
       return null;
     }
   }
@@ -66,7 +68,7 @@
       max = Math.max(...data);
     const range = max - min || 1;
     ctx2d.strokeStyle = color;
-    ctx2d.lineWidth = 2;
+    ctx2d.lineWidth = 1.25;
     ctx2d.beginPath();
     data.forEach((v, i) => {
       const x = (i / (data.length - 1)) * (w - 2) + 1;
@@ -88,22 +90,20 @@
     const maxLen = Math.max(
       allSeries.temp.length,
       allSeries.humidity.length,
-      allSeries.ethylene.length
+      allSeries.ethylene.length,
     );
-    if (maxLen < 2) return;
+    if (maxLen < 1) return;
 
-    // Fixed axis ranges - separate axes for temperature and ethylene
     const tempMin = 0;
-    const tempMax = 35; // Temperature °C
+    const tempMax = 35;
     const ethMin = 0;
-    const ethMax = 50; // VOCs/Ethylene ppm (0-50 range to show typical 20-40 values)
+    const ethMax = 50;
     const humMin = 0;
-    const humMax = 100; // Humidity %
+    const humMax = 100;
     const tempRange = tempMax - tempMin || 1;
     const ethRange = ethMax - ethMin || 1;
     const humRange = humMax - humMin || 1;
 
-    // gridlines
     canvasCtx.strokeStyle = "#e5e7eb";
     canvasCtx.lineWidth = 1;
     for (let i = 0; i <= gridRows; i++) {
@@ -121,7 +121,6 @@
       canvasCtx.stroke();
     }
 
-    // axes
     canvasCtx.strokeStyle = "#cbd5e1";
     canvasCtx.lineWidth = 1.5;
     canvasCtx.beginPath();
@@ -133,11 +132,9 @@
     canvasCtx.lineTo(w - PAD, h - PAD);
     canvasCtx.stroke();
 
-    // labels (Y-left temp, Y-left2 ethylene, Y-right humidity, X time)
     canvasCtx.fillStyle = "#6b7280";
     canvasCtx.font = "12px Inter, Arial, sans-serif";
 
-    // Left axis labels (Temperature) - in red
     canvasCtx.fillStyle = "#ef4444";
     for (let i = 0; i <= gridRows; i++) {
       const y = PAD + (i / gridRows) * (h - PAD * 2);
@@ -145,7 +142,6 @@
       canvasCtx.fillText(tv.toFixed(1), 4, y + 4);
     }
 
-    // Left axis labels for Ethylene - in orange, offset to right
     canvasCtx.fillStyle = "#f59e0b";
     for (let i = 0; i <= gridRows; i++) {
       const y = PAD + (i / gridRows) * (h - PAD * 2);
@@ -153,8 +149,7 @@
       canvasCtx.fillText(ev.toFixed(2), 46, y + 4);
     }
 
-    // Right axis labels (Humidity) - in blue
-    canvasCtx.fillStyle = "#0ea5e9";
+    canvasCtx.fillStyle = "#b6daf7";
     for (let i = 0; i <= gridRows; i++) {
       const y = PAD + (i / gridRows) * (h - PAD * 2);
       const hv = humMax - (i / gridRows) * humRange;
@@ -163,7 +158,6 @@
       canvasCtx.fillText(hlabel, w - PAD - tw - 4, y + 4);
     }
 
-    // X-axis time labels
     canvasCtx.fillStyle = "#6b7280";
     const times = allSeries.times;
     if (times && times.length > 1) {
@@ -194,39 +188,57 @@
       }
     }
 
-    // Axis titles
     canvasCtx.font = "13px Inter, Arial, sans-serif";
-    // Left axis title (Temperature) - red
     canvasCtx.fillStyle = "#ef4444";
     canvasCtx.fillText("Temp (°C)", PAD + 6, PAD - 8);
-    // Left axis title (Ethylene) - orange, offset
     canvasCtx.fillStyle = "#f59e0b";
     canvasCtx.fillText("Ethylene (ppm)", PAD + 90, PAD - 8);
-    // Right axis title (Humidity) - blue
-    canvasCtx.fillStyle = "#0ea5e9";
+    canvasCtx.fillStyle = "#b6daf7";
     const rightTitle = "Humidity (%)";
     const rtw = canvasCtx.measureText(rightTitle).width;
     canvasCtx.fillText(rightTitle, w - PAD - rtw - 6, PAD - 8);
 
     const lines = [
-      { data: allSeries.temp, color: "#ef4444", width: 2.5, axis: "temp" },
+      { data: allSeries.temp, color: "#ef4444", width: 1.25, axis: "temp" },
       {
         data: allSeries.humidity,
-        color: "#0ea5e9",
-        width: 2.5,
+        color: "#b6daf7",
+        width: 1.25,
         axis: "humidity",
       },
       {
         data: allSeries.ethylene,
         color: "#f59e0b",
-        width: 2.5,
+        width: 1.25,
         axis: "ethylene",
       },
     ];
 
     lines.forEach((line) => {
       const { data, color, width, axis } = line;
-      if (data.length < 2) return;
+      if (!data.length) return;
+
+      if (data.length === 1) {
+        let min, range;
+        if (axis === "temp") {
+          min = tempMin;
+          range = tempRange;
+        } else if (axis === "humidity") {
+          min = humMin;
+          range = humRange;
+        } else {
+          min = ethMin;
+          range = ethRange;
+        }
+        const x = PAD + (w - PAD * 2) * 0.5;
+        const y = h - PAD - ((data[0] - min) / range) * (h - PAD * 2);
+        canvasCtx.fillStyle = color;
+        canvasCtx.beginPath();
+        canvasCtx.arc(x, y, 3, 0, Math.PI * 2);
+        canvasCtx.fill();
+        return;
+      }
+
       canvasCtx.strokeStyle = color;
       canvasCtx.lineWidth = width;
       canvasCtx.beginPath();
@@ -239,7 +251,7 @@
         } else if (axis === "humidity") {
           min = humMin;
           range = humRange;
-        } else if (axis === "ethylene") {
+        } else {
           min = ethMin;
           range = ethRange;
         }
@@ -254,8 +266,8 @@
             axis === "temp"
               ? tempRange
               : axis === "humidity"
-              ? humRange
-              : ethRange;
+                ? humRange
+                : ethRange;
           const prevY =
             h - PAD - ((data[i - 1] - prevMin) / prevRange) * (h - PAD * 2);
           const cpx = (prevX + x) / 2;
@@ -266,6 +278,248 @@
       }
       canvasCtx.stroke();
     });
+  }
+
+  function getCurrentThresholds() {
+    const thresholds = currentProduceContext.thresholds || {};
+    const tempRange = thresholds.temperature || targets.temp;
+    const humidityRange = thresholds.humidity || targets.humidity;
+    const vocLimit =
+      typeof thresholds.voc === "number"
+        ? thresholds.voc / 1000
+        : targets.ethylene.max;
+
+    return {
+      tempRange,
+      humidityRange,
+      vocLimit,
+    };
+  }
+
+  function getTrendDirection(values, tolerance = 0.1) {
+    if (!values || values.length < 2) return "stable";
+    const slice = values.slice(-5);
+    const delta = slice[slice.length - 1] - slice[0];
+    if (Math.abs(delta) <= tolerance) return "stable";
+    return delta > 0 ? "rising" : "falling";
+  }
+
+  function computeShelfLife(baseDays, adjustment, badCount) {
+    const spoilagePenalty = Math.max(0, Number(badCount || 0)) * 0.65;
+    const estimate = baseDays - adjustment - spoilagePenalty;
+    return Math.max(0.5, estimate);
+  }
+
+  function renderRecommendations() {
+    const applesEl = el("forecast-apples");
+    const potatoesEl = el("forecast-potatoes");
+    const summaryEl = el("forecast-summary");
+    const scoreEl = el("environment-score");
+    const envSummaryEl = el("environment-summary");
+    const recommendationList = el("recommendation-list");
+    const priorityList = el("priority-list");
+
+    const latestTemp = series.temp[series.temp.length - 1];
+    const latestHumidity = series.humidity[series.humidity.length - 1];
+    const latestEthylene = series.ethylene[series.ethylene.length - 1];
+
+    if (
+      !Number.isFinite(latestTemp) ||
+      !Number.isFinite(latestHumidity) ||
+      !Number.isFinite(latestEthylene)
+    ) {
+      if (applesEl) applesEl.textContent = "-- days";
+      if (potatoesEl) potatoesEl.textContent = "-- days";
+      if (summaryEl) {
+        summaryEl.textContent =
+          "Waiting for live conditions to calculate shelf-life outlook.";
+      }
+      if (scoreEl) scoreEl.textContent = "--";
+      if (envSummaryEl) {
+        envSummaryEl.textContent =
+          "Temperature, humidity, and ethylene trend analysis will appear here.";
+      }
+      return;
+    }
+
+    const { tempRange, humidityRange, vocLimit } = getCurrentThresholds();
+    const tempMid = (tempRange.min + tempRange.max) / 2;
+    const humidityMid = (humidityRange.min + humidityRange.max) / 2;
+
+    const tempSlope = getTrendDirection(series.temp, 0.05);
+    const humiditySlope = getTrendDirection(series.humidity, 0.4);
+    const ethyleneSlope = getTrendDirection(series.ethylene, 0.01);
+
+    const tempDeviation =
+      latestTemp > tempRange.max
+        ? latestTemp - tempRange.max
+        : latestTemp < tempRange.min
+          ? tempRange.min - latestTemp
+          : Math.abs(latestTemp - tempMid) * 0.12;
+    const humidityDeviation =
+      latestHumidity > humidityRange.max
+        ? (latestHumidity - humidityRange.max) * 0.2
+        : latestHumidity < humidityRange.min
+          ? (humidityRange.min - latestHumidity) * 0.2
+          : Math.abs(latestHumidity - humidityMid) * 0.05;
+    const ethyleneDeviation =
+      latestEthylene > vocLimit ? (latestEthylene - vocLimit) * 5 : 0;
+
+    const tempTrendPenalty =
+      tempSlope === "rising" ? 0.6 : tempSlope === "falling" ? -0.15 : 0;
+    const humidityTrendPenalty =
+      humiditySlope === "falling"
+        ? 0.35
+        : humiditySlope === "rising"
+          ? -0.1
+          : 0;
+    const ethyleneTrendPenalty =
+      ethyleneSlope === "rising" ? 0.8 : ethyleneSlope === "falling" ? -0.2 : 0;
+
+    const applesShelfLife = computeShelfLife(
+      8.5,
+      tempDeviation * 1.2 +
+        humidityDeviation * 1.1 +
+        ethyleneDeviation * 1.4 +
+        tempTrendPenalty +
+        humidityTrendPenalty +
+        ethyleneTrendPenalty,
+      cameraInventorySummary.applesBad,
+    );
+    const potatoesShelfLife = computeShelfLife(
+      21,
+      tempDeviation * 0.9 +
+        humidityDeviation * 0.8 +
+        ethyleneDeviation * 0.9 +
+        tempTrendPenalty * 0.7 +
+        humidityTrendPenalty * 0.5 +
+        ethyleneTrendPenalty,
+      cameraInventorySummary.potatoesBad,
+    );
+
+    if (applesEl) applesEl.textContent = `${applesShelfLife.toFixed(1)} days`;
+    if (potatoesEl)
+      potatoesEl.textContent = `${potatoesShelfLife.toFixed(1)} days`;
+
+    const riskScore = Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          100 -
+            tempDeviation * 12 -
+            humidityDeviation * 8 -
+            ethyleneDeviation * 10 -
+            Math.max(0, cameraInventorySummary.applesBad || 0) * 4 -
+            Math.max(0, cameraInventorySummary.potatoesBad || 0) * 3,
+        ),
+      ),
+    );
+    const riskLabel =
+      riskScore >= 80 ? "Stable" : riskScore >= 60 ? "Watch" : "At risk";
+
+    if (scoreEl) scoreEl.textContent = `${riskScore}/100 ${riskLabel}`;
+
+    const envMessages = [];
+    if (tempSlope === "rising") {
+      envMessages.push(
+        "Temperature is trending upward, so cooling should be checked first.",
+      );
+    } else if (tempSlope === "falling") {
+      envMessages.push(
+        "Temperature is trending down, which supports longer storage life.",
+      );
+    }
+    if (humiditySlope === "falling") {
+      envMessages.push(
+        "Humidity is easing downward, so hold the humidifier closer to target.",
+      );
+    } else if (humiditySlope === "rising") {
+      envMessages.push(
+        "Humidity is climbing, so watch for condensation and excess moisture.",
+      );
+    }
+    if (ethyleneSlope === "rising") {
+      envMessages.push(
+        "Ethylene/VOCs are rising, which usually shortens shelf life fastest.",
+      );
+    } else if (ethyleneSlope === "falling") {
+      envMessages.push(
+        "Ethylene/VOCs are easing, which improves produce stability.",
+      );
+    }
+    if (envMessages.length === 0) {
+      envMessages.push(
+        "Conditions are steady across temperature, humidity, and ethylene/VOCs.",
+      );
+    }
+
+    if (envSummaryEl) envSummaryEl.textContent = envMessages.join(" ");
+    if (summaryEl) {
+      summaryEl.textContent =
+        applesShelfLife < potatoesShelfLife
+          ? "Apples are under more pressure right now, so they should be inspected first."
+          : "Potatoes are currently the longer-lived batch, while apples need closer attention.";
+    }
+
+    const actions = [];
+    if (latestTemp > tempRange.max + 0.2 || tempSlope === "rising") {
+      actions.push(
+        "Reduce temperature slightly and check the cooling cycle for drift.",
+      );
+    }
+    if (latestHumidity < humidityRange.min - 1) {
+      actions.push("Increase humidity to keep stored produce from drying out.");
+    } else if (latestHumidity > humidityRange.max + 1) {
+      actions.push(
+        "Lower humidity or improve ventilation to prevent condensation.",
+      );
+    }
+    if (latestEthylene > vocLimit || ethyleneSlope === "rising") {
+      actions.push(
+        "Keep the scrubber active and remove bruised items that can accelerate spoilage.",
+      );
+    }
+    if (
+      cameraInventorySummary.applesBad > 0 ||
+      cameraInventorySummary.potatoesBad > 0
+    ) {
+      actions.push(
+        "Physically inspect the affected produce and remove damaged items first.",
+      );
+    }
+    if (actions.length === 0) {
+      actions.push(
+        "Conditions are within target, so maintain the current setpoints and keep monitoring.",
+      );
+    }
+
+    if (recommendationList) {
+      recommendationList.innerHTML = actions
+        .slice(0, 4)
+        .map((action) => `<li>${action}</li>`)
+        .join("");
+    }
+
+    const priorities = [
+      {
+        label: `Apples - ${applesShelfLife.toFixed(1)} days estimated`,
+        score: applesShelfLife - (cameraInventorySummary.applesBad || 0) * 0.5,
+      },
+      {
+        label: `Potatoes - ${potatoesShelfLife.toFixed(1)} days estimated`,
+        score:
+          potatoesShelfLife - (cameraInventorySummary.potatoesBad || 0) * 0.5,
+      },
+    ]
+      .sort((a, b) => a.score - b.score)
+      .map((item) => item.label);
+
+    if (priorityList) {
+      priorityList.innerHTML = priorities
+        .map((item) => `<li>${item}</li>`)
+        .join("");
+    }
   }
 
   // Tooltip on hover for environmental trends
@@ -281,7 +535,7 @@
       const maxLen = Math.max(
         series.temp.length,
         series.humidity.length,
-        series.ethylene.length
+        series.ethylene.length,
       );
       if (maxLen < 2) {
         tooltip.hidden = true;
@@ -305,13 +559,13 @@
       tooltip.innerHTML = `
         <div style="font-weight: 600; margin-bottom: 4px; font-size: 12px;">${timeStr}</div>
         <div><span style="color:#ef4444">●</span> Temperature: <strong>${fmt(
-          item.temp
+          item.temp,
         )} °C</strong></div>
-        <div><span style="color:#0ea5e9">●</span> Humidity: <strong>${fmt(
-          item.humidity
+        <div><span style="color:#b6daf7">●</span> Humidity: <strong>${fmt(
+          item.humidity,
         )} %</strong></div>
         <div><span style="color:#f59e0b">●</span> Ethylene/VOCs: <strong>${fmtPrecise(
-          item.ethylene
+          item.ethylene,
         )} ppm</strong></div>
       `;
       // Position relative to canvas, not viewport
@@ -335,7 +589,7 @@
     if (
       fetched &&
       ["temp", "humidity", "ethylene"].every(
-        (k) => typeof fetched[k] === "number" && !Number.isNaN(fetched[k])
+        (k) => typeof fetched[k] === "number" && !Number.isNaN(fetched[k]),
       )
     ) {
       temp = fetched.temp;
@@ -363,15 +617,21 @@
     // Update indicator bars
     // Temperature: 0-15°C range
     const tempPercent = Math.max(0, Math.min(100, (temp / 15) * 100));
-    el("temp-bar").style.width = tempPercent + "%";
+    const setGauge = (gaugeId, labelId, percent) => {
+      const gaugeEl = el(gaugeId);
+      if (gaugeEl) gaugeEl.style.setProperty("--progress", `${percent}%`);
+      const labelEl = el(labelId);
+      if (labelEl) labelEl.textContent = `${Math.round(percent)}%`;
+    };
+    setGauge("temp-ring", "temp-percent", tempPercent);
 
     // Humidity: 0-100% range
     const humidityPercent = Math.max(0, Math.min(100, humidity));
-    el("humidity-bar").style.width = humidityPercent + "%";
+    setGauge("humidity-ring", "humidity-percent", humidityPercent);
 
     // Ethylene: 0-0.2 ppm range (display range)
     const ethylenePercent = Math.max(0, Math.min(100, (ethylene / 0.2) * 100));
-    el("ethylene-bar").style.width = ethylenePercent + "%";
+    setGauge("ethylene-ring", "ethylene-percent", ethylenePercent);
 
     // push data
     const push = (arr, v) => {
@@ -385,7 +645,7 @@
 
     // draw sparks
     drawSpark(ctx("temp-chart"), series.temp, "#ef4444");
-    drawSpark(ctx("humidity-chart"), series.humidity, "#0ea5e9");
+    drawSpark(ctx("humidity-chart"), series.humidity, "#b6daf7");
     drawSpark(ctx("ethylene-chart"), series.ethylene, "#f59e0b");
 
     drawEnvTrend(ctx("env-trend"), series);
@@ -395,14 +655,14 @@
       temp > targets.temp.max
         ? "Above target"
         : temp < targets.temp.min
-        ? "Below target"
-        : "On target";
+          ? "Below target"
+          : "On target";
     el("humidity-trend").textContent =
       humidity < targets.humidity.min
         ? "Below target"
         : humidity > targets.humidity.max
-        ? "Above target"
-        : "On target";
+          ? "Above target"
+          : "On target";
     el("ethylene-trend").textContent =
       ethylene > targets.ethylene.max ? "High" : "Normal";
 
@@ -427,8 +687,8 @@
     el("ethylene-avg").textContent = fmt(sEth.avg);
     el("ethylene-max").textContent = fmt(sEth.max);
 
-    const alertList = el("alert-list");
-    alertList.innerHTML = "";
+    renderRecommendations();
+
     const alerts = [];
     if (temp > targets.temp.max + 0.5)
       alerts.push({
@@ -462,7 +722,7 @@
       alerts.push({
         type: "err",
         text: `VOC/Ethylene ${ethylene.toFixed(
-          1
+          1,
         )}ppm is above safe threshold (max ${
           targets.ethylene.max
         }ppm) — air scrubber activated.`,
@@ -487,40 +747,22 @@
     const banner = document.getElementById("alert-banner");
     const bannerText = document.getElementById("alert-banner-text");
     if (alerts.length === 0) {
-      const li = document.createElement("li");
-      li.className = "alert-item ok";
-      li.textContent = "No active alerts";
-      alertList.appendChild(li);
       if (banner) banner.hidden = true;
     } else {
-      alerts.forEach((a) => {
-        const li = document.createElement("li");
-        li.className = `alert-item ${a.type}`;
-        li.textContent = a.text;
-        alertList.appendChild(li);
-      });
-      // Show ALL alerts in banner, not just the first one
+      // Show ALL alerts in banner
       if (banner && bannerText && alerts.length > 0) {
         const allAlertTexts = alerts.map((a) => a.text).join(" • ");
-        bannerText.textContent = allAlertTexts;
-        banner.hidden = false;
-        // adjust banner color to red for errors
-        banner.style.background = "#fee2e2";
-        banner.style.color = "#7f1d1d";
-        banner.style.borderBottomColor = "#fecaca";
-        // auto-hide after 10 seconds
-        clearTimeout(window.__alertBannerTimer);
-        window.__alertBannerTimer = setTimeout(() => {
+        if (isBannerSuppressed(allAlertTexts)) {
           banner.hidden = true;
-        }, 10000);
-        // dismiss button
-        const dismissBtn = document.getElementById("alert-banner-dismiss");
-        if (dismissBtn && !dismissBtn.__bound) {
-          dismissBtn.addEventListener("click", () => {
-            banner.hidden = true;
-            clearTimeout(window.__alertBannerTimer);
-          });
-          dismissBtn.__bound = true;
+        } else {
+          bannerText.textContent = allAlertTexts;
+          banner.hidden = false;
+          // adjust banner color to red for errors
+          banner.style.background = "#fee2e2";
+          banner.style.color = "#7f1d1d";
+          banner.style.borderBottomColor = "#fecaca";
+          // auto-hide when alerts clear
+          clearTimeout(window.__alertBannerTimer);
         }
       }
     }
@@ -543,6 +785,21 @@
   let scrubberRunTime = 0; // Track scrubber runtime for KMnO4 degradation
 
   function updateSystemStatus() {
+    const setStatusBadge = (component, status) => {
+      const statusEl = el(`${component}-status`);
+      if (!statusEl) return;
+
+      let badgeEl = statusEl.querySelector(".status-badge");
+      if (!badgeEl) {
+        badgeEl = document.createElement("span");
+        badgeEl.className = "status-badge";
+        statusEl.appendChild(badgeEl);
+      }
+
+      badgeEl.className = `status-badge ${status.class}`;
+      badgeEl.textContent = status.text;
+    };
+
     // Check if we're in manual override mode
     const autoManualToggle = document.getElementById("auto-manual-toggle");
     const isAutoMode = autoManualToggle ? autoManualToggle.checked : true;
@@ -550,15 +807,34 @@
     // Only update system status badges if in auto mode
     // In manual mode, these are controlled by the manual override toggles
     if (!isAutoMode) {
-      // Still update camera status as it's not part of manual controls
-      const cameraStatusEl = el("camera-status");
-      if (cameraStatusEl) {
+      // Keep system status badges synced to manual control toggle states.
+      const coolingToggle = el("cooling-toggle");
+      const humidifierToggle = el("humidifier-toggle");
+      const scrubberToggle = el("scrubber-toggle");
+
+      const manualStatusByComponent = {
+        cooling: coolingToggle?.checked ? "active" : "standby",
+        humidifier: humidifierToggle?.checked ? "active" : "standby",
+        scrubber: scrubberToggle?.checked ? "active" : "standby",
+      };
+
+      const statusMap = {
+        active: { text: "Active", class: "active" },
+        standby: { text: "Standby", class: "standby" },
+      };
+
+      ["cooling", "humidifier", "scrubber"].forEach((component) => {
         const status =
-          systemStatus.camera === "active"
-            ? { text: "Active", class: "active" }
-            : { text: "Standby", class: "standby" };
-        cameraStatusEl.innerHTML = `<span class="status-badge ${status.class}">${status.text}</span>`;
-      }
+          statusMap[manualStatusByComponent[component]] || statusMap.standby;
+        setStatusBadge(component, status);
+      });
+
+      // Still update camera status as it's not part of manual controls
+      const cameraStatus =
+        systemStatus.camera === "active"
+          ? { text: "Active", class: "active" }
+          : { text: "Standby", class: "standby" };
+      setStatusBadge("camera", cameraStatus);
       return; // Don't update other components in manual mode
     }
 
@@ -569,11 +845,8 @@
     };
 
     ["cooling", "humidifier", "scrubber", "camera"].forEach((component) => {
-      const statusEl = el(`${component}-status`);
-      if (statusEl) {
-        const status = statusMap[systemStatus[component]] || statusMap.standby;
-        statusEl.innerHTML = `<span class="status-badge ${status.class}">${status.text}</span>`;
-      }
+      const status = statusMap[systemStatus[component]] || statusMap.standby;
+      setStatusBadge(component, status);
     });
   }
 
@@ -601,18 +874,64 @@
       } else if (kmno4Health < 50) {
         kmno4Bar.style.background = "linear-gradient(90deg, #f59e0b, #fbbf24)";
       } else {
-        kmno4Bar.style.background = "linear-gradient(90deg, #0ea5e9, #38bdf8)";
+        kmno4Bar.style.background = "linear-gradient(90deg, #b6daf7, #a4cdef)";
       }
     }
   }
 
   function bindControls() {
     const notify = (msg) => {
-      const li = document.createElement("li");
-      li.className = "alert-item ok";
-      li.textContent = msg;
-      el("alert-list").prepend(li);
+      showAlert(msg, "success");
     };
+
+    const autoManualToggle = document.getElementById("auto-manual-toggle");
+    const modeIndicator = document.getElementById("mode-indicator");
+
+    // Mode toggle handling
+    if (autoManualToggle) {
+      autoManualToggle.addEventListener("change", (e) => {
+        const isAuto = e.target.checked;
+        if (modeIndicator) {
+          modeIndicator.textContent = isAuto ? "Automatic" : "Manual";
+        }
+        updateControlStatusDisplay(isAuto);
+      });
+    }
+
+    function updateControlStatusDisplay(isAuto) {
+      const controlMappings = [
+        {
+          key: "cooling",
+          toggleId: "cooling-toggle",
+          statusId: "cooling-status-text",
+        },
+        {
+          key: "humidifier",
+          toggleId: "humidifier-toggle",
+          statusId: "humidifier-status-text",
+        },
+        {
+          key: "scrubber",
+          toggleId: "scrubber-toggle",
+          statusId: "scrubber-status-text",
+        },
+      ];
+
+      controlMappings.forEach(({ key, toggleId, statusId }) => {
+        const toggleEl = el(toggleId);
+        const statusEl = el(statusId);
+        if (!statusEl) return;
+
+        if (isAuto) {
+          const isActive = systemStatus[key] === "active";
+          if (toggleEl) toggleEl.checked = isActive;
+          statusEl.textContent = isActive ? "Active" : "Standby";
+          return;
+        }
+
+        statusEl.textContent = toggleEl?.checked ? "Active" : "Off";
+      });
+    }
 
     // Toggle switches
     const coolingToggle = el("cooling-toggle");
@@ -622,9 +941,14 @@
     if (coolingToggle) {
       coolingToggle.addEventListener("change", (e) => {
         systemStatus.cooling = e.target.checked ? "active" : "standby";
-        el("cooling-status-text").textContent = e.target.checked
-          ? "Active"
-          : "Standby";
+        const isAuto = autoManualToggle?.checked ?? true;
+        el("cooling-status-text").textContent = isAuto
+          ? e.target.checked
+            ? "Active"
+            : "Standby"
+          : e.target.checked
+            ? "Active"
+            : "Off";
         updateSystemStatus();
         notify(e.target.checked ? "Cooling activated" : "Cooling deactivated");
       });
@@ -633,12 +957,17 @@
     if (humidifierToggle) {
       humidifierToggle.addEventListener("change", (e) => {
         systemStatus.humidifier = e.target.checked ? "active" : "standby";
-        el("humidifier-status-text").textContent = e.target.checked
-          ? "Active"
-          : "Standby";
+        const isAuto = autoManualToggle?.checked ?? true;
+        el("humidifier-status-text").textContent = isAuto
+          ? e.target.checked
+            ? "Active"
+            : "Standby"
+          : e.target.checked
+            ? "Active"
+            : "Off";
         updateSystemStatus();
         notify(
-          e.target.checked ? "Humidifier activated" : "Humidifier deactivated"
+          e.target.checked ? "Humidifier activated" : "Humidifier deactivated",
         );
       });
     }
@@ -646,12 +975,17 @@
     if (scrubberToggle) {
       scrubberToggle.addEventListener("change", (e) => {
         systemStatus.scrubber = e.target.checked ? "active" : "standby";
-        el("scrubber-status-text").textContent = e.target.checked
-          ? "Active"
-          : "Standby";
+        const isAuto = autoManualToggle?.checked ?? true;
+        el("scrubber-status-text").textContent = isAuto
+          ? e.target.checked
+            ? "Active"
+            : "Standby"
+          : e.target.checked
+            ? "Active"
+            : "Off";
         updateSystemStatus();
         notify(
-          e.target.checked ? "Scrubber activated" : "Scrubber deactivated"
+          e.target.checked ? "Scrubber activated" : "Scrubber deactivated",
         );
       });
     }
@@ -711,16 +1045,7 @@
         <div style="max-width: 1200px; margin: 0 auto;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
             <h2 style="color: white; margin: 0;">Image Gallery</h2>
-            <button id="close-gallery" style="
-              background: #ef4444;
-              color: white;
-              border: none;
-              padding: 12px 24px;
-              font-size: 16px;
-              font-weight: 600;
-              border-radius: 8px;
-              cursor: pointer;
-            ">✕ Close Gallery</button>
+            <button id="close-gallery" class="btn camera-btn camera-btn-secondary">Close Gallery</button>
           </div>
           <div id="gallery-grid" style="
             display: grid;
@@ -746,7 +1071,7 @@
                   ${new Date(snapshot.timestamp).toLocaleString()}
                 </div>
               </div>
-            `
+            `,
               )
               .join("")}
           </div>
@@ -850,8 +1175,8 @@
         ">
           📅 ${new Date(snapshot.timestamp).toLocaleString()}<br>
           <span style="font-size: 12px; opacity: 0.8;">Image ${index + 1} of ${
-        snapshots.length
-      }</span>
+            snapshots.length
+          }</span>
         </div>
 
         <!-- Left Arrow -->
@@ -985,7 +1310,7 @@
       unit: "units",
       shelf: 3,
       status: "critical",
-      snapshot: "assets/img/placeholder-produce.jpg",
+      snapshot: "assets/img/icon-512.svg",
     },
     {
       item: "Potatoes",
@@ -993,85 +1318,438 @@
       unit: "units",
       shelf: 21,
       status: "good",
-      snapshot: "assets/img/placeholder-produce.jpg",
+      snapshot: "assets/img/icon-512.svg",
     },
   ];
 
-  // AI Alerts data
-  const aiAlerts = [
+  // AI alerts are fetched from backend camera analysis and auto-clear when resolved.
+  const DUMMY_CAMERA_INVENTORY_SUMMARY = {
+    totalApples: 5,
+    totalPotatoes: 4,
+    applesGood: 2,
+    applesBad: 3,
+    potatoesGood: 3,
+    potatoesBad: 1,
+    analyzedAt: null,
+  };
+
+  const DUMMY_AI_ALERTS = [
     {
-      id: 1,
-      icon: "🍎",
+      id: "dummy-apple-alert",
       title: "Apples",
-      message:
-        "AI detected overripening in 3 apples. Recommend immediate removal.",
       severity: "high",
-      actions: [
-        { label: "Remove", type: "primary" },
-        { label: "Details", type: "secondary" },
-      ],
+      message:
+        "AI detected overripening in 3 apples. Please inspect latest images and remove affected apples physically.",
     },
     {
-      id: 3,
-      icon: "🥔",
+      id: "dummy-potato-alert",
       title: "Potatoes",
-      message: "All items optimal. Remaining time: 21 days.",
-      severity: "good",
-      actions: [],
+      severity: "medium",
+      message:
+        "AI detected quality drop in 1 potato. Please inspect latest images and remove affected potatoes physically.",
     },
   ];
+
+  const DUMMY_INVENTORY_ITEMS = [
+    { id: "demo-a", type: "apples", quantity: 5, daysLeft: 3 },
+    { id: "demo-p", type: "potatoes", quantity: 4, daysLeft: 21 },
+  ];
+
+  let aiAlerts = [];
+  let cameraInventorySummary = {
+    totalApples: 0,
+    totalPotatoes: 0,
+    applesGood: 0,
+    applesBad: 0,
+    potatoesGood: 0,
+    potatoesBad: 0,
+  };
+
+  async function loadAIAlerts() {
+    try {
+      const res = await fetch("/api/ai-alerts", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch AI alerts");
+      const data = await res.json();
+      const liveAlerts = Array.isArray(data.alerts) ? data.alerts : [];
+      const useDummy =
+        liveAlerts.length === 0 && !cameraInventorySummary.analyzedAt;
+      aiAlerts = useDummy ? DUMMY_AI_ALERTS : liveAlerts;
+      renderAIAlerts();
+    } catch (error) {
+      console.error("Error loading AI alerts:", error);
+      if (!cameraInventorySummary.analyzedAt) {
+        aiAlerts = DUMMY_AI_ALERTS;
+        renderAIAlerts();
+      }
+    }
+  }
+
+  async function loadCameraInventorySummary() {
+    try {
+      const res = await fetch("/api/camera-inventory-summary", {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("Failed to fetch camera inventory summary");
+      const data = await res.json();
+      const summary = data.summary || {};
+      const hasLiveSummary = Boolean(summary.analyzedAt);
+      cameraInventorySummary = hasLiveSummary
+        ? summary
+        : DUMMY_CAMERA_INVENTORY_SUMMARY;
+      renderCameraInventorySummary();
+      applyAutoThresholdMode();
+      renderRecommendations();
+    } catch (error) {
+      console.error("Error loading camera inventory summary:", error);
+      cameraInventorySummary = DUMMY_CAMERA_INVENTORY_SUMMARY;
+      renderCameraInventorySummary();
+      applyAutoThresholdMode();
+      renderRecommendations();
+    }
+  }
+
+  function renderCameraInventorySummary() {
+    const applesTotalEl = el("camera-apples-total");
+    const applesGoodEl = el("camera-apples-good");
+    const applesBadEl = el("camera-apples-bad");
+    const applesStatusEl = el("camera-apples-status");
+    const potatoesTotalEl = el("camera-potatoes-total");
+    const potatoesGoodEl = el("camera-potatoes-good");
+    const potatoesBadEl = el("camera-potatoes-bad");
+    const potatoesStatusEl = el("camera-potatoes-status");
+
+    const setRow = (
+      totalEl,
+      goodEl,
+      badEl,
+      statusEl,
+      itemName,
+      total,
+      good,
+      bad,
+    ) => {
+      if (totalEl) totalEl.textContent = String(total || 0);
+      if (goodEl) goodEl.textContent = String(good || 0);
+      if (badEl) badEl.textContent = String(bad || 0);
+      if (statusEl) {
+        const severity = bad >= 3 ? "high" : bad >= 1 ? "medium" : "low";
+        const badgeText =
+          severity === "high"
+            ? "HIGH"
+            : severity === "medium"
+              ? "MEDIUM"
+              : "OK";
+        const actionText =
+          bad > 0
+            ? `Action required: check the latest camera images, then remove affected ${itemName.toLowerCase()} physically from the storage unit.`
+            : `No spoilage detected for ${itemName.toLowerCase()} in the latest camera run.`;
+
+        statusEl.innerHTML = `
+          <div class="camera-status-cell">
+            <span class="status-badge ${
+              severity === "high"
+                ? "offline"
+                : severity === "medium"
+                  ? "standby"
+                  : "active"
+            } camera-status-badge">${badgeText}</span>
+            <span class="camera-status-note">${actionText}</span>
+          </div>
+        `;
+      }
+    };
+
+    setRow(
+      applesTotalEl,
+      applesGoodEl,
+      applesBadEl,
+      applesStatusEl,
+      "Apples",
+      cameraInventorySummary.totalApples,
+      cameraInventorySummary.applesGood,
+      cameraInventorySummary.applesBad,
+    );
+    setRow(
+      potatoesTotalEl,
+      potatoesGoodEl,
+      potatoesBadEl,
+      potatoesStatusEl,
+      "Potatoes",
+      cameraInventorySummary.totalPotatoes,
+      cameraInventorySummary.potatoesGood,
+      cameraInventorySummary.potatoesBad,
+    );
+  }
+
+  function renderRecommendations() {
+    const applesForecastEl = el("forecast-apples");
+    const potatoesForecastEl = el("forecast-potatoes");
+    const forecastSummaryEl = el("forecast-summary");
+    const environmentScoreEl = el("environment-score");
+    const environmentSummaryEl = el("environment-summary");
+    const recommendationListEl = el("recommendation-list");
+    const priorityListEl = el("priority-list");
+
+    if (!applesForecastEl || !potatoesForecastEl || !forecastSummaryEl) return;
+
+    const latestTemp = series.temp[series.temp.length - 1];
+    const latestHumidity = series.humidity[series.humidity.length - 1];
+    const latestEthylene = series.ethylene[series.ethylene.length - 1];
+    const hasLiveMetrics =
+      Number.isFinite(latestTemp) &&
+      Number.isFinite(latestHumidity) &&
+      Number.isFinite(latestEthylene);
+
+    const activeThresholds = currentProduceContext.thresholds || {
+      temperature: targets.temp,
+      humidity: targets.humidity,
+      voc: targets.ethylene.max * 1000,
+    };
+
+    const tempMin = activeThresholds.temperature?.min ?? targets.temp.min;
+    const tempMax = activeThresholds.temperature?.max ?? targets.temp.max;
+    const humidityMin = activeThresholds.humidity?.min ?? targets.humidity.min;
+    const humidityMax = activeThresholds.humidity?.max ?? targets.humidity.max;
+    const vocMax = (activeThresholds.voc ?? targets.ethylene.max * 1000) / 1000;
+
+    const recentWindow = 6;
+    const recentTemp = series.temp.slice(-recentWindow);
+    const recentHumidity = series.humidity.slice(-recentWindow);
+    const recentEthylene = series.ethylene.slice(-recentWindow);
+
+    const trendDelta = (values) =>
+      values.length >= 2 ? values[values.length - 1] - values[0] : 0;
+    const trendLabel = (delta, tolerance) =>
+      Math.abs(delta) <= tolerance
+        ? "stable"
+        : delta > 0
+          ? "rising"
+          : "falling";
+
+    const tempDelta = trendDelta(recentTemp);
+    const humidityDelta = trendDelta(recentHumidity);
+    const ethyleneDelta = trendDelta(recentEthylene);
+    const tempTrend = trendLabel(tempDelta, 0.2);
+    const humidityTrend = trendLabel(humidityDelta, 1.0);
+    const ethyleneTrend = trendLabel(ethyleneDelta, 0.005);
+
+    const tempMid = (tempMin + tempMax) / 2;
+    const humidityMid = (humidityMin + humidityMax) / 2;
+    const tempBand = Math.max(1, (tempMax - tempMin) / 2);
+    const humidityBand = Math.max(1, (humidityMax - humidityMin) / 2);
+
+    const tempStress = hasLiveMetrics
+      ? Math.max(0, Math.abs(latestTemp - tempMid) - tempBand) * 1.4 +
+        (tempTrend === "rising" ? Math.max(0, tempDelta) * 2.2 : 0)
+      : 0;
+    const humidityStress = hasLiveMetrics
+      ? Math.max(0, Math.abs(latestHumidity - humidityMid) - humidityBand) *
+          0.5 +
+        (humidityTrend === "falling" ? Math.max(0, -humidityDelta) * 0.8 : 0)
+      : 0;
+    const ethyleneStress = hasLiveMetrics
+      ? Math.max(0, latestEthylene - vocMax) * 18 +
+        (ethyleneTrend === "rising" ? Math.max(0, ethyleneDelta) * 140 : 0)
+      : 0;
+
+    const riskScore = tempStress + humidityStress + ethyleneStress;
+    const stabilityScore = Math.max(0, Math.round(100 - riskScore * 12));
+    const stabilityLabel =
+      stabilityScore >= 80
+        ? "Stable"
+        : stabilityScore >= 60
+          ? "Watch"
+          : "At risk";
+
+    const shelfLifeOutlook = (produceType) => {
+      const badCount = cameraInventorySummary[`${produceType}Bad`] || 0;
+      const pressure =
+        riskScore * (produceType === "potatoes" ? 0.8 : 1.1) + badCount * 0.9;
+
+      if (!hasLiveMetrics) return "Assessing...";
+      if (pressure <= 1.8) return "Expected to increase";
+      if (pressure <= 3.5) return "Likely stable";
+      if (pressure <= 5.5) return "May decrease";
+      return "Likely to decrease";
+    };
+
+    const applesOutlook = shelfLifeOutlook("apples");
+    const potatoesOutlook = shelfLifeOutlook("potatoes");
+
+    applesForecastEl.textContent = applesOutlook;
+    potatoesForecastEl.textContent = potatoesOutlook;
+
+    const trendSummaryParts = [];
+    if (hasLiveMetrics) {
+      trendSummaryParts.push(
+        `Temperature is ${tempTrend} by ${Math.abs(tempDelta).toFixed(1)}°C over the recent samples.`,
+      );
+      trendSummaryParts.push(
+        `Humidity is ${humidityTrend} by ${Math.abs(humidityDelta).toFixed(1)}%.`,
+      );
+      trendSummaryParts.push(
+        `Ethylene/VOCs are ${ethyleneTrend} by ${Math.abs(ethyleneDelta).toFixed(3)} ppm.`,
+      );
+    } else {
+      trendSummaryParts.push(
+        "Waiting for live sensor samples to build a trend analysis.",
+      );
+    }
+
+    const conditionSummary = hasLiveMetrics
+      ? riskScore > 4
+        ? "Current conditions are outside optimal ranges and can reduce shelf life unless corrected."
+        : riskScore > 2
+          ? "Conditions are near target, but tighter control is needed for shelf-life gains."
+          : "Conditions are within target thresholds, so shelf life is expected to increase."
+      : "Waiting for live data to assess storage stability.";
+
+    forecastSummaryEl.textContent = conditionSummary;
+    if (environmentScoreEl) {
+      environmentScoreEl.textContent = `${stabilityScore}/100`;
+    }
+    if (environmentSummaryEl) {
+      environmentSummaryEl.textContent = `${stabilityLabel}: ${trendSummaryParts.join(
+        " ",
+      )}`;
+    }
+
+    const recommendations = [];
+    if (hasLiveMetrics) {
+      if (latestTemp > tempMax + 0.2 || tempTrend === "rising") {
+        recommendations.push(
+          `Reduce temperature toward ${tempMin}–${tempMax}°C and check door seals or compressor load.`,
+        );
+      }
+      if (latestHumidity < humidityMin - 1) {
+        recommendations.push(
+          `Increase humidity toward ${humidityMin}–${humidityMax}% to slow moisture loss.`,
+        );
+      } else if (latestHumidity > humidityMax + 1) {
+        recommendations.push(
+          `Lower humidity toward ${humidityMin}–${humidityMax}% to reduce condensation risk.`,
+        );
+      }
+      if (latestEthylene > vocMax || ethyleneTrend === "rising") {
+        recommendations.push(
+          `Run the scrubber and inspect bruised produce to slow ethylene-driven spoilage.`,
+        );
+      }
+      if (recommendations.length === 0) {
+        recommendations.push(
+          "Keep the current settings and continue monitoring the environmental trend lines.",
+        );
+      }
+      recommendations.push(
+        `Apples should be checked first if shelf-life protection is the priority.`,
+      );
+    } else {
+      recommendations.push(
+        "Waiting for live metrics to generate recommendations.",
+      );
+    }
+
+    if (recommendationListEl) {
+      recommendationListEl.innerHTML = recommendations
+        .map((item) => `<li>${item}</li>`)
+        .join("");
+    }
+
+    const priorityScore = (produceType) => {
+      const badCount = cameraInventorySummary[`${produceType}Bad`] || 0;
+      return riskScore * (produceType === "potatoes" ? 0.8 : 1.1) + badCount;
+    };
+
+    const priorityItems = [
+      {
+        name: "Apples",
+        score: priorityScore("apples"),
+        reason:
+          cameraInventorySummary.applesBad > 0
+            ? `${cameraInventorySummary.applesBad} bad detections`
+            : "No current spoilage spike",
+      },
+      {
+        name: "Potatoes",
+        score: priorityScore("potatoes"),
+        reason:
+          cameraInventorySummary.potatoesBad > 0
+            ? `${cameraInventorySummary.potatoesBad} bad detections`
+            : "No current spoilage spike",
+      },
+    ].sort((a, b) => b.score - a.score);
+
+    if (priorityListEl) {
+      priorityListEl.innerHTML = priorityItems
+        .map(
+          (item) => `<li>${item.name} - Inspect sooner (${item.reason})</li>`,
+        )
+        .join("");
+    }
+  }
 
   function renderAIAlerts() {
     const container = document.getElementById("ai-alerts-list");
     const countBadge = document.getElementById("alert-count");
-    if (!container) return;
 
     const activeCount = aiAlerts.filter(
-      (a) => a.severity === "high" || a.severity === "medium"
+      (a) => a.severity === "high" || a.severity === "medium",
     ).length;
     if (countBadge) {
-      countBadge.textContent = `${activeCount} Active`;
+      countBadge.textContent =
+        activeCount > 0 ? `${activeCount} Active Alerts` : "No Active Alerts";
       countBadge.style.background = activeCount > 0 ? "#ef4444" : "#22c55e";
     }
 
+    if (!container) return;
+
     container.innerHTML = "";
-    aiAlerts.forEach((alert) => {
+
+    if (aiAlerts.length === 0) {
       const card = document.createElement("div");
-      card.className = `ai-alert-card ${alert.severity}`;
-
-      const actionsHTML =
-        alert.actions.length > 0
-          ? `<div class="ai-alert-actions">
-            ${alert.actions
-              .map(
-                (action) =>
-                  `<button class="ai-alert-btn ${action.type}">${action.label}</button>`
-              )
-              .join("")}
-           </div>`
-          : "";
-
+      card.className = "alert-card";
       card.innerHTML = `
-        <div class="ai-alert-content">
-          <div class="ai-alert-header">
-            <h3 class="ai-alert-title">${alert.title}</h3>
-            <span class="ai-alert-severity ${alert.severity}">${alert.severity}</span>
-          </div>
-          <p class="ai-alert-message">${alert.message}</p>
-          ${actionsHTML}
+        <header>
+          <h3 class="produce-name">No active quality alerts</h3>
+          <span class="severity low">GOOD</span>
+        </header>
+        <div class="alert-content">
+          <p class="alert-message">AI camera currently detects no overripening or rotten items.</p>
         </div>
       `;
       container.appendChild(card);
-    });
+      return;
+    }
 
-    // Bind button actions
-    container.querySelectorAll(".ai-alert-btn").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        const action = e.target.textContent;
-        alert(
-          `Action "${action}" triggered. This would connect to backend API.`
-        );
-      });
+    aiAlerts.forEach((alert) => {
+      const card = document.createElement("div");
+      card.className = "alert-card";
+
+      const severityClass =
+        alert.severity === "high"
+          ? "high"
+          : alert.severity === "medium"
+            ? "medium"
+            : "low";
+
+      const needsManualAction =
+        alert.severity === "high" || alert.severity === "medium";
+
+      const guidanceHtml = needsManualAction
+        ? `<p class="alert-guidance">Action required: check the latest camera images, then remove affected items physically from the storage unit. This alert clears automatically after the camera no longer detects spoilage.</p>`
+        : "";
+
+      card.innerHTML = `
+        <header>
+          <h3 class="produce-name">${alert.title}</h3>
+          <span class="severity ${severityClass}">${alert.severity.toUpperCase()}</span>
+        </header>
+        <div class="alert-content">
+          <p class="alert-message">${alert.message}</p>
+          ${guidanceHtml}
+        </div>
+      `;
+      container.appendChild(card);
     });
   }
 
@@ -1081,27 +1759,24 @@
     tbody.innerHTML = "";
     list.forEach((r) => {
       const tr = document.createElement("tr");
-      const statusColor = "#f3f4f6";
-      const statusTextColor = "#374151";
-      const statusText =
+      const statusClass =
         r.status === "critical"
-          ? `${r.shelf} days left`
+          ? "critical"
           : r.status === "warning"
-          ? `${r.shelf} days left`
-          : `${r.shelf} days left`;
+            ? "warning"
+            : "good";
+      const statusText = `${r.shelf} days left`;
       tr.innerHTML = `
         <td><strong>${r.item}</strong></td>
         <td>${r.qty} ${r.unit}</td>
-        <td style="color: ${
-          r.status === "critical"
-            ? "#dc2626"
-            : r.status === "warning"
-            ? "#ca8a04"
-            : "#16a34a"
-        }; font-weight: 600;">${statusText}</td>
-        <td style="color: #374151; font-weight: 500; text-transform: capitalize;">${
-          r.status
-        }</td>
+        <td>${statusText}</td>
+        <td><span class="status-col ${statusClass}">${r.status}</span></td>
+        <td>
+          <div class="actions">
+            <button>Edit</button>
+            <button>Remove</button>
+          </div>
+        </td>
       `;
       tbody.appendChild(tr);
     });
@@ -1112,92 +1787,209 @@
     // Keeping empty stub to avoid errors from init() call
   }
 
-  // Produce presets with optimal storage conditions
-  const producePresets = {
-    potatoes: { temp: 7, humidity: 90, ethylene: 20 },
-    apples: { temp: 2, humidity: 92, ethylene: 25 },
+  // Threshold profiles and dynamic mode selection based on AI camera detections.
+  const thresholdProfiles = {
+    custom: {
+      temperature: { min: 4, max: 7 },
+      humidity: { min: 85, max: 95 },
+      voc: 30000,
+    },
+    apples: {
+      temperature: { min: 1, max: 4 },
+      humidity: { min: 85, max: 95 },
+      voc: 30000,
+    },
+    potatoes: {
+      temperature: { min: 7, max: 10 },
+      humidity: { min: 85, max: 95 },
+      voc: 30000,
+    },
   };
 
-  function bindSettings() {
+  let customThresholdRanges = JSON.parse(
+    JSON.stringify(thresholdProfiles.custom),
+  );
+  let activeThresholdMode = "custom";
+
+  function clampRange(minVal, maxVal, minLimit, maxLimit) {
+    let min = Number(minVal);
+    let max = Number(maxVal);
+    if (!Number.isFinite(min)) min = minLimit;
+    if (!Number.isFinite(max)) max = maxLimit;
+    min = Math.max(minLimit, Math.min(maxLimit, min));
+    max = Math.max(minLimit, Math.min(maxLimit, max));
+    if (min > max) {
+      const tmp = min;
+      min = max;
+      max = tmp;
+    }
+    return { min, max };
+  }
+
+  function getDetectedThresholdMode() {
+    const applesDetected =
+      Number(cameraInventorySummary.totalApples || 0) > 0 ||
+      Number(cameraInventorySummary.applesGood || 0) > 0 ||
+      Number(cameraInventorySummary.applesBad || 0) > 0;
+    const potatoesDetected =
+      Number(cameraInventorySummary.totalPotatoes || 0) > 0 ||
+      Number(cameraInventorySummary.potatoesGood || 0) > 0 ||
+      Number(cameraInventorySummary.potatoesBad || 0) > 0;
+
+    if (applesDetected && potatoesDetected) return "custom";
+    if (applesDetected) return "apples";
+    if (potatoesDetected) return "potatoes";
+
+    if (currentProduceContext?.type === "apples") return "apples";
+    if (currentProduceContext?.type === "potatoes") return "potatoes";
+
+    return "custom";
+  }
+
+  function getProfileByMode(mode) {
+    if (mode === "custom") return customThresholdRanges;
+    return thresholdProfiles[mode] || customThresholdRanges;
+  }
+
+  function applyThresholdProfile(mode) {
+    const normalizedMode = mode || "custom";
+    const profile = getProfileByMode(normalizedMode);
+    activeThresholdMode = normalizedMode;
+
+    targets.temp.min = profile.temperature.min;
+    targets.temp.max = profile.temperature.max;
+    targets.humidity.min = profile.humidity.min;
+    targets.humidity.max = profile.humidity.max;
+    targets.ethylene.max = profile.voc / 1000;
+
+    const tempEl = el("threshold-temp");
+    const humidEl = el("threshold-humidity");
+    const vocEl = el("threshold-voc");
+    if (tempEl) {
+      tempEl.textContent = `${profile.temperature.min}–${profile.temperature.max}°C`;
+    }
+    if (humidEl) {
+      humidEl.textContent = `${profile.humidity.min}–${profile.humidity.max}%`;
+    }
+    if (vocEl) {
+      vocEl.textContent = `${(profile.voc / 1000).toFixed(0)} ppm`;
+    }
+
+    const tempTarget = document.querySelector(
+      '[aria-label="Temperature"] .target',
+    );
+    const humidityTarget = document.querySelector(
+      '[aria-label="Humidity"] .target',
+    );
+    const ethyleneTarget = document.querySelector(
+      '[aria-label="Ethylene/VOCs"] .target',
+    );
+    if (tempTarget) {
+      tempTarget.textContent = `Target: ${profile.temperature.min}–${profile.temperature.max}°C`;
+    }
+    if (humidityTarget) {
+      humidityTarget.textContent = `Target: ${profile.humidity.min}–${profile.humidity.max}%`;
+    }
+    if (ethyleneTarget) {
+      ethyleneTarget.textContent = `Threshold: ${(profile.voc / 1000).toFixed(0)} ppm`;
+    }
+
+    const modeNote = el("threshold-mode-note");
+    if (modeNote) {
+      if (normalizedMode === "custom") {
+        modeNote.textContent =
+          "Mixed produce detected (or unknown). Using Custom range thresholds.";
+      } else if (normalizedMode === "apples") {
+        modeNote.textContent =
+          "AI camera detects apples only. Apples thresholds are applied automatically.";
+      } else {
+        modeNote.textContent =
+          "AI camera detects potatoes only. Potatoes thresholds are applied automatically.";
+      }
+    }
+
     const presetSelect = el("produce-preset");
-    const tempInput = el("temp-target-input");
-    const humidityInput = el("humidity-target-input");
-    const ethyleneInput = el("ethylene-threshold-input");
-    const settingsForm = el("settings-form");
-
-    // Handle preset selection
     if (presetSelect) {
-      presetSelect.addEventListener("change", (e) => {
-        const preset = producePresets[e.target.value];
-        if (preset) {
-          tempInput.value = preset.temp;
-          humidityInput.value = preset.humidity;
-          ethyleneInput.value = preset.ethylene;
+      presetSelect.value = normalizedMode;
+    }
+  }
+
+  function applyAutoThresholdMode() {
+    applyThresholdProfile(getDetectedThresholdMode());
+  }
+
+  function bindSettings() {
+    const saveBtn = el("settings-save-btn");
+    const inputs = document.querySelectorAll(".threshold-input");
+
+    if (!saveBtn || !inputs.length) return;
+
+    // Handle Save button click
+    saveBtn.addEventListener("click", () => {
+      // Collect values from each profile row
+      const profiles = ["custom", "apples", "potatoes"];
+
+      profiles.forEach((profileName) => {
+        const tempMin = document.querySelector(
+          `.threshold-input[data-profile="${profileName}"][data-field="temp-min"]`,
+        );
+        const tempMax = document.querySelector(
+          `.threshold-input[data-profile="${profileName}"][data-field="temp-max"]`,
+        );
+        const humidityMin = document.querySelector(
+          `.threshold-input[data-profile="${profileName}"][data-field="humidity-min"]`,
+        );
+        const humidityMax = document.querySelector(
+          `.threshold-input[data-profile="${profileName}"][data-field="humidity-max"]`,
+        );
+        const voc = document.querySelector(
+          `.threshold-input[data-profile="${profileName}"][data-field="voc"]`,
+        );
+
+        if (tempMin && tempMax && humidityMin && humidityMax && voc) {
+          // Validate and clamp values
+          const temperature = clampRange(
+            Number(tempMin.value),
+            Number(tempMax.value),
+            -5,
+            15,
+          );
+          const humidity = clampRange(
+            Number(humidityMin.value),
+            Number(humidityMax.value),
+            50,
+            100,
+          );
+          const vocValue = Math.max(0, Math.min(50000, Number(voc.value)));
+
+          // Update thresholdProfiles
+          thresholdProfiles[profileName].temperature = temperature;
+          thresholdProfiles[profileName].humidity = humidity;
+          thresholdProfiles[profileName].voc = vocValue;
+
+          // Update input values to validated versions
+          tempMin.value = temperature.min;
+          tempMax.value = temperature.max;
+          humidityMin.value = humidity.min;
+          humidityMax.value = humidity.max;
+          voc.value = vocValue;
         }
       });
-    }
 
-    // Handle form submission
-    if (settingsForm) {
-      settingsForm.addEventListener("submit", (e) => {
-        e.preventDefault();
+      // Save custom ranges and reapply active threshold
+      customThresholdRanges = JSON.parse(
+        JSON.stringify(thresholdProfiles.custom),
+      );
 
-        const newTemp = parseFloat(tempInput.value);
-        const newHumidity = parseFloat(humidityInput.value);
-        const newEthylene = parseFloat(ethyleneInput.value);
+      // Re-apply the current active threshold mode to update displays
+      applyAutoThresholdMode();
 
-        // Update targets with range (±1°C for temp, ±2.5% for humidity)
-        targets.temp.min = Math.max(0, newTemp - 1);
-        targets.temp.max = Math.min(15, newTemp + 1);
-        targets.humidity.min = Math.max(50, newHumidity - 2.5);
-        targets.humidity.max = Math.min(100, newHumidity + 2.5);
-        targets.ethylene.max = newEthylene;
-
-        // Update display in Live Metrics cards
-        const tempTarget = document.querySelector(
-          '[aria-label="Temperature"] .target'
-        );
-        const humidityTarget = document.querySelector(
-          '[aria-label="Humidity"] .target'
-        );
-        const ethyleneTarget = document.querySelector(
-          '[aria-label="Ethylene/VOCs"] .target'
-        );
-
-        if (tempTarget) {
-          tempTarget.textContent = `Target: ${targets.temp.min.toFixed(
-            0
-          )}–${targets.temp.max.toFixed(0)}°C`;
-        }
-        if (humidityTarget) {
-          humidityTarget.textContent = `Target: ${Math.round(
-            targets.humidity.min
-          )}–${Math.round(targets.humidity.max)}%`;
-        }
-        if (ethyleneTarget) {
-          ethyleneTarget.textContent = `Threshold: ${targets.ethylene.max} ppm`;
-        }
-
-        // Show confirmation
-        const alertList = el("alert-list");
-        if (alertList) {
-          const li = document.createElement("li");
-          li.className = "alert-item ok";
-          li.textContent = `✓ Settings updated: Temp ${targets.temp.min.toFixed(
-            0
-          )}-${targets.temp.max.toFixed(0)}°C, Humidity ${Math.round(
-            targets.humidity.min
-          )}-${Math.round(targets.humidity.max)}%, Ethylene ${
-            targets.ethylene.max
-          }ppm`;
-          alertList.prepend(li);
-          setTimeout(() => li.remove(), 5000);
-        }
-
-        // Scroll to dashboard to see updated targets
-        location.hash = "#dashboard";
-      });
-    }
+      // Show confirmation
+      saveBtn.textContent = "✓ Saved!";
+      setTimeout(() => {
+        saveBtn.textContent = "Save Settings";
+      }, 1500);
+    });
   }
 
   function bindTimeRangeButtons() {
@@ -1230,41 +2022,88 @@
 
         // For demo purposes, show alert
         alert(
-          `Time range set to ${currentTimeRange.toUpperCase()}. In production, this would load historical data from the backend API.`
+          `Time range set to ${currentTimeRange.toUpperCase()}. In production, this would load historical data from the backend API.`,
         );
       });
     });
   }
 
-  // Produce management functions
-  const produceIcons = {
-    apples: "🍎",
-    potatoes: "🥔",
-    null: "❓",
-  };
+  function triggerFileDownload(url) {
+    const link = document.createElement("a");
+    link.href = url;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
 
+  function bindExportButtons() {
+    const logsBtn = el("export-logs-csv");
+    const trendsBtn = el("export-trends-csv");
+    const summaryBtn = el("export-summary-pdf");
+
+    if (logsBtn) {
+      logsBtn.addEventListener("click", () => {
+        triggerFileDownload(
+          `/api/exports/logs.csv?range=${encodeURIComponent(currentTimeRange)}`,
+        );
+        showAlert(
+          `Downloading logs CSV (${currentTimeRange.toUpperCase()})`,
+          "success",
+        );
+      });
+    }
+
+    if (trendsBtn) {
+      trendsBtn.addEventListener("click", () => {
+        triggerFileDownload(
+          `/api/exports/trends.csv?range=${encodeURIComponent(currentTimeRange)}`,
+        );
+        showAlert(
+          `Downloading trends CSV (${currentTimeRange.toUpperCase()})`,
+          "success",
+        );
+      });
+    }
+
+    if (summaryBtn) {
+      summaryBtn.addEventListener("click", () => {
+        triggerFileDownload(
+          `/api/exports/summary.pdf?range=${encodeURIComponent(currentTimeRange)}`,
+        );
+        showAlert(
+          `Downloading summary PDF (${currentTimeRange.toUpperCase()})`,
+          "success",
+        );
+      });
+    }
+  }
+
+  // Produce management functions
   const produceNames = {
     apples: "Apples",
     potatoes: "Potatoes",
-    null: "No produce detected",
+    null: "Not detected",
   };
 
   function updateProduceDisplay(produce) {
-    const icon = el("current-produce-icon");
+    currentProduceContext = {
+      type: produce?.type || null,
+      thresholds: produce?.thresholds || null,
+    };
+
     const name = el("current-produce-name");
     const method = el("current-produce-method");
     const confidence = el("current-produce-confidence");
 
-    if (icon)
-      icon.textContent = produceIcons[produce.type] || produceIcons.null;
     if (name)
       name.textContent = produceNames[produce.type] || produceNames.null;
 
     if (method) {
       if (produce.type) {
         method.textContent = produce.manualOverride
-          ? "👤 Manually selected"
-          : "🤖 AI detected";
+          ? "Manually selected"
+          : "AI detected";
       } else {
         method.textContent = "Waiting for detection...";
       }
@@ -1272,45 +2111,17 @@
 
     if (confidence) {
       if (produce.confidence && !produce.manualOverride) {
-        confidence.textContent = `Confidence: ${(
-          produce.confidence * 100
-        ).toFixed(1)}%`;
+        confidence.textContent = `${(produce.confidence * 100).toFixed(
+          1,
+        )}% confidence`;
       } else {
         confidence.textContent = "";
       }
     }
 
-    // Update thresholds display
-    if (produce.thresholds) {
-      const tempEl = el("threshold-temp");
-      const humidEl = el("threshold-humidity");
-      const vocEl = el("threshold-voc");
+    applyAutoThresholdMode();
 
-      if (tempEl) {
-        tempEl.textContent = `${produce.thresholds.temperature.min}–${produce.thresholds.temperature.max}°C`;
-      }
-      if (humidEl) {
-        humidEl.textContent = `${produce.thresholds.humidity.min}–${produce.thresholds.humidity.max}%`;
-      }
-      if (vocEl) {
-        vocEl.textContent = `${(produce.thresholds.voc / 1000).toFixed(0)} ppm`;
-      }
-
-      // Update target displays in metric cards
-      const tempTarget = document.querySelector(
-        '.card[aria-label="Temperature"] .target'
-      );
-      const humidTarget = document.querySelector(
-        '.card[aria-label="Humidity"] .target'
-      );
-
-      if (tempTarget) {
-        tempTarget.textContent = `Target: ${produce.thresholds.temperature.min}–${produce.thresholds.temperature.max}°C`;
-      }
-      if (humidTarget) {
-        humidTarget.textContent = `Target: ${produce.thresholds.humidity.min}–${produce.thresholds.humidity.max}%`;
-      }
-    }
+    renderRecommendations();
   }
 
   async function setProduceType(produceType) {
@@ -1327,12 +2138,12 @@
       if (data.success) {
         updateProduceDisplay(data.produce);
         showAlert(
-          `✓ Produce set to ${produceNames[produceType]}. Thresholds updated.`,
-          "success"
+          `Produce set to ${produceNames[produceType]}. Thresholds updated.`,
+          "success",
         );
       }
     } catch (e) {
-      showAlert(`✗ Failed to set produce type: ${e.message}`, "error");
+      showAlert(`Failed to set produce type: ${e.message}`, "error");
     }
   }
 
@@ -1346,7 +2157,7 @@
         if (selectedProduce) {
           setProduceType(selectedProduce);
         } else {
-          showAlert("⚠️ Please select a produce type", "warning");
+          showAlert("Please select a produce type", "warning");
         }
       });
     }
@@ -1390,8 +2201,8 @@
           statusClass === "critical"
             ? "#dc2626"
             : statusClass === "warning"
-            ? "#f59e0b"
-            : "#059669"
+              ? "#f59e0b"
+              : "#059669"
         };">
           ${item.daysLeft} days left
         </td>
@@ -1399,8 +2210,8 @@
           statusClass === "critical"
             ? "#dc2626"
             : statusClass === "warning"
-            ? "#f59e0b"
-            : "#059669"
+              ? "#f59e0b"
+              : "#059669"
         }; font-weight: 500;">${status}</td>
         <td>
           <button 
@@ -1486,7 +2297,7 @@
           modal.hidden = true;
           showAlert(
             `✓ ${quantity} units of ${produceNames[produceType]} added to inventory`,
-            "success"
+            "success",
           );
         } else {
           showAlert(`✗ Failed to add item: ${data.error}`, "error");
@@ -1503,11 +2314,16 @@
       const data = await res.json();
 
       if (data.success) {
-        inventoryItems = data.inventory;
+        inventoryItems =
+          Array.isArray(data.inventory) && data.inventory.length > 0
+            ? data.inventory
+            : DUMMY_INVENTORY_ITEMS;
         renderInventory();
       }
     } catch (error) {
       console.error("Error loading inventory:", error);
+      inventoryItems = DUMMY_INVENTORY_ITEMS;
+      renderInventory();
     }
   }
 
@@ -1546,16 +2362,16 @@
 
       if (data.success && data.snapshot && cameraImg) {
         cameraImg.src = data.snapshot + "?t=" + Date.now();
-        cameraImg.alt = "Latest camera snapshot";
+        cameraImg.alt = "Latest interval camera snapshot";
       } else if (cameraImg) {
-        cameraImg.src = "assets/img/placeholder-produce.jpg";
+        cameraImg.src = "assets/img/icon-512.svg";
         cameraImg.alt = "No snapshot available";
       }
     } catch (e) {
       console.error("Error loading snapshot:", e);
       const cameraImg = el("camera-img");
       if (cameraImg) {
-        cameraImg.src = "assets/img/placeholder-produce.jpg";
+        cameraImg.src = "assets/img/icon-512.svg";
         cameraImg.alt = "Error loading snapshot";
       }
     }
@@ -1660,46 +2476,14 @@
     }
   }
 
-  // Load latest snapshot from server
-  async function loadLatestSnapshot() {
-    try {
-      // Aggressive cache busting
-      const timestamp = new Date().getTime();
-      const response = await fetch(`/api/latest-snapshot?_=${timestamp}`, {
-        cache: "no-store",
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      });
-      const data = await response.json();
-
-      console.log("Latest snapshot data:", data); // Debug log
-
-      const cameraImg = el("camera-img");
-      if (data.snapshot && cameraImg) {
-        // Force reload with timestamp
-        const imageUrl = data.snapshot + "?t=" + timestamp;
-        console.log("Loading image:", imageUrl); // Debug log
-        cameraImg.src = imageUrl;
-        cameraImg.alt = `Snapshot from ${new Date(
-          data.timestamp
-        ).toLocaleString()}`;
-      } else if (cameraImg) {
-        console.warn("No snapshot available");
-        cameraImg.alt = "No snapshot available yet";
-      }
-    } catch (error) {
-      console.error("Error loading snapshot:", error);
-    }
-  }
-
   function showAlert(message, type = "info") {
     const banner = el("alert-banner");
     const text = el("alert-banner-text");
+    const resolvedMessage = String(message || "");
     if (banner && text) {
-      text.textContent = message;
+      if (isBannerSuppressed(resolvedMessage)) return;
+
+      text.textContent = resolvedMessage;
       banner.className = `alert-banner alert-${type}`;
       banner.hidden = false;
 
@@ -1713,12 +2497,14 @@
     updateMetrics();
     updateSystemStatus();
     updateFilterHealth();
-    renderAIAlerts();
+    loadAIAlerts();
+    loadCameraInventorySummary();
     bindControls();
     bindInventory();
     bindSettings();
     bindEnvTrendTooltip();
     bindTimeRangeButtons();
+    bindExportButtons();
     bindProduceControls();
     bindInventoryControls();
     loadInventory();
@@ -1726,18 +2512,25 @@
 
     // Initialize offline/online detection
     setupOfflineDetection();
+    setupInferenceHealth();
 
     setInterval(() => {
       updateMetrics();
       updateFilterHealth();
-      loadLatestSnapshot(); // Auto-refresh snapshot every 5 seconds
     }, 5000);
+
+    setInterval(() => {
+      loadLatestSnapshot(); // Auto-refresh latest interval snapshot
+      loadAIAlerts();
+      loadCameraInventorySummary();
+      updateInferenceHealthStatus();
+    }, 30000);
     // Header nav removed; scrolling handled by section anchor links in-page.
     if (!location.hash) {
       location.hash = "#dashboard";
     }
     // If a section anchor is present, scroll to it
-    ["camera", "alerts", "controls"].forEach((id) => {
+    ["camera", "controls"].forEach((id) => {
       if (location.hash === `#${id}`) {
         const anchor = document.getElementById(id);
         if (anchor)
@@ -1749,6 +2542,53 @@
   // Offline/Online Detection and Auto-Refresh
   let lastDataUpdateTime = Date.now();
   let isCurrentlyOffline = false;
+
+  function setInferenceChipState(
+    text,
+    stateClass = "status-indicator--neutral",
+  ) {
+    const chip = document.getElementById("header-inference-text");
+    if (!chip) return;
+    chip.textContent = text;
+    chip.className = `status-indicator ${stateClass}`;
+  }
+
+  async function updateInferenceHealthStatus() {
+    if (!navigator.onLine) {
+      setInferenceChipState("Inference: offline", "status-indicator--error");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/inference-health", { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      const provider = String(data?.provider || "unknown");
+      const ready = Boolean(data?.ready);
+      if (ready) {
+        setInferenceChipState(
+          `Inference: ${provider} ready`,
+          "status-indicator",
+        );
+      } else {
+        setInferenceChipState(
+          `Inference: ${provider} not ready`,
+          "status-indicator--warning",
+        );
+      }
+    } catch (error) {
+      setInferenceChipState(
+        "Inference: unavailable",
+        "status-indicator--error",
+      );
+    }
+  }
+
+  function setupInferenceHealth() {
+    updateInferenceHealthStatus();
+    setInterval(updateInferenceHealthStatus, 30000);
+  }
 
   function setupOfflineDetection() {
     // Only update header status - no separate banner
@@ -1795,6 +2635,7 @@
         updateMetrics();
         updateFilterHealth();
         loadLatestSnapshot();
+        updateInferenceHealthStatus();
       }, 500);
     });
 

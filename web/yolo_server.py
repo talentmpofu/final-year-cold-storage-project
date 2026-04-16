@@ -20,11 +20,17 @@ MODEL_PATH = "produce_model.pt"  # Path to your trained YOLO model
 UPLOAD_FOLDER = "inference_uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Class mapping for produce types (Apples + Potatoes only)
-PRODUCE_CLASSES = {
-    0: 'apples',
-    1: 'potatoes'
-}
+def normalize_label(label: str) -> str:
+    return str(label or "").strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def extract_primary_produce(label: str):
+    normalized = normalize_label(label)
+    if "apple" in normalized:
+        return "apples"
+    if "potato" in normalized:
+        return "potatoes"
+    return None
 
 # Load model (will be trained with your custom dataset)
 try:
@@ -91,19 +97,30 @@ def detect_produce():
                 class_id = int(box.cls[0])
                 confidence = float(box.conf[0])
                 
-                # Map class ID to produce name
-                if class_id in PRODUCE_CLASSES:
-                    produce_name = PRODUCE_CLASSES[class_id]
-                    detections.append({
-                        'type': produce_name,
-                        'confidence': confidence,
-                        'bbox': box.xyxy[0].tolist()
-                    })
-                    
-                    # Track highest confidence detection
-                    if confidence > highest_confidence:
-                        highest_confidence = confidence
-                        detected_produce = produce_name
+                # Resolve class label directly from the loaded model so
+                # additional classes (e.g., rotten/overripe) are preserved.
+                class_name = None
+                if hasattr(model, 'names'):
+                    if isinstance(model.names, dict):
+                        class_name = model.names.get(class_id)
+                    elif isinstance(model.names, list) and class_id < len(model.names):
+                        class_name = model.names[class_id]
+
+                raw_label = str(class_name or f'class_{class_id}').lower()
+                produce_name = normalize_label(raw_label)
+                primary_produce = extract_primary_produce(produce_name)
+
+                detections.append({
+                    'type': produce_name,
+                    'primary_type': primary_produce,
+                    'confidence': confidence,
+                    'bbox': box.xyxy[0].tolist()
+                })
+
+                # Track highest-confidence primary produce detection only
+                if primary_produce and confidence > highest_confidence:
+                    highest_confidence = confidence
+                    detected_produce = primary_produce
         
         # If no produce detected with sufficient confidence
         if detected_produce is None or highest_confidence < 0.5:
@@ -155,8 +172,8 @@ def training_info():
             'data.yaml': {
                 'train': './train/images',
                 'val': './val/images',
-                'nc': 3,
-                'names': ['apples', 'potatoes']
+                'nc': 4,
+                'names': ['good_apple', 'good_potato', 'bad_apple', 'bad_potato']
             }
         },
         'recommended_images': 'At least 100 images per class for good accuracy'

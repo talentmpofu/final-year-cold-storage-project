@@ -12,5 +12,19 @@
     "quantity": 3,
     "daysLeft": 3,
     "addedAt": "2026-01-14T14:45:23.879Z"
+  },
+  {
+    "id": 1776334017825,
+    "type": "potatoes",
+    "quantity": 2,
+    "daysLeft": 30,
+    "addedAt": "2026-04-16T10:06:57.825Z"
+  },
+  {
+    "id": 1776334019545,
+    "type": "potatoes",
+    "quantity": 2,
+    "daysLeft": 30,
+    "addedAt": "2026-04-16T10:06:59.545Z"
   }
 ]

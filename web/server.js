@@ -6,6 +6,7 @@ const axios = require("axios");
 const FormData = require("form-data");
 const fs = require("fs");
 const cron = require("node-cron");
+const PDFDocument = require("pdfkit");
 const { getProduceSettings } = require("./produceDatabase");
 const {
   checkAndAlert,
@@ -16,6 +17,7 @@ const {
   addMetricToHistory,
   sendReport,
   saveHistoryToFile,
+  getMetricsHistory,
 } = require("./reportGenerator");
 
 // Load environment variables
@@ -29,6 +31,20 @@ if (!fs.existsSync(snapshotsDir)) {
 
 const app = express();
 const PORT = 3000;
+
+// Inference provider config
+const INFERENCE_PROVIDER = String(
+  process.env.INFERENCE_PROVIDER || "local",
+).toLowerCase();
+const LOCAL_INFERENCE_URL =
+  process.env.LOCAL_INFERENCE_URL || "http://localhost:5000/detect";
+const ROBOFLOW_API_BASE =
+  process.env.ROBOFLOW_API_BASE || "https://detect.roboflow.com";
+const ROBOFLOW_API_KEY = process.env.ROBOFLOW_API_KEY || "";
+const ROBOFLOW_PROJECT = process.env.ROBOFLOW_PROJECT || "";
+const ROBOFLOW_VERSION = process.env.ROBOFLOW_VERSION || "";
+const ROBOFLOW_CONFIDENCE = Number(process.env.ROBOFLOW_CONFIDENCE || 50);
+const ROBOFLOW_OVERLAP = Number(process.env.ROBOFLOW_OVERLAP || 50);
 
 // Configure file upload
 const upload = multer({
@@ -77,6 +93,262 @@ let currentProduce = {
   },
 };
 
+// Latest AI quality alerts derived from camera detections.
+// Alerts are informational only and auto-clear when spoilage is no longer detected.
+let latestAIQualityAlerts = [];
+
+let latestCameraInventorySummary = {
+  totalApples: 0,
+  totalPotatoes: 0,
+  applesGood: 0,
+  applesBad: 0,
+  potatoesGood: 0,
+  potatoesBad: 0,
+  analyzedAt: null,
+};
+
+function csvEscape(value) {
+  if (value === null || value === undefined) return "";
+  const str = String(value);
+  if (/[,"\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function resolveRange(range) {
+  const normalized = String(range || "24h").toLowerCase();
+  if (normalized === "7d") return { key: "7d", hours: 7 * 24 };
+  if (normalized === "30d") return { key: "30d", hours: 30 * 24 };
+  return { key: "24h", hours: 24 };
+}
+
+function getFilteredHistory(range) {
+  const resolved = resolveRange(range);
+  const cutoff = Date.now() - resolved.hours * 60 * 60 * 1000;
+
+  const rows = (getMetricsHistory() || [])
+    .map((m) => ({
+      timestamp: new Date(m.timestamp).getTime(),
+      temperature: Number(m.temperature || 0),
+      humidity: Number(m.humidity || 0),
+      voc: Number(m.voc || 0),
+    }))
+    .filter((m) => Number.isFinite(m.timestamp) && m.timestamp >= cutoff)
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  return { resolved, rows };
+}
+
+function metricStats(values) {
+  if (!values.length) {
+    return { min: 0, max: 0, avg: 0, current: 0, trend: "stable" };
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const avg = values.reduce((sum, n) => sum + n, 0) / values.length;
+  const current = values[values.length - 1];
+  const first = values[0];
+  const delta = current - first;
+  const trend =
+    Math.abs(delta) < 0.01 ? "stable" : delta > 0 ? "rising" : "falling";
+
+  return { min, max, avg, current, trend };
+}
+
+function getMetricStatus(metric, value, thresholds) {
+  if (metric === "temperature") {
+    if (value < thresholds.temperature.min) return "below-range";
+    if (value > thresholds.temperature.max) return "above-range";
+    return "safe";
+  }
+  if (metric === "humidity") {
+    if (value < thresholds.humidity.min) return "below-range";
+    if (value > thresholds.humidity.max) return "above-range";
+    return "safe";
+  }
+  if (value > thresholds.voc) return "above-threshold";
+  return "safe";
+}
+
+function normalizeDetectionLabel(label) {
+  return String(label || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+}
+
+function getProduceTypeFromLabel(label) {
+  const normalized = normalizeDetectionLabel(label);
+  if (normalized.includes("apple")) return "apples";
+  if (normalized.includes("potato")) return "potatoes";
+  return null;
+}
+
+function isBadQualityLabel(label) {
+  const normalized = normalizeDetectionLabel(label);
+  return /bad|rotten|rot|overripe|over_ripen|spoiled|spoilage/.test(normalized);
+}
+
+function mapRoboflowPredictionsToDetections(predictions = []) {
+  return predictions.map((p) => {
+    const label = normalizeDetectionLabel(p.class || p.label || p.type);
+    const confidence = Number(p.confidence || 0);
+
+    // Roboflow commonly returns center-based x/y/width/height values.
+    const x = Number(p.x || 0);
+    const y = Number(p.y || 0);
+    const width = Number(p.width || 0);
+    const height = Number(p.height || 0);
+    const x1 = x - width / 2;
+    const y1 = y - height / 2;
+    const x2 = x + width / 2;
+    const y2 = y + height / 2;
+
+    return {
+      type: label,
+      confidence,
+      bbox: [x1, y1, x2, y2],
+    };
+  });
+}
+
+function pickTopProduceDetection(detections = []) {
+  let detected = null;
+  let confidence = 0;
+
+  detections.forEach((d) => {
+    const produceType = getProduceTypeFromLabel(d.type);
+    if (produceType && Number(d.confidence || 0) > confidence) {
+      detected = d.type;
+      confidence = Number(d.confidence || 0);
+    }
+  });
+
+  return { detected, confidence };
+}
+
+async function runLocalInference(imagePath) {
+  const formData = new FormData();
+  formData.append("image", fs.createReadStream(imagePath));
+
+  const yoloResponse = await axios.post(LOCAL_INFERENCE_URL, formData, {
+    headers: formData.getHeaders(),
+    timeout: 10000,
+  });
+
+  return {
+    provider: "local",
+    detected: yoloResponse.data?.detected || null,
+    confidence: Number(yoloResponse.data?.confidence || 0),
+    all_detections: yoloResponse.data?.all_detections || [],
+  };
+}
+
+async function runRoboflowInference(imagePath) {
+  if (!ROBOFLOW_API_KEY || !ROBOFLOW_PROJECT || !ROBOFLOW_VERSION) {
+    throw new Error(
+      "Roboflow is selected but ROBOFLOW_API_KEY, ROBOFLOW_PROJECT, or ROBOFLOW_VERSION is missing.",
+    );
+  }
+
+  const formData = new FormData();
+  formData.append("file", fs.createReadStream(imagePath));
+
+  const endpoint = `${ROBOFLOW_API_BASE}/${ROBOFLOW_PROJECT}/${ROBOFLOW_VERSION}?api_key=${encodeURIComponent(ROBOFLOW_API_KEY)}&confidence=${encodeURIComponent(ROBOFLOW_CONFIDENCE)}&overlap=${encodeURIComponent(ROBOFLOW_OVERLAP)}`;
+
+  const response = await axios.post(endpoint, formData, {
+    headers: formData.getHeaders(),
+    timeout: 15000,
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+  });
+
+  const predictions = Array.isArray(response.data?.predictions)
+    ? response.data.predictions
+    : [];
+
+  const detections = mapRoboflowPredictionsToDetections(predictions);
+  const top = pickTopProduceDetection(detections);
+
+  return {
+    provider: "roboflow",
+    detected: top.detected,
+    confidence: top.confidence,
+    all_detections: detections,
+  };
+}
+
+async function runInference(imagePath) {
+  if (INFERENCE_PROVIDER === "roboflow") {
+    return runRoboflowInference(imagePath);
+  }
+  return runLocalInference(imagePath);
+}
+
+function buildAIQualityAlertsFromDetections(detections = []) {
+  const spoilageDetections = detections.filter((d) => {
+    return isBadQualityLabel(d.type);
+  });
+
+  if (!spoilageDetections.length) {
+    return [];
+  }
+
+  const produceCounts = spoilageDetections.reduce((acc, d) => {
+    const produce = getProduceTypeFromLabel(d.type) || "produce";
+    acc[produce] = (acc[produce] || 0) + 1;
+    return acc;
+  }, {});
+
+  return Object.entries(produceCounts).map(([produce, count], idx) => ({
+    id: idx + 1,
+    title: produce.charAt(0).toUpperCase() + produce.slice(1),
+    severity: "high",
+    count,
+    message:
+      produce === "produce"
+        ? `AI detected spoilage in ${count} item${count > 1 ? "s" : ""}. Please inspect latest camera images and remove affected items physically from the storage unit.`
+        : `AI detected overripening in ${count} ${produce}. Please inspect latest camera images and remove affected items physically from the storage unit.`,
+    source: "camera",
+    timestamp: new Date().toISOString(),
+  }));
+}
+
+function buildCameraInventorySummaryFromDetections(detections = []) {
+  const counts = detections.reduce(
+    (acc, d) => {
+      const produceType = getProduceTypeFromLabel(d.type);
+      const isApple = produceType === "apples";
+      const isPotato = produceType === "potatoes";
+      const isSpoiled = isBadQualityLabel(d.type);
+
+      if (isApple) {
+        acc.totalApples += 1;
+        if (isSpoiled) acc.applesBad += 1;
+      }
+      if (isPotato) {
+        acc.totalPotatoes += 1;
+        if (isSpoiled) acc.potatoesBad += 1;
+      }
+
+      return acc;
+    },
+    { totalApples: 0, totalPotatoes: 0, applesBad: 0, potatoesBad: 0 },
+  );
+
+  return {
+    totalApples: counts.totalApples,
+    totalPotatoes: counts.totalPotatoes,
+    applesBad: counts.applesBad,
+    applesGood: Math.max(0, counts.totalApples - counts.applesBad),
+    potatoesBad: counts.potatoesBad,
+    potatoesGood: Math.max(0, counts.totalPotatoes - counts.potatoesBad),
+    analyzedAt: new Date().toISOString(),
+  };
+}
+
 // API endpoint to receive data from ESP32
 app.post("/api/metrics", (req, res) => {
   console.log("📥 Received data from ESP32:", req.body);
@@ -103,6 +375,213 @@ app.get("/api/metrics", (req, res) => {
     ...latestMetrics,
     produce: currentProduce,
   });
+});
+
+app.get("/api/exports/logs.csv", (req, res) => {
+  const { range } = req.query;
+  const { resolved, rows } = getFilteredHistory(range);
+  const thresholds = currentProduce.thresholds;
+
+  const headers = [
+    "timestamp",
+    "temperature_c",
+    "temperature_status",
+    "humidity_percent",
+    "humidity_status",
+    "voc_ppm",
+    "voc_status",
+  ];
+
+  const csvRows = rows.map((row) => [
+    new Date(row.timestamp).toISOString(),
+    row.temperature.toFixed(2),
+    getMetricStatus("temperature", row.temperature, thresholds),
+    row.humidity.toFixed(2),
+    getMetricStatus("humidity", row.humidity, thresholds),
+    row.voc.toFixed(2),
+    getMetricStatus("voc", row.voc, thresholds),
+  ]);
+
+  const content = [headers, ...csvRows]
+    .map((line) => line.map(csvEscape).join(","))
+    .join("\n");
+
+  const fileName = `cold-storage-logs-${resolved.key}-${new Date().toISOString().slice(0, 10)}.csv`;
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+  res.send(content);
+});
+
+app.get("/api/exports/trends.csv", (req, res) => {
+  const { range } = req.query;
+  const { resolved, rows } = getFilteredHistory(range);
+
+  const temps = rows.map((r) => r.temperature);
+  const humidities = rows.map((r) => r.humidity);
+  const vocs = rows.map((r) => r.voc);
+
+  const tempStats = metricStats(temps);
+  const humidityStats = metricStats(humidities);
+  const vocStats = metricStats(vocs);
+
+  const summaryRows = [
+    [
+      "temperature",
+      tempStats.current.toFixed(2),
+      tempStats.min.toFixed(2),
+      tempStats.max.toFixed(2),
+      tempStats.avg.toFixed(2),
+      tempStats.trend,
+      currentProduce.thresholds.temperature.min,
+      currentProduce.thresholds.temperature.max,
+      "",
+    ],
+    [
+      "humidity",
+      humidityStats.current.toFixed(2),
+      humidityStats.min.toFixed(2),
+      humidityStats.max.toFixed(2),
+      humidityStats.avg.toFixed(2),
+      humidityStats.trend,
+      currentProduce.thresholds.humidity.min,
+      currentProduce.thresholds.humidity.max,
+      "",
+    ],
+    [
+      "voc",
+      vocStats.current.toFixed(2),
+      vocStats.min.toFixed(2),
+      vocStats.max.toFixed(2),
+      vocStats.avg.toFixed(2),
+      vocStats.trend,
+      "",
+      "",
+      currentProduce.thresholds.voc,
+    ],
+  ];
+
+  const headers = [
+    "metric",
+    "current",
+    "min",
+    "max",
+    "average",
+    "trend",
+    "threshold_min",
+    "threshold_max",
+    "threshold_limit",
+  ];
+
+  const content = [headers, ...summaryRows]
+    .map((line) => line.map(csvEscape).join(","))
+    .join("\n");
+
+  const fileName = `cold-storage-trends-${resolved.key}-${new Date().toISOString().slice(0, 10)}.csv`;
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+  res.send(content);
+});
+
+app.get("/api/exports/summary.pdf", (req, res) => {
+  const { range } = req.query;
+  const { resolved, rows } = getFilteredHistory(range);
+  const thresholds = currentProduce.thresholds;
+
+  const temps = rows.map((r) => r.temperature);
+  const humidities = rows.map((r) => r.humidity);
+  const vocs = rows.map((r) => r.voc);
+
+  const tempStats = metricStats(temps);
+  const humidityStats = metricStats(humidities);
+  const vocStats = metricStats(vocs);
+
+  const anomalies = [];
+  if (tempStats.max > thresholds.temperature.max) {
+    anomalies.push(
+      `Temperature peaked at ${tempStats.max.toFixed(1)}°C (max ${thresholds.temperature.max}°C).`,
+    );
+  }
+  if (tempStats.min < thresholds.temperature.min) {
+    anomalies.push(
+      `Temperature dropped to ${tempStats.min.toFixed(1)}°C (min ${thresholds.temperature.min}°C).`,
+    );
+  }
+  if (humidityStats.min < thresholds.humidity.min) {
+    anomalies.push(
+      `Humidity dropped to ${humidityStats.min.toFixed(1)}% (min ${thresholds.humidity.min}%).`,
+    );
+  }
+  if (humidityStats.max > thresholds.humidity.max) {
+    anomalies.push(
+      `Humidity reached ${humidityStats.max.toFixed(1)}% (max ${thresholds.humidity.max}%).`,
+    );
+  }
+  if (vocStats.max > thresholds.voc) {
+    anomalies.push(
+      `VOC reached ${vocStats.max.toFixed(0)} ppm (limit ${thresholds.voc} ppm).`,
+    );
+  }
+
+  const fileName = `cold-storage-summary-${resolved.key}-${new Date().toISOString().slice(0, 10)}.pdf`;
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+
+  const doc = new PDFDocument({ margin: 50 });
+  doc.pipe(res);
+
+  doc.fontSize(18).text("Cold Storage Monitoring Summary", { align: "left" });
+  doc.moveDown(0.4);
+  doc
+    .fontSize(11)
+    .fillColor("#4b5563")
+    .text(`Generated: ${new Date().toLocaleString()}`)
+    .text(`Range: ${resolved.key.toUpperCase()} | Readings: ${rows.length}`)
+    .text(
+      `Produce profile: ${currentProduce.type ? currentProduce.type : "not detected"}`,
+    );
+
+  doc.moveDown();
+  doc.fillColor("#111827").fontSize(13).text("Key Metrics");
+  doc.moveDown(0.3);
+  doc
+    .fontSize(11)
+    .text(
+      `Temperature: current ${tempStats.current.toFixed(1)}°C | min ${tempStats.min.toFixed(1)} | avg ${tempStats.avg.toFixed(1)} | max ${tempStats.max.toFixed(1)} | trend ${tempStats.trend}`,
+    );
+  doc.text(
+    `Humidity: current ${humidityStats.current.toFixed(1)}% | min ${humidityStats.min.toFixed(1)} | avg ${humidityStats.avg.toFixed(1)} | max ${humidityStats.max.toFixed(1)} | trend ${humidityStats.trend}`,
+  );
+  doc.text(
+    `VOC: current ${vocStats.current.toFixed(0)} ppm | min ${vocStats.min.toFixed(0)} | avg ${vocStats.avg.toFixed(0)} | max ${vocStats.max.toFixed(0)} | trend ${vocStats.trend}`,
+  );
+
+  doc.moveDown();
+  doc.fillColor("#111827").fontSize(13).text("Configured Thresholds");
+  doc.moveDown(0.3);
+  doc
+    .fontSize(11)
+    .text(
+      `Temperature: ${thresholds.temperature.min}°C to ${thresholds.temperature.max}°C`,
+    )
+    .text(
+      `Humidity: ${thresholds.humidity.min}% to ${thresholds.humidity.max}%`,
+    )
+    .text(`VOC limit: ${thresholds.voc} ppm`);
+
+  doc.moveDown();
+  doc.fillColor("#111827").fontSize(13).text("Alert Summary");
+  doc.moveDown(0.3);
+  doc.fontSize(11);
+  if (!anomalies.length) {
+    doc
+      .fillColor("#047857")
+      .text("All monitored values stayed within safe ranges.");
+  } else {
+    doc.fillColor("#991b1b");
+    anomalies.forEach((line) => doc.text(`- ${line}`));
+  }
+
+  doc.end();
 });
 
 // API endpoint to get current produce settings
@@ -203,6 +682,59 @@ app.get("/api/snapshots", (req, res) => {
   }
 });
 
+// API endpoint for dashboard AI quality alerts
+app.get("/api/ai-alerts", (req, res) => {
+  const activeCount = latestAIQualityAlerts.filter(
+    (a) => a.severity === "high" || a.severity === "medium",
+  ).length;
+
+  res.json({
+    success: true,
+    alerts: latestAIQualityAlerts,
+    activeCount,
+    cleared: latestAIQualityAlerts.length === 0,
+  });
+});
+
+app.get("/api/camera-inventory-summary", (req, res) => {
+  res.json({
+    success: true,
+    summary: latestCameraInventorySummary,
+  });
+});
+
+app.get("/api/inference-health", (req, res) => {
+  const provider = INFERENCE_PROVIDER;
+  const isRoboflow = provider === "roboflow";
+  const roboflowConfig = {
+    apiKeySet: Boolean(ROBOFLOW_API_KEY),
+    projectSet: Boolean(ROBOFLOW_PROJECT),
+    versionSet: Boolean(ROBOFLOW_VERSION),
+    confidence: ROBOFLOW_CONFIDENCE,
+    overlap: ROBOFLOW_OVERLAP,
+    apiBase: ROBOFLOW_API_BASE,
+  };
+
+  const localConfig = {
+    url: LOCAL_INFERENCE_URL,
+  };
+
+  const ready = isRoboflow
+    ? roboflowConfig.apiKeySet &&
+      roboflowConfig.projectSet &&
+      roboflowConfig.versionSet
+    : Boolean(LOCAL_INFERENCE_URL);
+
+  res.json({
+    success: true,
+    provider,
+    ready,
+    roboflow: roboflowConfig,
+    local: localConfig,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // API endpoint to upload image from ESP32-CAM
 app.post("/api/upload-image", upload.single("image"), async (req, res) => {
   try {
@@ -221,34 +753,39 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
     fs.copyFileSync(req.file.path, savedImagePath);
     console.log(`💾 Image saved to: ${savedImagePath}`);
 
-    // Call Python YOLO inference API
+    // Run inference using configured provider (local or roboflow)
     try {
-      const formData = new FormData();
-      formData.append("image", fs.createReadStream(req.file.path));
+      const inference = await runInference(req.file.path);
+      const { detected, confidence, all_detections, provider } = inference;
+      const normalizedDetectedProduce = getProduceTypeFromLabel(detected);
 
-      const yoloResponse = await axios.post(
-        "http://localhost:5000/detect",
-        formData,
-        {
-          headers: formData.getHeaders(),
-          timeout: 10000, // 10 second timeout
-        }
+      // Build informational AI quality alerts from latest detections.
+      // If no spoilage classes are present, alerts are cleared automatically.
+      latestAIQualityAlerts = buildAIQualityAlertsFromDetections(
+        all_detections || [],
+      );
+      latestCameraInventorySummary = buildCameraInventorySummaryFromDetections(
+        all_detections || [],
       );
 
-      const { detected, confidence } = yoloResponse.data;
-
       console.log(
-        `🤖 YOLO detected: ${detected || "nothing"} (confidence: ${(
-          confidence * 100
-        ).toFixed(1)}%)`
+        `🤖 ${String(provider || "inference").toUpperCase()} detected: ${
+          detected || "nothing"
+        } -> ${
+          normalizedDetectedProduce || "unmapped"
+        } (confidence: ${(confidence * 100).toFixed(1)}%)`,
       );
 
       // Only update if produce was detected with good confidence and no manual override
-      if (detected && confidence > 0.5 && !currentProduce.manualOverride) {
-        const settings = getProduceSettings(detected);
+      if (
+        normalizedDetectedProduce &&
+        confidence > 0.5 &&
+        !currentProduce.manualOverride
+      ) {
+        const settings = getProduceSettings(normalizedDetectedProduce);
         if (settings) {
           currentProduce = {
-            type: detected,
+            type: normalizedDetectedProduce,
             detectedAt: new Date().toISOString(),
             manualOverride: false,
             confidence: confidence,
@@ -260,26 +797,34 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
           };
 
           console.log(
-            `📊 Auto-adjusted thresholds for ${detected}:`,
-            currentProduce.thresholds
+            `📊 Auto-adjusted thresholds for ${normalizedDetectedProduce}:`,
+            currentProduce.thresholds,
           );
         }
       }
 
       res.json({
         success: true,
-        detected: detected,
+        provider: provider || INFERENCE_PROVIDER,
+        detected: normalizedDetectedProduce,
+        rawDetectedLabel: detected,
         confidence: confidence,
+        aiAlerts: latestAIQualityAlerts,
+        inventorySummary: latestCameraInventorySummary,
         produce: currentProduce,
       });
-    } catch (yoloError) {
-      console.error("⚠️  YOLO API error:", yoloError.message);
+    } catch (inferenceError) {
+      console.error("⚠️  Inference error:", inferenceError.message);
 
       // Fallback: continue without detection
       res.json({
         success: true,
+        provider: INFERENCE_PROVIDER,
         detected: null,
-        error: "YOLO service unavailable",
+        error: `Inference service unavailable (${INFERENCE_PROVIDER})`,
+        details: inferenceError.message,
+        aiAlerts: latestAIQualityAlerts,
+        inventorySummary: latestCameraInventorySummary,
         produce: currentProduce,
       });
     } finally {
@@ -482,6 +1027,25 @@ app.listen(PORT, "0.0.0.0", async () => {
   console.log(`\n✓ Server running on port ${PORT}`);
   console.log(`\n📊 Dashboard: http://localhost:${PORT}`);
   console.log(`📡 API Endpoint: http://localhost:${PORT}/api/metrics`);
+  console.log(`🧠 Inference Provider: ${INFERENCE_PROVIDER}`);
+
+  if (INFERENCE_PROVIDER === "roboflow") {
+    const roboflowReady =
+      Boolean(ROBOFLOW_API_KEY) &&
+      Boolean(ROBOFLOW_PROJECT) &&
+      Boolean(ROBOFLOW_VERSION);
+    if (roboflowReady) {
+      console.log(
+        `☁️  Roboflow configured: ${ROBOFLOW_PROJECT}/${ROBOFLOW_VERSION}`,
+      );
+    } else {
+      console.warn(
+        "⚠️  Roboflow mode selected but env vars are incomplete. Set ROBOFLOW_API_KEY, ROBOFLOW_PROJECT, and ROBOFLOW_VERSION.",
+      );
+    }
+  } else {
+    console.log(`🖥️  Local inference URL: ${LOCAL_INFERENCE_URL}`);
+  }
 
   // Verify email configuration on startup
   console.log(`\n📧 Verifying email configuration...`);
