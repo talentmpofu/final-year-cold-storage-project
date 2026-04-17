@@ -316,6 +316,14 @@ body {
   width: 100%;
 }
 
+#camera {
+  order: 1;
+}
+
+#view-settings {
+  order: 2;
+}
+
 .view {
   margin-bottom: 32px;
 }
@@ -1637,6 +1645,84 @@ body {
 
 .recommendations-grid {
   margin-top: 16px;
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  align-items: stretch;
+  gap: 12px;
+}
+
+.recommendations-grid .insight-card {
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+.recommendations-grid .insight-head {
+  margin-bottom: 6px;
+}
+
+.recommendations-grid .forecast-row {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.recommendations-grid .forecast-note {
+  margin: 4px 0 6px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.recommendations-grid .insight-list {
+  margin-top: 0;
+  padding-left: 16px;
+  line-height: 1.35;
+  max-height: none;
+  overflow: visible;
+}
+
+.recommendations-grid .insight-subtitle {
+  margin-top: 2px;
+}
+
+.recommendations-grid .insight-value {
+  margin: 0 0 4px;
+  font-size: 26px;
+}
+
+.recommendations-grid .forecast-stack {
+  gap: 8px;
+}
+
+.recommendations-grid .recommendation-list,
+.recommendations-grid .priority-list {
+  margin-top: 0;
+}
+
+.recommendations-grid .recommendation-list li,
+.recommendations-grid .priority-list li {
+  margin-bottom: 6px;
+}
+
+.recommendations-grid #environment-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .recommendations-grid {
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .recommendations-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .forecast-stack {

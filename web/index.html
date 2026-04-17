@@ -195,21 +195,6 @@
             </svg>
             <span>Insights</span>
           </a>
-          <a href="#view-settings" class="nav-link">
-            <svg
-              class="nav-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path
-                d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6m-17.78 7.78l4.24-4.24m5.08-5.08l4.24-4.24"
-              />
-            </svg>
-            <span>Settings</span>
-          </a>
           <a href="#camera" class="nav-link">
             <svg
               class="nav-icon"
@@ -224,6 +209,21 @@
               <circle cx="12" cy="13" r="4" />
             </svg>
             <span>Camera</span>
+          </a>
+          <a href="#view-settings" class="nav-link">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6m-17.78 7.78l4.24-4.24m5.08-5.08l4.24-4.24"
+              />
+            </svg>
+            <span>Settings</span>
           </a>
         </nav>
       </aside>
@@ -567,25 +567,11 @@
               aria-label="Export data and reports"
             >
               <button
-                class="camera-btn camera-btn-secondary analytics-export-btn"
-                id="export-logs-csv"
-                type="button"
-              >
-                Download Logs CSV
-              </button>
-              <button
-                class="camera-btn camera-btn-secondary analytics-export-btn"
-                id="export-trends-csv"
-                type="button"
-              >
-                Download Trends CSV
-              </button>
-              <button
                 class="camera-btn camera-btn-primary analytics-export-btn"
-                id="export-summary-pdf"
+                id="export-combined-report"
                 type="button"
               >
-                Download Summary PDF
+                Download Combined Report (PDF)
               </button>
             </div>
           </div>
@@ -596,30 +582,28 @@
           id="view-recommendations"
           aria-labelledby="recommendations-title"
         >
-          <h2 id="recommendations-title">Analytics & Recommendations</h2>
+          <h2 id="recommendations-title">
+            Predictive Analytics & Recommendations
+          </h2>
           <div class="insights-grid recommendations-grid">
             <article class="insight-card">
               <div class="insight-head">
                 <div>
-                  <h3 class="insight-title">Shelf Life Forecast</h3>
-                  <p class="insight-subtitle">
-                    Condition-based outlook from temperature, humidity, and VOC
-                    thresholds
-                  </p>
+                  <h3 class="insight-title">Shelf Life Prediction</h3>
+                  <p class="insight-subtitle">Based on current conditions</p>
                 </div>
               </div>
               <div class="forecast-stack">
                 <div class="forecast-row">
                   <span>Apples</span>
-                  <strong id="forecast-apples">Assessing...</strong>
+                  <strong id="forecast-apples">Analyzing...</strong>
                 </div>
                 <div class="forecast-row">
                   <span>Potatoes</span>
-                  <strong id="forecast-potatoes">Assessing...</strong>
+                  <strong id="forecast-potatoes">Analyzing...</strong>
                 </div>
                 <div class="forecast-note" id="forecast-summary">
-                  Waiting for live conditions to evaluate whether shelf life is
-                  likely improving.
+                  Waiting for live data.
                 </div>
               </div>
             </article>
@@ -627,48 +611,35 @@
             <article class="insight-card">
               <div class="insight-head">
                 <div>
-                  <h3 class="insight-title">Environmental Diagnosis</h3>
-                  <p class="insight-subtitle">
-                    Current trend direction and storage stability
-                  </p>
-                </div>
-              </div>
-              <div class="insight-value" id="environment-score">--</div>
-              <p class="forecast-note" id="environment-summary">
-                Temperature, humidity, and ethylene trend analysis will appear
-                here.
-              </p>
-            </article>
-
-            <article class="insight-card">
-              <div class="insight-head">
-                <div>
-                  <h3 class="insight-title">Recommended Actions</h3>
-                  <p class="insight-subtitle">
-                    Practical steps to improve shelf life now
-                  </p>
+                  <h3 class="insight-title">Optimization Tips</h3>
+                  <p class="insight-subtitle">Actions to improve storage</p>
                 </div>
               </div>
               <ul
                 class="insight-list recommendation-list"
                 id="recommendation-list"
               >
-                <li>Waiting for live metrics...</li>
+                <li>Waiting for live data.</li>
               </ul>
             </article>
 
             <article class="insight-card">
               <div class="insight-head">
                 <div>
-                  <h3 class="insight-title">Inspection Priority</h3>
-                  <p class="insight-subtitle">Items to check or move first</p>
+                  <h3 class="insight-title">Usage Forecast</h3>
+                  <p class="insight-subtitle">What to prioritize first</p>
                 </div>
               </div>
+              <div class="insight-value" id="environment-score">--</div>
+              <p class="forecast-note" id="environment-summary">
+                Waiting for live data.
+              </p>
+              <p class="forecast-note">Recommended consumption order</p>
               <ol
                 class="insight-list insight-list--ordered priority-list"
                 id="priority-list"
               >
-                <li>Waiting for live metrics...</li>
+                <li>Waiting for live data.</li>
               </ol>
             </article>
           </div>

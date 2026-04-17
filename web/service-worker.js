@@ -25,7 +25,7 @@ self.addEventListener("install", (event) => {
         console.log("📦 Caching static assets");
         return cache.addAll(STATIC_CACHE_URLS);
       })
-      .then(() => self.skipWaiting())
+      .then(() => self.skipWaiting()),
   );
 });
 
@@ -42,10 +42,10 @@ self.addEventListener("activate", (event) => {
               console.log("🗑️ Deleting old cache:", cacheName);
               return caches.delete(cacheName);
             }
-          })
+          }),
         );
       })
-      .then(() => self.clients.claim())
+      .then(() => self.clients.claim()),
   );
 });
 
@@ -58,30 +58,26 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first strategy for API calls
+  // Network-only strategy for API calls (avoid stale monitoring data)
   if (request.url.includes("/api/")) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Clone response and cache it
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
-          return response;
-        })
-        .catch(() => {
-          // Fallback to cache if offline
-          return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Return offline page for navigation requests
-            if (request.mode === "navigate") {
-              return caches.match(OFFLINE_URL);
-            }
-          });
-        })
+      fetch(request, { cache: "no-store" }).catch(() => {
+        // Return explicit offline API response instead of stale cached data
+        return new Response(
+          JSON.stringify({
+            success: false,
+            offline: true,
+            error: "Offline - live API data unavailable",
+          }),
+          {
+            status: 503,
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+            },
+          },
+        );
+      }),
     );
     return;
   }
@@ -118,7 +114,7 @@ self.addEventListener("fetch", (event) => {
             return caches.match(OFFLINE_URL);
           }
         });
-    })
+    }),
   );
 });
 
@@ -146,7 +142,7 @@ self.addEventListener("push", (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification("Cold Storage Alert", options)
+    self.registration.showNotification("Cold Storage Alert", options),
   );
 });
 

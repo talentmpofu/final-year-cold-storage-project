@@ -123,21 +123,33 @@ function resolveRange(range) {
   return { key: "24h", hours: 24 };
 }
 
-function getFilteredHistory(range) {
-  const resolved = resolveRange(range);
-  const cutoff = Date.now() - resolved.hours * 60 * 60 * 1000;
-
-  const rows = (getMetricsHistory() || [])
+function buildHistoryRows(cutoff = null) {
+  const cutoffMs = Number.isFinite(cutoff) ? cutoff : null;
+  return (getMetricsHistory() || [])
     .map((m) => ({
       timestamp: new Date(m.timestamp).getTime(),
       temperature: Number(m.temperature || 0),
       humidity: Number(m.humidity || 0),
       voc: Number(m.voc || 0),
     }))
-    .filter((m) => Number.isFinite(m.timestamp) && m.timestamp >= cutoff)
+    .filter(
+      (m) =>
+        Number.isFinite(m.timestamp) &&
+        (cutoffMs === null || m.timestamp >= cutoffMs),
+    )
     .sort((a, b) => a.timestamp - b.timestamp);
+}
+
+function getFilteredHistory(range) {
+  const resolved = resolveRange(range);
+  const cutoff = Date.now() - resolved.hours * 60 * 60 * 1000;
+  const rows = buildHistoryRows(cutoff);
 
   return { resolved, rows };
+}
+
+function getAllHistoryRows() {
+  return buildHistoryRows();
 }
 
 function metricStats(values) {
@@ -170,6 +182,17 @@ function getMetricStatus(metric, value, thresholds) {
   }
   if (value > thresholds.voc) return "above-threshold";
   return "safe";
+}
+
+function downsampleRows(rows = [], maxPoints = 240) {
+  if (rows.length <= maxPoints) return rows;
+  const stride = rows.length / maxPoints;
+  const sampled = [];
+  for (let i = 0; i < maxPoints; i++) {
+    const idx = Math.min(rows.length - 1, Math.floor(i * stride));
+    sampled.push(rows[idx]);
+  }
+  return sampled;
 }
 
 function normalizeDetectionLabel(label) {
@@ -377,6 +400,29 @@ app.get("/api/metrics", (req, res) => {
   });
 });
 
+app.get("/api/history", (req, res) => {
+  const { range } = req.query;
+  const { resolved, rows } = getFilteredHistory(range);
+  const hasRangeData = rows.length > 0;
+  const effectiveRows = hasRangeData ? rows : getAllHistoryRows();
+  const sampled = downsampleRows(effectiveRows, 240);
+
+  res.json({
+    success: true,
+    range: resolved.key,
+    hasRangeData,
+    fallbackUsed: !hasRangeData,
+    totalReadings: effectiveRows.length,
+    points: sampled.map((row) => ({
+      timestamp: row.timestamp,
+      temperature: row.temperature,
+      humidity: row.humidity,
+      ethylene: row.voc / 1000.0,
+      voc: row.voc,
+    })),
+  });
+});
+
 app.get("/api/exports/logs.csv", (req, res) => {
   const { range } = req.query;
   const { resolved, rows } = getFilteredHistory(range);
@@ -522,14 +568,16 @@ app.get("/api/exports/summary.pdf", (req, res) => {
     );
   }
 
-  const fileName = `cold-storage-summary-${resolved.key}-${new Date().toISOString().slice(0, 10)}.pdf`;
+  const fileName = `cold-storage-combined-report-${resolved.key}-${new Date().toISOString().slice(0, 10)}.pdf`;
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
 
   const doc = new PDFDocument({ margin: 50 });
   doc.pipe(res);
 
-  doc.fontSize(18).text("Cold Storage Monitoring Summary", { align: "left" });
+  doc.fontSize(18).text("Cold Storage Combined Monitoring Report", {
+    align: "left",
+  });
   doc.moveDown(0.4);
   doc
     .fontSize(11)
@@ -556,6 +604,15 @@ app.get("/api/exports/summary.pdf", (req, res) => {
   );
 
   doc.moveDown();
+  doc.fillColor("#111827").fontSize(13).text("Trend Overview");
+  doc.moveDown(0.3);
+  doc
+    .fontSize(11)
+    .text(
+      `Temperature trend: ${tempStats.trend} | Humidity trend: ${humidityStats.trend} | VOC trend: ${vocStats.trend}`,
+    );
+
+  doc.moveDown();
   doc.fillColor("#111827").fontSize(13).text("Configured Thresholds");
   doc.moveDown(0.3);
   doc
@@ -579,6 +636,55 @@ app.get("/api/exports/summary.pdf", (req, res) => {
   } else {
     doc.fillColor("#991b1b");
     anomalies.forEach((line) => doc.text(`- ${line}`));
+  }
+
+  doc.moveDown();
+  doc.fillColor("#111827").fontSize(13).text("Data Log (Most Recent Readings)");
+  doc.moveDown(0.3);
+
+  const recentRows = rows.slice(-80).reverse();
+  if (!recentRows.length) {
+    doc
+      .fontSize(11)
+      .fillColor("#6b7280")
+      .text("No readings available for this range.");
+  } else {
+    doc
+      .fontSize(10)
+      .fillColor("#111827")
+      .text("Timestamp | Temp (C) | Humidity (%) | VOC (ppm) | Status", {
+        underline: true,
+      });
+
+    recentRows.forEach((row) => {
+      if (doc.y > 740) {
+        doc.addPage();
+      }
+
+      const tempStatus = getMetricStatus(
+        "temperature",
+        row.temperature,
+        thresholds,
+      );
+      const humidityStatus = getMetricStatus(
+        "humidity",
+        row.humidity,
+        thresholds,
+      );
+      const vocStatus = getMetricStatus("voc", row.voc, thresholds);
+      const finalStatus =
+        tempStatus === "safe" &&
+        humidityStatus === "safe" &&
+        vocStatus === "safe"
+          ? "safe"
+          : "attention";
+
+      const line = `${new Date(row.timestamp).toLocaleString()} | ${row.temperature.toFixed(1)} | ${row.humidity.toFixed(1)} | ${row.voc.toFixed(0)} | ${finalStatus}`;
+      doc
+        .fontSize(9)
+        .fillColor(finalStatus === "safe" ? "#065f46" : "#991b1b")
+        .text(line);
+    });
   }
 
   doc.end();

@@ -66,4 +66,32 @@ const produceDatabase = {
   },
 };
 
+function getProduceSettings(produceType) {
+  const key = String(produceType || "").toLowerCase();
+  const item = produceDatabase[key];
+  if (!item) return null;
+
+  return {
+    temp: {
+      min: Number(item.temperature?.min ?? 0),
+      max: Number(item.temperature?.max ?? 0),
+    },
+    humidity: {
+      min: Number(item.humidity?.min ?? 0),
+      max: Number(item.humidity?.max ?? 0),
+    },
+    voc: Number(item.vocs?.threshold ?? 30000),
+  };
+}
+
+function getAllProduceSettings() {
+  return produceDatabase;
+}
+
+// Keep backward compatibility for both styles:
+// 1) const db = require('./produceDatabase'); db.apples
+// 2) const { getProduceSettings } = require('./produceDatabase')
+produceDatabase.getProduceSettings = getProduceSettings;
+produceDatabase.getAllProduceSettings = getAllProduceSettings;
+
 module.exports = produceDatabase;

@@ -7,7 +7,6 @@ Detects apples and potatoes from ESP32-CAM images
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import cv2
-import numpy as np
 from ultralytics import YOLO
 import os
 from datetime import datetime
@@ -15,8 +14,10 @@ from datetime import datetime
 app = Flask(__name__)
 CORS(app)
 
-# Load YOLO model
-MODEL_PATH = "produce_model.pt"  # Path to your trained YOLO model
+INFERENCE_PROVIDER = str(os.getenv("INFERENCE_PROVIDER", "local")).strip().lower()
+LOCAL_MODEL_PATH = os.getenv("LOCAL_MODEL_PATH", "produce_model.pt")
+FALLBACK_MODEL_PATH = os.getenv("FALLBACK_MODEL_PATH", "yolo11x.pt")
+
 UPLOAD_FOLDER = "inference_uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -32,20 +33,49 @@ def extract_primary_produce(label: str):
         return "potatoes"
     return None
 
-# Load model (will be trained with your custom dataset)
-try:
-    model = YOLO(MODEL_PATH)
-    print(f"✓ YOLO model loaded from {MODEL_PATH}")
-except Exception as e:
-    print(f"⚠️  Warning: Could not load model from {MODEL_PATH}")
-    print(f"   Using YOLOv11x (Extra Large) - Maximum accuracy for spoilage detection!")
-    model = YOLO('yolo11x.pt')  # Fallback to YOLO v11 Extra Large (best accuracy)
+
+def resolve_class_name(model_obj, class_id: int) -> str:
+    names = getattr(model_obj, "names", None)
+    if isinstance(names, dict):
+        return str(names.get(class_id, f"class_{class_id}"))
+    if isinstance(names, list) and 0 <= class_id < len(names):
+        return str(names[class_id])
+    return f"class_{class_id}"
+
+
+def load_local_model():
+    """
+    Load local YOLO model for LOCAL inference mode.
+    In Roboflow mode, local model loading is optional and skipped.
+    """
+    if INFERENCE_PROVIDER == "roboflow":
+        print("ℹ️  INFERENCE_PROVIDER=roboflow -> local YOLO model load skipped")
+        return None
+
+    for candidate_path, label in [
+        (LOCAL_MODEL_PATH, "configured local model"),
+        (FALLBACK_MODEL_PATH, "fallback local model"),
+    ]:
+        if not os.path.exists(candidate_path):
+            continue
+        try:
+            loaded = YOLO(candidate_path)
+            print(f"✓ Loaded {label}: {candidate_path}")
+            return loaded
+        except Exception as err:
+            print(f"⚠️  Failed to load {label} ({candidate_path}): {err}")
+
+    print("⚠️  No local YOLO model available. Local /detect is disabled.")
+    return None
+
+model = load_local_model()
 
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
+        'inference_provider': INFERENCE_PROVIDER,
         'model_loaded': model is not None,
         'timestamp': datetime.now().isoformat()
     })
@@ -58,6 +88,12 @@ def detect_produce():
     Returns: JSON with detected produce type and confidence
     """
     try:
+        if model is None:
+            return jsonify({
+                'success': False,
+                'error': 'Local YOLO model not loaded. Use Roboflow provider or configure LOCAL_MODEL_PATH.'
+            }), 503
+
         # Check if image was uploaded
         if 'image' not in request.files:
             return jsonify({
@@ -96,17 +132,8 @@ def detect_produce():
             for box in boxes:
                 class_id = int(box.cls[0])
                 confidence = float(box.conf[0])
-                
-                # Resolve class label directly from the loaded model so
-                # additional classes (e.g., rotten/overripe) are preserved.
-                class_name = None
-                if hasattr(model, 'names'):
-                    if isinstance(model.names, dict):
-                        class_name = model.names.get(class_id)
-                    elif isinstance(model.names, list) and class_id < len(model.names):
-                        class_name = model.names[class_id]
 
-                raw_label = str(class_name or f'class_{class_id}').lower()
+                raw_label = resolve_class_name(model, class_id).lower()
                 produce_name = normalize_label(raw_label)
                 primary_produce = extract_primary_produce(produce_name)
 
@@ -185,6 +212,7 @@ if __name__ == '__main__':
     print("║  Cold Storage Produce Detection       ║")
     print("╚═══════════════════════════════════════╝")
     print(f"\n✓ Server starting on port 5000")
+    print(f"🧠 Inference provider: {INFERENCE_PROVIDER}")
     print(f"📊 Endpoints:")
     print(f"   POST /detect - Detect produce from image")
     print(f"   GET  /health - Health check")

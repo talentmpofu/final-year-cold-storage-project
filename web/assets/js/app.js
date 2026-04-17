@@ -21,6 +21,7 @@
   };
   const MAX_POINTS = 50;
   let currentTimeRange = "24h";
+  let trendLoadRequestId = 0;
   let alertDismissedUntil = 0;
   let dismissedAlertText = "";
   let currentProduceContext = {
@@ -161,30 +162,26 @@
     canvasCtx.fillStyle = "#6b7280";
     const times = allSeries.times;
     if (times && times.length > 1) {
-      const first = times[0];
-      const last = times[times.length - 1];
-      const spanMs = last - first;
       function fmtTime(t) {
         const dt = new Date(t);
-        const day = 24 * 60 * 60 * 1000;
-        const month = 30 * day;
-        if (spanMs < day) {
+        if (currentTimeRange === "24h") {
           return dt.toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
           });
-        } else if (spanMs < month) {
-          return dt.toLocaleDateString([], { month: "short", day: "numeric" });
-        } else {
-          return dt.toLocaleDateString([], { year: "numeric", month: "short" });
         }
+        if (currentTimeRange === "7d") {
+          return dt.toLocaleDateString([], { month: "short", day: "numeric" });
+        }
+        return dt.toLocaleDateString([], { month: "short", day: "numeric" });
       }
       for (let j = 0; j <= gridCols; j++) {
         const idx = Math.round((j / gridCols) * (times.length - 1));
         const x = PAD + (idx / (times.length - 1)) * (w - PAD * 2);
         const label = fmtTime(times[idx]);
         const tw = canvasCtx.measureText(label).width;
-        canvasCtx.fillText(label, x - tw / 2, h - PAD + 16);
+        const xText = Math.max(PAD + 2, Math.min(w - PAD - tw - 2, x - tw / 2));
+        canvasCtx.fillText(label, xText, h - PAD + 16);
       }
     }
 
@@ -633,22 +630,22 @@
     const ethylenePercent = Math.max(0, Math.min(100, (ethylene / 0.2) * 100));
     setGauge("ethylene-ring", "ethylene-percent", ethylenePercent);
 
-    // push data
-    const push = (arr, v) => {
-      arr.push(v);
-      if (arr.length > MAX_POINTS) arr.shift();
-    };
-    push(series.temp, temp);
-    push(series.humidity, humidity);
-    push(series.ethylene, ethylene);
-    push(series.times, tstamp);
+    // Keep live append behavior only for 24h mode.
+    if (currentTimeRange === "24h") {
+      const push = (arr, v) => {
+        arr.push(v);
+        if (arr.length > MAX_POINTS) arr.shift();
+      };
+      push(series.temp, temp);
+      push(series.humidity, humidity);
+      push(series.ethylene, ethylene);
+      push(series.times, tstamp);
 
-    // draw sparks
-    drawSpark(ctx("temp-chart"), series.temp, "#ef4444");
-    drawSpark(ctx("humidity-chart"), series.humidity, "#b6daf7");
-    drawSpark(ctx("ethylene-chart"), series.ethylene, "#f59e0b");
-
-    drawEnvTrend(ctx("env-trend"), series);
+      drawSpark(ctx("temp-chart"), series.temp, "#ef4444");
+      drawSpark(ctx("humidity-chart"), series.humidity, "#b6daf7");
+      drawSpark(ctx("ethylene-chart"), series.ethylene, "#f59e0b");
+      drawEnvTrend(ctx("env-trend"), series);
+    }
     // realtime stream removed
 
     el("temp-trend").textContent =
@@ -1582,18 +1579,16 @@
     const trendSummaryParts = [];
     if (hasLiveMetrics) {
       trendSummaryParts.push(
-        `Temperature is ${tempTrend} by ${Math.abs(tempDelta).toFixed(1)}°C over the recent samples.`,
+        `Temp ${tempTrend} (${Math.abs(tempDelta).toFixed(1)}°C)`,
       );
       trendSummaryParts.push(
-        `Humidity is ${humidityTrend} by ${Math.abs(humidityDelta).toFixed(1)}%.`,
+        `Humidity ${humidityTrend} (${Math.abs(humidityDelta).toFixed(1)}%)`,
       );
       trendSummaryParts.push(
-        `Ethylene/VOCs are ${ethyleneTrend} by ${Math.abs(ethyleneDelta).toFixed(3)} ppm.`,
+        `VOC ${ethyleneTrend} (${Math.abs(ethyleneDelta).toFixed(3)} ppm)`,
       );
     } else {
-      trendSummaryParts.push(
-        "Waiting for live sensor samples to build a trend analysis.",
-      );
+      trendSummaryParts.push("Waiting for live data");
     }
 
     const conditionSummary = hasLiveMetrics
@@ -1602,55 +1597,44 @@
         : riskScore > 2
           ? "Conditions are near target, but tighter control is needed for shelf-life gains."
           : "Conditions are within target thresholds, so shelf life is expected to increase."
-      : "Waiting for live data to assess storage stability.";
+      : "Waiting for live data.";
 
     forecastSummaryEl.textContent = conditionSummary;
     if (environmentScoreEl) {
       environmentScoreEl.textContent = `${stabilityScore}/100`;
     }
     if (environmentSummaryEl) {
-      environmentSummaryEl.textContent = `${stabilityLabel}: ${trendSummaryParts.join(
-        " ",
-      )}`;
+      environmentSummaryEl.textContent = `${stabilityLabel}: ${trendSummaryParts.join(" | ")}`;
     }
 
     const recommendations = [];
     if (hasLiveMetrics) {
       if (latestTemp > tempMax + 0.2 || tempTrend === "rising") {
-        recommendations.push(
-          `Reduce temperature toward ${tempMin}–${tempMax}°C and check door seals or compressor load.`,
-        );
+        recommendations.push(`Lower temperature to ${tempMin}–${tempMax}°C.`);
       }
       if (latestHumidity < humidityMin - 1) {
         recommendations.push(
-          `Increase humidity toward ${humidityMin}–${humidityMax}% to slow moisture loss.`,
+          `Raise humidity to ${humidityMin}–${humidityMax}%.`,
         );
       } else if (latestHumidity > humidityMax + 1) {
         recommendations.push(
-          `Lower humidity toward ${humidityMin}–${humidityMax}% to reduce condensation risk.`,
+          `Lower humidity to ${humidityMin}–${humidityMax}%.`,
         );
       }
       if (latestEthylene > vocMax || ethyleneTrend === "rising") {
-        recommendations.push(
-          `Run the scrubber and inspect bruised produce to slow ethylene-driven spoilage.`,
-        );
+        recommendations.push("Run scrubber and remove damaged produce.");
       }
       if (recommendations.length === 0) {
-        recommendations.push(
-          "Keep the current settings and continue monitoring the environmental trend lines.",
-        );
+        recommendations.push("Conditions are good. Keep current settings.");
       }
-      recommendations.push(
-        `Apples should be checked first if shelf-life protection is the priority.`,
-      );
+      recommendations.push("Check apples first.");
     } else {
-      recommendations.push(
-        "Waiting for live metrics to generate recommendations.",
-      );
+      recommendations.push("Waiting for live data.");
     }
 
     if (recommendationListEl) {
       recommendationListEl.innerHTML = recommendations
+        .slice(0, 3)
         .map((item) => `<li>${item}</li>`)
         .join("");
     }
@@ -1681,9 +1665,7 @@
 
     if (priorityListEl) {
       priorityListEl.innerHTML = priorityItems
-        .map(
-          (item) => `<li>${item.name} - Inspect sooner (${item.reason})</li>`,
-        )
+        .map((item) => `<li>${item.name} (${item.reason})</li>`)
         .join("");
     }
   }
@@ -1997,35 +1979,83 @@
     if (!buttons.length) return;
 
     buttons.forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         // Update active state
         buttons.forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
 
         // Get selected range
         currentTimeRange = btn.getAttribute("data-range");
-
-        // In a real implementation, this would fetch historical data from backend
-        // For now, we'll just show a message
-        console.log(`Time range changed to: ${currentTimeRange}`);
-
-        // TODO: Fetch data based on time range
-        // Example API call structure:
-        // fetchHistoricalData(currentTimeRange).then(data => {
-        //   series.temp = data.temp;
-        //   series.humidity = data.humidity;
-        //   series.ethylene = data.ethylene;
-        //   series.vocs = data.vocs;
-        //   series.times = data.times;
-        //   drawEnvTrend(ctx("env-trend"), series);
-        // });
-
-        // For demo purposes, show alert
-        alert(
-          `Time range set to ${currentTimeRange.toUpperCase()}. In production, this would load historical data from the backend API.`,
-        );
+        await loadHistoricalTrend(currentTimeRange);
       });
     });
+  }
+
+  function applyTrendSeries(nextSeries) {
+    series.temp = nextSeries.temp;
+    series.humidity = nextSeries.humidity;
+    series.ethylene = nextSeries.ethylene;
+    series.times = nextSeries.times;
+
+    drawSpark(ctx("temp-chart"), series.temp, "#ef4444");
+    drawSpark(ctx("humidity-chart"), series.humidity, "#b6daf7");
+    drawSpark(ctx("ethylene-chart"), series.ethylene, "#f59e0b");
+    drawEnvTrend(ctx("env-trend"), series);
+    renderRecommendations();
+  }
+
+  async function loadHistoricalTrend(range) {
+    const requestId = ++trendLoadRequestId;
+    const normalizedRange = String(range || "24h").toLowerCase();
+
+    try {
+      const res = await fetch(
+        `/api/history?range=${encodeURIComponent(normalizedRange)}`,
+        { cache: "no-store" },
+      );
+      if (!res.ok) throw new Error(`Failed to fetch history (${res.status})`);
+
+      const data = await res.json();
+      if (requestId !== trendLoadRequestId) return;
+
+      const points = Array.isArray(data?.points) ? data.points : [];
+      if (!points.length) {
+        // Seed with current live values so any range has a visible baseline.
+        const latest = await fetchMetrics();
+        if (requestId !== trendLoadRequestId) return;
+        if (
+          latest &&
+          ["temp", "humidity", "ethylene"].every(
+            (k) => typeof latest[k] === "number" && !Number.isNaN(latest[k]),
+          )
+        ) {
+          const now = Date.now();
+          applyTrendSeries({
+            temp: [latest.temp],
+            humidity: [latest.humidity],
+            ethylene: [latest.ethylene],
+            times: [now],
+          });
+        } else {
+          applyTrendSeries({ temp: [], humidity: [], ethylene: [], times: [] });
+        }
+        return;
+      }
+
+      applyTrendSeries({
+        temp: points.map((p) => Number(p.temperature || 0)),
+        humidity: points.map((p) => Number(p.humidity || 0)),
+        ethylene: points.map((p) => Number(p.ethylene || 0)),
+        times: points.map((p) => Number(p.timestamp || Date.now())),
+      });
+    } catch (error) {
+      if (requestId !== trendLoadRequestId) return;
+      console.error("Failed to load historical trend:", error);
+      showAlert(
+        `Failed to load ${normalizedRange.toUpperCase()} history`,
+        "error",
+      );
+    }
   }
 
   function triggerFileDownload(url) {
@@ -2038,41 +2068,15 @@
   }
 
   function bindExportButtons() {
-    const logsBtn = el("export-logs-csv");
-    const trendsBtn = el("export-trends-csv");
-    const summaryBtn = el("export-summary-pdf");
+    const combinedReportBtn = el("export-combined-report");
 
-    if (logsBtn) {
-      logsBtn.addEventListener("click", () => {
-        triggerFileDownload(
-          `/api/exports/logs.csv?range=${encodeURIComponent(currentTimeRange)}`,
-        );
-        showAlert(
-          `Downloading logs CSV (${currentTimeRange.toUpperCase()})`,
-          "success",
-        );
-      });
-    }
-
-    if (trendsBtn) {
-      trendsBtn.addEventListener("click", () => {
-        triggerFileDownload(
-          `/api/exports/trends.csv?range=${encodeURIComponent(currentTimeRange)}`,
-        );
-        showAlert(
-          `Downloading trends CSV (${currentTimeRange.toUpperCase()})`,
-          "success",
-        );
-      });
-    }
-
-    if (summaryBtn) {
-      summaryBtn.addEventListener("click", () => {
+    if (combinedReportBtn) {
+      combinedReportBtn.addEventListener("click", () => {
         triggerFileDownload(
           `/api/exports/summary.pdf?range=${encodeURIComponent(currentTimeRange)}`,
         );
         showAlert(
-          `Downloading summary PDF (${currentTimeRange.toUpperCase()})`,
+          `Downloading combined report PDF (${currentTimeRange.toUpperCase()})`,
           "success",
         );
       });
@@ -2509,6 +2513,7 @@
     bindInventoryControls();
     loadInventory();
     loadLatestSnapshot(); // Load initial snapshot
+    loadHistoricalTrend(currentTimeRange);
 
     // Initialize offline/online detection
     setupOfflineDetection();
@@ -2524,6 +2529,7 @@
       loadAIAlerts();
       loadCameraInventorySummary();
       updateInferenceHealthStatus();
+      loadHistoricalTrend(currentTimeRange);
     }, 30000);
     // Header nav removed; scrolling handled by section anchor links in-page.
     if (!location.hash) {
@@ -2587,7 +2593,6 @@
 
   function setupInferenceHealth() {
     updateInferenceHealthStatus();
-    setInterval(updateInferenceHealthStatus, 30000);
   }
 
   function setupOfflineDetection() {
