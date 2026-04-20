@@ -24,7 +24,8 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.12",
     "open": "^8.4.0",
-    "pdfkit": "^0.18.0"
+    "pdfkit": "^0.18.0",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

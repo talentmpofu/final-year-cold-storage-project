@@ -990,9 +990,82 @@
     // Camera actions
     const refreshBtn = el("refresh-snapshot");
     const galleryBtn = el("open-gallery");
+    const uploadBtn = el("upload-image-btn");
+    const manualImageInput = el("manual-image-input");
+
+    async function refreshDashboardAfterSnapshot() {
+      await Promise.all([
+        loadLatestSnapshot(),
+        loadAIAlerts(),
+        loadCameraInventorySummary(),
+        updateMetrics(),
+      ]);
+    }
+
+    if (uploadBtn && manualImageInput) {
+      uploadBtn.addEventListener("click", () => {
+        manualImageInput.click();
+      });
+
+      manualImageInput.addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("image", file);
+
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = "Uploading...";
+
+        try {
+          const response = await fetch("/api/upload-image", {
+            method: "POST",
+            body: formData,
+          });
+          const payload = await response.json();
+
+          if (!response.ok) {
+            throw new Error(payload?.error || "Upload failed");
+          }
+
+          if (payload?.error) {
+            console.warn("Upload completed but inference failed:", payload);
+            notify(`Uploaded, but inference failed: ${payload.error}`);
+          } else {
+            const provider = String(
+              payload?.provider || "inference",
+            ).toUpperCase();
+            const detected =
+              payload?.detected || payload?.rawDetectedLabel || "none";
+            notify(`Processed by ${provider}. Detected: ${detected}`);
+          }
+
+          if (payload?.inventorySummary) {
+            cameraInventorySummary = payload.inventorySummary;
+            renderCameraInventorySummary();
+          }
+
+          if (Array.isArray(payload?.aiAlerts)) {
+            aiAlerts = payload.aiAlerts;
+            renderAIAlerts();
+            renderSpoilageBanner(payload.aiAlerts, payload);
+          }
+
+          await refreshDashboardAfterSnapshot();
+        } catch (error) {
+          console.error("Manual upload failed:", error);
+          notify(`Upload failed: ${error.message}`);
+        } finally {
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = "Upload Image";
+          manualImageInput.value = "";
+        }
+      });
+    }
+
     if (refreshBtn) {
-      refreshBtn.addEventListener("click", () => {
-        loadLatestSnapshot();
+      refreshBtn.addEventListener("click", async () => {
+        await refreshDashboardAfterSnapshot();
         notify("Snapshot refreshed");
       });
     }
@@ -1015,7 +1088,7 @@
     }
 
     try {
-      const response = await fetch("/api/snapshots");
+      const response = await fetch("/api/snapshots", { cache: "no-store" });
       const data = await response.json();
 
       if (!data.snapshots || data.snapshots.length === 0) {
@@ -1062,7 +1135,8 @@
                 <img src="${snapshot.url}" alt="Snapshot" style="
                   width: 100%;
                   height: 250px;
-                  object-fit: cover;
+                  object-fit: contain;
+                  background: #0b0f14;
                 "/>
                 <div style="padding: 12px; text-align: center; color: #1f2937; font-size: 14px;">
                   ${new Date(snapshot.timestamp).toLocaleString()}
@@ -1137,9 +1211,10 @@
     function updateImage() {
       const snapshot = snapshots[index];
       viewer.innerHTML = `
-        <img id="viewer-image" src="${
-          snapshot.url
-        }" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+        <div id="viewer-stage" style="position: relative; max-width: 100%; max-height: 100%;">
+          <img id="viewer-image" src="${snapshot.url}" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;" />
+          <div id="viewer-overlay" style="position: absolute; inset: 0; pointer-events: none;"></div>
+        </div>
         
         <!-- Close Button -->
         <button id="close-viewer" style="
@@ -1173,7 +1248,10 @@
           📅 ${new Date(snapshot.timestamp).toLocaleString()}<br>
           <span style="font-size: 12px; opacity: 0.8;">Image ${index + 1} of ${
             snapshots.length
-          }</span>
+          }</span><br>
+          <span style="font-size: 12px; opacity: 0.85;">Provider: ${String(
+            snapshot.provider || "inference",
+          ).toUpperCase()}</span>
         </div>
 
         <!-- Left Arrow -->
@@ -1238,6 +1316,79 @@
             : ""
         }
       `;
+
+      const imgEl = document.getElementById("viewer-image");
+      const overlayEl = document.getElementById("viewer-overlay");
+      const imageSize = snapshot?.imageSize || { width: 640, height: 640 };
+      const sourceW = Number(imageSize.width || 640);
+      const sourceH = Number(imageSize.height || 640);
+      const detections = Array.isArray(snapshot?.detections)
+        ? snapshot.detections
+        : [];
+      const alreadyAnnotated = Boolean(snapshot?.annotated);
+
+      const drawDetections = () => {
+        if (!overlayEl) return;
+        overlayEl.innerHTML = "";
+
+        if (alreadyAnnotated) {
+          return;
+        }
+
+        detections.forEach((d) => {
+          const bbox = Array.isArray(d?.bbox) ? d.bbox : [0, 0, 0, 0];
+          const [x1, y1, x2, y2] = bbox.map((v) => Number(v || 0));
+
+          const left = Math.max(0, Math.min(100, (x1 / sourceW) * 100));
+          const top = Math.max(0, Math.min(100, (y1 / sourceH) * 100));
+          const width = Math.max(
+            0,
+            Math.min(100 - left, ((x2 - x1) / sourceW) * 100),
+          );
+          const height = Math.max(
+            0,
+            Math.min(100 - top, ((y2 - y1) / sourceH) * 100),
+          );
+
+          const box = document.createElement("div");
+          box.style.position = "absolute";
+          box.style.left = `${left}%`;
+          box.style.top = `${top}%`;
+          box.style.width = `${width}%`;
+          box.style.height = `${height}%`;
+          box.style.border = "2px solid #22c55e";
+          box.style.borderRadius = "4px";
+          box.style.boxSizing = "border-box";
+
+          const label = document.createElement("div");
+          const className = String(d?.type || "unknown")
+            .replace(/[_-]+/g, " ")
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+          const conf = `${Math.round(Number(d?.confidence || 0) * 100)}%`;
+          label.textContent = `${className} ${conf}`;
+          label.style.position = "absolute";
+          label.style.left = "0";
+          label.style.top = "-24px";
+          label.style.padding = "3px 8px";
+          label.style.fontSize = "12px";
+          label.style.fontWeight = "700";
+          label.style.color = "#06111f";
+          label.style.background = "#86efac";
+          label.style.borderRadius = "999px";
+          label.style.whiteSpace = "nowrap";
+
+          box.appendChild(label);
+          overlayEl.appendChild(box);
+        });
+      };
+
+      if (imgEl) {
+        if (imgEl.complete) {
+          drawDetections();
+        } else {
+          imgEl.addEventListener("load", drawDetections, { once: true });
+        }
+      }
 
       // Attach event listeners
       const closeBtn = document.getElementById("close-viewer");
@@ -1362,6 +1513,35 @@
     potatoesBad: 0,
   };
 
+  function renderSpoilageBanner(alerts = [], meta = {}) {
+    const banner = el("spoilage-banner");
+    const text = el("spoilage-banner-text");
+    if (!banner || !text) return;
+
+    const liveAlerts = Array.isArray(alerts) ? alerts : [];
+    const shouldShow = Boolean(meta?.sourceSnapshot) && liveAlerts.length > 0;
+
+    if (!shouldShow) {
+      banner.hidden = true;
+      text.textContent = "";
+      return;
+    }
+
+    const summary = liveAlerts
+      .map((alert) => {
+        const title = String(alert?.title || "Item").trim();
+        const count = Number(alert?.count || 1);
+        return `${title} (${count})`;
+      })
+      .join(", ");
+
+    text.textContent =
+      liveAlerts.length === 1
+        ? `HIGH ALERT: ${summary} spoilage detected. Remove affected items immediately.`
+        : `HIGH ALERT: ${summary} spoilage detected. Remove affected items immediately.`;
+    banner.hidden = false;
+  }
+
   async function loadAIAlerts() {
     try {
       const res = await fetch("/api/ai-alerts", { cache: "no-store" });
@@ -1372,6 +1552,7 @@
         liveAlerts.length === 0 && !cameraInventorySummary.analyzedAt;
       aiAlerts = useDummy ? DUMMY_AI_ALERTS : liveAlerts;
       renderAIAlerts();
+      renderSpoilageBanner(liveAlerts, data);
     } catch (error) {
       console.error("Error loading AI alerts:", error);
       if (!cameraInventorySummary.analyzedAt) {
@@ -1429,26 +1610,17 @@
       if (goodEl) goodEl.textContent = String(good || 0);
       if (badEl) badEl.textContent = String(bad || 0);
       if (statusEl) {
-        const severity = bad >= 3 ? "high" : bad >= 1 ? "medium" : "low";
-        const badgeText =
-          severity === "high"
-            ? "HIGH"
-            : severity === "medium"
-              ? "MEDIUM"
-              : "OK";
+        const severity = bad >= 1 ? "high" : "low";
+        const badgeText = severity === "high" ? "HIGH ALERT" : "OK";
         const actionText =
           bad > 0
-            ? `Action required: check the latest camera images, then remove affected ${itemName.toLowerCase()} physically from the storage unit.`
+            ? `High alert: check the latest camera images immediately, then remove affected ${itemName.toLowerCase()} from the storage unit.`
             : `No spoilage detected for ${itemName.toLowerCase()} in the latest camera run.`;
 
         statusEl.innerHTML = `
           <div class="camera-status-cell">
             <span class="status-badge ${
-              severity === "high"
-                ? "offline"
-                : severity === "medium"
-                  ? "standby"
-                  : "active"
+              severity === "high" ? "offline" : "active"
             } camera-status-badge">${badgeText}</span>
             <span class="camera-status-note">${actionText}</span>
           </div>
@@ -2356,28 +2528,72 @@
   }
 
   // Camera snapshot functions
+  function getSnapshotLabel(snapshot) {
+    const detections = Array.isArray(snapshot?.detections)
+      ? snapshot.detections
+      : [];
+    if (!detections.length) return "No detections";
+
+    const top = detections
+      .slice()
+      .sort((a, b) => Number(b.confidence || 0) - Number(a.confidence || 0))[0];
+    const label = String(top?.type || "unknown")
+      .replace(/[_-]+/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    const score = `${Math.round(Number(top?.confidence || 0) * 100)}%`;
+    return `${label} (${score})`;
+  }
+
+  function renderLatestSnapshotsGrid(snapshots) {
+    const grid = el("latest-snapshots-grid");
+    if (!grid) return;
+
+    if (!Array.isArray(snapshots) || snapshots.length === 0) {
+      grid.innerHTML = `
+        <article class="camera-thumb-card camera-thumb-card--empty">
+          <div class="camera-thumb-empty">No snapshots yet</div>
+        </article>
+      `;
+      return;
+    }
+
+    grid.innerHTML = snapshots
+      .map(
+        (snapshot, idx) => `
+      <article class="camera-thumb-card" data-snapshot-index="${idx}">
+        <div class="camera-thumb-image-wrap">
+          <img class="camera-thumb-image" src="${snapshot.url}?t=${Date.now()}" alt="Snapshot ${idx + 1}" />
+        </div>
+        <div class="camera-thumb-meta">
+          <span class="camera-thumb-time">${new Date(snapshot.timestamp).toLocaleString()}</span>
+          <span class="camera-thumb-label">${getSnapshotLabel(snapshot)}</span>
+          <span class="ai-label-pill">${String(snapshot.provider || "inference").toUpperCase()}</span>
+        </div>
+      </article>
+    `,
+      )
+      .join("");
+
+    grid.querySelectorAll(".camera-thumb-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        const index = Number(card.getAttribute("data-snapshot-index") || 0);
+        viewFullImage(snapshots, index, null);
+      });
+    });
+  }
+
   async function loadLatestSnapshot() {
     try {
-      const res = await fetch("/api/latest-snapshot", { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to fetch snapshot");
-
+      const res = await fetch("/api/snapshots?limit=3", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch snapshots");
       const data = await res.json();
-      const cameraImg = el("camera-img");
-
-      if (data.success && data.snapshot && cameraImg) {
-        cameraImg.src = data.snapshot + "?t=" + Date.now();
-        cameraImg.alt = "Latest interval camera snapshot";
-      } else if (cameraImg) {
-        cameraImg.src = "assets/img/icon-512.svg";
-        cameraImg.alt = "No snapshot available";
-      }
+      const latestThree = Array.isArray(data?.snapshots)
+        ? data.snapshots.slice(0, 3)
+        : [];
+      renderLatestSnapshotsGrid(latestThree);
     } catch (e) {
-      console.error("Error loading snapshot:", e);
-      const cameraImg = el("camera-img");
-      if (cameraImg) {
-        cameraImg.src = "assets/img/icon-512.svg";
-        cameraImg.alt = "Error loading snapshot";
-      }
+      console.error("Error loading snapshots:", e);
+      renderLatestSnapshotsGrid([]);
     }
   }
 

@@ -10,6 +10,12 @@ echo.
 
 cd /d "%~dp0web"
 
+REM Read inference provider from .env (fallback to local if missing)
+set "INFERENCE_PROVIDER=local"
+for /f "tokens=1,* delims==" %%A in ('findstr /b /i "INFERENCE_PROVIDER=" ".env"') do (
+    set "INFERENCE_PROVIDER=%%B"
+)
+
 echo [1/2] Checking Python dependencies...
 python --version >nul 2>&1
 if errorlevel 1 (
@@ -34,7 +40,8 @@ echo.
 
 REM Start YOLO server in new window
 echo [Starting YOLO Inference Server on port 5000]
-start "YOLO Inference Server" cmd /k "cd /d %cd% && python yolo_server.py"
+echo [Inference provider: %INFERENCE_PROVIDER%]
+start "YOLO Inference Server" cmd /k "cd /d %cd% && set INFERENCE_PROVIDER=%INFERENCE_PROVIDER% && python yolo_server.py"
 
 REM Wait for YOLO server to initialize
 timeout /t 3 /nobreak >nul

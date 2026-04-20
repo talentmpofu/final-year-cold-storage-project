@@ -5,6 +5,7 @@ const multer = require("multer");
 const axios = require("axios");
 const FormData = require("form-data");
 const fs = require("fs");
+const sharp = require("sharp");
 const cron = require("node-cron");
 const PDFDocument = require("pdfkit");
 const { getProduceSettings } = require("./produceDatabase");
@@ -28,6 +29,7 @@ const snapshotsDir = path.join(__dirname, "snapshots");
 if (!fs.existsSync(snapshotsDir)) {
   fs.mkdirSync(snapshotsDir);
 }
+const snapshotsMetaPath = path.join(snapshotsDir, "snapshots_meta.json");
 
 const app = express();
 const PORT = 3000;
@@ -45,6 +47,27 @@ const ROBOFLOW_PROJECT = process.env.ROBOFLOW_PROJECT || "";
 const ROBOFLOW_VERSION = process.env.ROBOFLOW_VERSION || "";
 const ROBOFLOW_CONFIDENCE = Number(process.env.ROBOFLOW_CONFIDENCE || 50);
 const ROBOFLOW_OVERLAP = Number(process.env.ROBOFLOW_OVERLAP || 50);
+const NORMALIZED_IMAGE_SIZE = 640;
+
+function loadSnapshotsMeta() {
+  try {
+    if (!fs.existsSync(snapshotsMetaPath)) return {};
+    const raw = fs.readFileSync(snapshotsMetaPath, "utf8");
+    const parsed = JSON.parse(raw || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    console.error("⚠️  Failed to read snapshot metadata:", error.message);
+    return {};
+  }
+}
+
+function saveSnapshotsMeta(meta) {
+  try {
+    fs.writeFileSync(snapshotsMetaPath, JSON.stringify(meta, null, 2), "utf8");
+  } catch (error) {
+    console.error("⚠️  Failed to save snapshot metadata:", error.message);
+  }
+}
 
 // Configure file upload
 const upload = multer({
@@ -214,6 +237,74 @@ function isBadQualityLabel(label) {
   return /bad|rotten|rot|overripe|over_ripen|spoiled|spoilage/.test(normalized);
 }
 
+function getDetectionColor(label) {
+  return isBadQualityLabel(label)
+    ? { stroke: "#ff2d55", fill: "#ff2d55" }
+    : { stroke: "#22c55e", fill: "#22c55e" };
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function escapeSvgText(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+async function annotateSnapshotImage(
+  imagePath,
+  detections = [],
+  width = NORMALIZED_IMAGE_SIZE,
+  height = NORMALIZED_IMAGE_SIZE,
+) {
+  if (!Array.isArray(detections) || detections.length === 0) {
+    return;
+  }
+
+  const items = detections
+    .map((d) => {
+      const bbox = Array.isArray(d?.bbox) ? d.bbox : [0, 0, 0, 0];
+      const x1 = clamp(Number(bbox[0] || 0), 0, width);
+      const y1 = clamp(Number(bbox[1] || 0), 0, height);
+      const x2 = clamp(Number(bbox[2] || 0), 0, width);
+      const y2 = clamp(Number(bbox[3] || 0), 0, height);
+      const boxW = Math.max(1, x2 - x1);
+      const boxH = Math.max(1, y2 - y1);
+
+      const label = `${normalizeDetectionLabel(d?.type || "unknown")} ${Math.round(
+        Number(d?.confidence || 0) * 100,
+      )}%`;
+      const safeLabel = escapeSvgText(label);
+      const { stroke, fill } = getDetectionColor(d?.type);
+      const labelW = Math.max(84, label.length * 7 + 10);
+      const labelH = 22;
+      const labelX = clamp(x1, 0, Math.max(0, width - labelW));
+      const labelY = y1 >= labelH + 2 ? y1 - labelH : y1 + 2;
+
+      return `
+        <rect x="${x1}" y="${y1}" width="${boxW}" height="${boxH}" fill="none" stroke="${stroke}" stroke-width="2"/>
+        <rect x="${labelX}" y="${labelY}" width="${labelW}" height="${labelH}" rx="2" ry="2" fill="${fill}"/>
+        <text x="${labelX + 6}" y="${labelY + 15}" fill="#ffffff" font-size="15" font-family="Arial, sans-serif" font-weight="700">${safeLabel}</text>
+      `;
+    })
+    .join("\n");
+
+  const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">${items}</svg>`;
+  const tempPath = imagePath.replace(/\.jpg$/i, "_annotated_tmp.jpg");
+
+  await sharp(imagePath)
+    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+    .jpeg({ quality: 95, mozjpeg: true, chromaSubsampling: "4:4:4" })
+    .toFile(tempPath);
+
+  fs.renameSync(tempPath, imagePath);
+}
+
 function mapRoboflowPredictionsToDetections(predictions = []) {
   return predictions.map((p) => {
     const label = normalizeDetectionLabel(p.class || p.label || p.type);
@@ -370,6 +461,42 @@ function buildCameraInventorySummaryFromDetections(detections = []) {
     potatoesGood: Math.max(0, counts.totalPotatoes - counts.potatoesBad),
     analyzedAt: new Date().toISOString(),
   };
+}
+
+function getLatestSnapshotDetections() {
+  try {
+    const latest = fs
+      .readdirSync(snapshotsDir)
+      .filter((file) => file.endsWith(".jpg"))
+      .map((file) => ({
+        name: file,
+        timestamp: fs.statSync(path.join(snapshotsDir, file)).mtime.getTime(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)[0];
+
+    if (!latest) {
+      return { detections: [], snapshotName: null, timestamp: null };
+    }
+
+    const meta = loadSnapshotsMeta();
+    const snapshotMeta =
+      meta && typeof meta[latest.name] === "object" ? meta[latest.name] : null;
+    const detections = Array.isArray(snapshotMeta?.detections)
+      ? snapshotMeta.detections
+      : [];
+
+    return {
+      detections,
+      snapshotName: latest.name,
+      timestamp: latest.timestamp,
+    };
+  } catch (error) {
+    console.error(
+      "⚠️  Failed to resolve latest snapshot detections:",
+      error.message,
+    );
+    return { detections: [], snapshotName: null, timestamp: null };
+  }
 }
 
 // API endpoint to receive data from ESP32
@@ -768,6 +895,8 @@ app.get("/api/latest-snapshot", (req, res) => {
 // Get all snapshots
 app.get("/api/snapshots", (req, res) => {
   try {
+    const limit = Number(req.query.limit || 0);
+    const snapshotsMeta = loadSnapshotsMeta();
     const files = fs
       .readdirSync(snapshotsDir)
       .filter((file) => file.endsWith(".jpg"))
@@ -775,12 +904,18 @@ app.get("/api/snapshots", (req, res) => {
         name: file,
         url: `/snapshots/${file}`,
         timestamp: fs.statSync(path.join(snapshotsDir, file)).mtime.getTime(),
+        ...((snapshotsMeta[file] && typeof snapshotsMeta[file] === "object"
+          ? snapshotsMeta[file]
+          : {}) || {}),
       }))
       .sort((a, b) => b.timestamp - a.timestamp);
 
+    const snapshots =
+      Number.isFinite(limit) && limit > 0 ? files.slice(0, limit) : files;
+
     res.json({
       success: true,
-      snapshots: files,
+      snapshots,
     });
   } catch (error) {
     console.error("❌ Error getting snapshots:", error);
@@ -790,22 +925,31 @@ app.get("/api/snapshots", (req, res) => {
 
 // API endpoint for dashboard AI quality alerts
 app.get("/api/ai-alerts", (req, res) => {
-  const activeCount = latestAIQualityAlerts.filter(
+  const { detections, snapshotName, timestamp } = getLatestSnapshotDetections();
+  const alertsFromLatest = buildAIQualityAlertsFromDetections(detections);
+  const activeCount = alertsFromLatest.filter(
     (a) => a.severity === "high" || a.severity === "medium",
   ).length;
 
   res.json({
     success: true,
-    alerts: latestAIQualityAlerts,
+    alerts: alertsFromLatest,
     activeCount,
-    cleared: latestAIQualityAlerts.length === 0,
+    cleared: alertsFromLatest.length === 0,
+    sourceSnapshot: snapshotName,
+    sourceTimestamp: timestamp,
   });
 });
 
 app.get("/api/camera-inventory-summary", (req, res) => {
+  const { detections, snapshotName, timestamp } = getLatestSnapshotDetections();
+  const summaryFromLatest =
+    buildCameraInventorySummaryFromDetections(detections);
   res.json({
     success: true,
-    summary: latestCameraInventorySummary,
+    summary: summaryFromLatest,
+    sourceSnapshot: snapshotName,
+    sourceTimestamp: timestamp,
   });
 });
 
@@ -853,17 +997,55 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
 
     console.log("📸 Image received from ESP32-CAM:", req.file.originalname);
 
-    // Save image to snapshots folder
+    // Normalize upload to 640x640 (high quality) and save to snapshots folder
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const savedImagePath = path.join(snapshotsDir, `snapshot_${timestamp}.jpg`);
-    fs.copyFileSync(req.file.path, savedImagePath);
-    console.log(`💾 Image saved to: ${savedImagePath}`);
+    await sharp(req.file.path)
+      .resize(NORMALIZED_IMAGE_SIZE, NORMALIZED_IMAGE_SIZE, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0 },
+      })
+      .jpeg({ quality: 95, mozjpeg: true, chromaSubsampling: "4:4:4" })
+      .toFile(savedImagePath);
+    console.log(
+      `💾 Image saved to: ${savedImagePath} (${NORMALIZED_IMAGE_SIZE}x${NORMALIZED_IMAGE_SIZE})`,
+    );
 
     // Run inference using configured provider (local or roboflow)
     try {
-      const inference = await runInference(req.file.path);
+      const inference = await runInference(savedImagePath);
       const { detected, confidence, all_detections, provider } = inference;
       const normalizedDetectedProduce = getProduceTypeFromLabel(detected);
+      await annotateSnapshotImage(
+        savedImagePath,
+        all_detections || [],
+        NORMALIZED_IMAGE_SIZE,
+        NORMALIZED_IMAGE_SIZE,
+      );
+      const snapshotName = path.basename(savedImagePath);
+      const snapshotsMeta = loadSnapshotsMeta();
+      snapshotsMeta[snapshotName] = {
+        provider: provider || INFERENCE_PROVIDER,
+        detected: normalizedDetectedProduce,
+        rawDetectedLabel: detected,
+        confidence: Number(confidence || 0),
+        detections: Array.isArray(all_detections)
+          ? all_detections.map((d) => ({
+              type: normalizeDetectionLabel(d.type),
+              confidence: Number(d.confidence || 0),
+              bbox: Array.isArray(d.bbox)
+                ? d.bbox.map((v) => Number(v || 0))
+                : [0, 0, 0, 0],
+            }))
+          : [],
+        imageSize: {
+          width: NORMALIZED_IMAGE_SIZE,
+          height: NORMALIZED_IMAGE_SIZE,
+        },
+        annotated: true,
+        capturedAt: new Date().toISOString(),
+      };
+      saveSnapshotsMeta(snapshotsMeta);
 
       // Build informational AI quality alerts from latest detections.
       // If no spoilage classes are present, alerts are cleared automatically.
@@ -921,6 +1103,22 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
       });
     } catch (inferenceError) {
       console.error("⚠️  Inference error:", inferenceError.message);
+      const snapshotName = path.basename(savedImagePath);
+      const snapshotsMeta = loadSnapshotsMeta();
+      snapshotsMeta[snapshotName] = {
+        provider: INFERENCE_PROVIDER,
+        detected: null,
+        rawDetectedLabel: null,
+        confidence: 0,
+        detections: [],
+        imageSize: {
+          width: NORMALIZED_IMAGE_SIZE,
+          height: NORMALIZED_IMAGE_SIZE,
+        },
+        capturedAt: new Date().toISOString(),
+        error: String(inferenceError.message || "inference error"),
+      };
+      saveSnapshotsMeta(snapshotsMeta);
 
       // Fallback: continue without detection
       res.json({

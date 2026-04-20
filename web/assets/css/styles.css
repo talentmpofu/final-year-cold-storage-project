@@ -80,10 +80,21 @@ body {
   flex: 1;
 }
 
+.spoilage-banner {
+  top: 116px;
+  background: #ffe3e5;
+  color: #8b1e28;
+  border-bottom: 1px solid #f4b7bd;
+}
+
 @media (max-width: 1024px) {
   .alert-banner {
     left: 0;
     right: 0;
+  }
+
+  .spoilage-banner {
+    top: 116px;
   }
 }
 
@@ -2040,6 +2051,87 @@ body {
   background: #e9edf3;
 }
 
+.camera-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.camera-thumb-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+}
+
+.camera-thumb-card--empty {
+  cursor: default;
+}
+
+.camera-thumb-image-wrap {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #0b0f14;
+}
+
+.camera-thumb-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.camera-thumb-meta {
+  padding: 8px 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.camera-thumb-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.camera-thumb-label {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.camera-thumb-empty {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.ai-label-pill {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #e9f2fb;
+  color: #124571;
+  border: 1px solid #c9def3;
+}
+
+@media (max-width: 1024px) {
+  .camera-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .camera-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .camera h2,
 .alerts h2 {
   margin: 0 0 12px 0;
@@ -2052,7 +2144,8 @@ body {
 .camera-frame img {
   width: 100%;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+  background: #0b0f14;
 }
 
 .camera-actions {
@@ -2060,6 +2153,20 @@ body {
   gap: 10px;
   margin-top: 14px;
   flex-wrap: wrap;
+}
+
+.camera-btn-upload {
+  margin-left: auto;
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 26px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .camera-btn {
@@ -2113,6 +2220,13 @@ body {
 
 .camera-btn:active {
   transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .camera-btn-upload {
+    margin-left: 0;
+    order: 3;
+  }
 }
 
 .alerts {

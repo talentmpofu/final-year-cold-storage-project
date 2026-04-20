@@ -27,3 +27,7 @@ esp32_cam_code/.pio/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Local camera uploader settings
+camo_uploader.local.bat
+droidcam_uploader.local.bat

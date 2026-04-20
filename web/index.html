@@ -104,6 +104,16 @@
       <span id="alert-banner-text"></span>
     </div>
 
+    <div
+      id="spoilage-banner"
+      class="alert-banner spoilage-banner"
+      role="status"
+      aria-live="assertive"
+      hidden
+    >
+      <span id="spoilage-banner-text"></span>
+    </div>
+
     <main class="container dashboard-shell" role="main">
       <aside class="dashboard-sidebar" aria-label="Dashboard sections">
         <div class="sidebar-brand">
@@ -885,14 +895,25 @@
 
         <section class="camera" id="camera" aria-labelledby="camera-title">
           <h2 id="camera-title">Camera Snapshot</h2>
-          <div class="camera-frame">
-            <img
-              id="camera-img"
-              src="assets/img/icon-512.svg"
-              alt="Latest interval snapshot of stored produce"
-            />
+          <div
+            id="latest-snapshots-grid"
+            class="camera-grid"
+            aria-live="polite"
+          >
+            <article class="camera-thumb-card camera-thumb-card--empty">
+              <div class="camera-thumb-empty">No snapshots yet</div>
+            </article>
           </div>
           <div class="camera-actions">
+            <button
+              class="btn camera-btn camera-btn-primary camera-btn-upload"
+              id="upload-image-btn"
+              type="button"
+              aria-label="Upload image for testing"
+              title="Upload image for testing"
+            >
+              +
+            </button>
             <button
               class="btn camera-btn camera-btn-primary"
               id="refresh-snapshot"
@@ -905,11 +926,19 @@
               id="open-gallery"
               type="button"
             >
-              Open Gallery
+              See More Images
             </button>
+            <input
+              id="manual-image-input"
+              type="file"
+              accept="image/*"
+              hidden
+            />
           </div>
           <p class="muted">
-            Snapshots are captured at intervals and may not update continuously.
+            The ESP32-CAM sends one snapshot on startup and then every 5
+            minutes. If uploaded image timestamps do not match this cadence
+            while the system is running, check the ESP32 camera upload path.
           </p>
         </section>
       </div>
