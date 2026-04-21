@@ -223,9 +223,9 @@ body {
   padding: 9px 16px;
   font-size: 13px;
   font-weight: 600;
-  background: #FFFFFF;
+  background: #ffffff;
   color: var(--text);
-  border: 1.5px solid #D1D9E8;
+  border: 1.5px solid #d1d9e8;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -233,7 +233,7 @@ body {
 }
 
 .logout-btn:hover {
-  background: #F3F4F6;
+  background: #f3f4f6;
   border-color: var(--primary);
   color: var(--primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -671,7 +671,7 @@ body {
   font-size: 14px;
   font-weight: 600;
   background: var(--primary);
-  color: #FFFFFF;
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -715,7 +715,7 @@ body {
   font-size: 18px;
   font-weight: 600;
   background: var(--primary);
-  color: #FFFFFF;
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -1213,7 +1213,7 @@ body {
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.18s ease;
-  color: #FFFFFF;
+  color: #ffffff;
   background: var(--primary);
   box-shadow: 0 2px 8px rgba(74, 123, 167, 0.2);
 }
@@ -1243,7 +1243,7 @@ body {
 
 .modal-actions .btn.btn-danger {
   background: var(--danger);
-  color: #FFFFFF;
+  color: #ffffff;
   box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
 }
 
@@ -1259,14 +1259,14 @@ body {
 }
 
 .modal-actions .btn.btn-secondary {
-  background: #F3F4F6;
-  color: #1F2937;
-  border: 1px solid #D1D9E8;
+  background: #f3f4f6;
+  color: #1f2937;
+  border: 1px solid #d1d9e8;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .modal-actions .btn.btn-secondary:hover {
-  background: #E5E7EB;
+  background: #e5e7eb;
   border-color: var(--primary);
   color: var(--primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -1331,7 +1331,7 @@ body {
   font-size: 14px;
   font-weight: 600;
   background: var(--primary);
-  color: #FFFFFF;
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -1463,8 +1463,8 @@ body {
   padding: 7px 12px;
   font-size: 12px;
   font-weight: 600;
-  border: 1.5px solid #D1D9E8;
-  background: #FFFFFF;
+  border: 1.5px solid #d1d9e8;
+  background: #ffffff;
   color: var(--text);
   border-radius: 6px;
   cursor: pointer;
@@ -1473,7 +1473,7 @@ body {
 }
 
 .table .actions button:hover {
-  background: #F3F4F6;
+  background: #f3f4f6;
   border-color: var(--primary);
   color: var(--primary);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
@@ -1611,12 +1611,12 @@ body {
 
 .alert-card .alert-actions button:first-child {
   background: var(--danger);
-  color: #FFFFFF;
+  color: #ffffff;
   box-shadow: 0 2px 6px rgba(220, 38, 38, 0.2);
 }
 
 .alert-card .alert-actions button:first-child:hover {
-  background: #B91C1C;
+  background: #b91c1c;
   box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3);
   transform: translateY(-1px);
 }
@@ -1627,14 +1627,14 @@ body {
 }
 
 .alert-card .alert-actions button:last-child {
-  background: #F3F4F6;
+  background: #f3f4f6;
   color: var(--text);
-  border: 1.5px solid #D1D9E8;
+  border: 1.5px solid #d1d9e8;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .alert-card .alert-actions button:last-child:hover {
-  background: #E5E7EB;
+  background: #e5e7eb;
   border-color: var(--primary);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
@@ -1647,12 +1647,12 @@ body {
 
 .alert-card .alert-actions button.primary {
   background: var(--danger);
-  color: #FFFFFF;
+  color: #ffffff;
   box-shadow: 0 2px 6px rgba(220, 38, 38, 0.2);
 }
 
 .alert-card .alert-actions button.primary:hover {
-  background: #B91C1C;
+  background: #b91c1c;
   box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3);
   transform: translateY(-1px);
 }
@@ -1966,8 +1966,8 @@ body {
 .time-range-btn {
   padding: 9px 14px;
   border-radius: 8px;
-  border: 1.5px solid #D1D9E8;
-  background: #FFFFFF;
+  border: 1.5px solid #d1d9e8;
+  background: #ffffff;
   color: var(--text-secondary);
   font-weight: 600;
   font-size: 12px;
@@ -1979,7 +1979,7 @@ body {
 .time-range-btn:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: #F8FAFB;
+  background: #f8fafb;
   box-shadow: 0 2px 6px rgba(74, 123, 167, 0.1);
 }
 
@@ -1991,7 +1991,7 @@ body {
 .time-range-btn.active {
   background: var(--primary);
   border-color: var(--primary);
-  color: #FFFFFF;
+  color: #ffffff;
   box-shadow: 0 2px 8px rgba(74, 123, 167, 0.3);
 }
 
@@ -2343,34 +2343,36 @@ body {
 .camera-btn-upload {
   position: static;
   margin-right: auto;
-  margin-left: -15px;
-  margin-top: -5px;
-  min-width: 0;
-  width: auto;
-  height: auto;
+  margin-left: 0;
+  margin-top: 0;
+  min-width: 40px;
+  height: 40px;
   padding: 0;
-  border-radius: 999px;
-  font-size: 34px;
+  border-radius: 8px;
+  font-size: 24px;
   line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
-  opacity: 0.55;
-  background: transparent !important;
+  opacity: 1;
+  background: var(--primary) !important;
   border: none !important;
-  box-shadow: none !important;
-  color: #4a7ba7;
-  width: auto !important;
+  box-shadow: 0 2px 8px rgba(74, 123, 167, 0.25) !important;
+  color: #FFFFFF;
+  width: 40px !important;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .camera-btn-upload:hover,
 .camera-btn-upload:focus-visible {
   opacity: 1;
-  background: transparent !important;
+  background: var(--primary-strong) !important;
   border: none !important;
-  box-shadow: none !important;
-  transform: none !important;
+  box-shadow: 0 4px 16px rgba(74, 123, 167, 0.35) !important;
+  transform: translateY(-2px);
 }
 
 .camera-btn {
@@ -2397,7 +2399,7 @@ body {
 
 .camera-btn-primary {
   background: var(--primary);
-  color: #FFFFFF;
+  color: #ffffff;
   border: none;
   box-shadow: 0 2px 8px rgba(74, 123, 167, 0.25);
 }
@@ -2414,14 +2416,14 @@ body {
 }
 
 .camera-btn-secondary {
-  background: #FFFFFF;
-  color: #1F2937;
-  border: 1.5px solid #D1D9E8;
+  background: #ffffff;
+  color: #1f2937;
+  border: 1.5px solid #d1d9e8;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .camera-btn-secondary:hover {
-  background: #F3F4F6;
+  background: #f3f4f6;
   border-color: var(--primary);
   color: var(--primary);
   transform: translateY(-2px);
