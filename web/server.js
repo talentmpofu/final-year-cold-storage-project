@@ -225,6 +225,18 @@ function normalizeDetectionLabel(label) {
     .replace(/[\s-]+/g, "_");
 }
 
+function normalizeUploadSource(source) {
+  const normalized = String(source || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "");
+
+  if (!normalized) return "esp32cam";
+  if (normalized.includes("camo")) return "camo";
+  if (normalized.includes("esp32")) return "esp32cam";
+  return "other";
+}
+
 function getProduceTypeFromLabel(label) {
   const normalized = normalizeDetectionLabel(label);
   if (normalized.includes("apple")) return "apples";
@@ -896,6 +908,9 @@ app.get("/api/latest-snapshot", (req, res) => {
 app.get("/api/snapshots", (req, res) => {
   try {
     const limit = Number(req.query.limit || 0);
+    const sourceFilter = String(req.query.source || "")
+      .trim()
+      .toLowerCase();
     const snapshotsMeta = loadSnapshotsMeta();
     const files = fs
       .readdirSync(snapshotsDir)
@@ -908,6 +923,10 @@ app.get("/api/snapshots", (req, res) => {
           ? snapshotsMeta[file]
           : {}) || {}),
       }))
+      .filter((s) => {
+        if (!sourceFilter) return true;
+        return String(s.source || "").toLowerCase() === sourceFilter;
+      })
       .sort((a, b) => b.timestamp - a.timestamp);
 
     const snapshots =
@@ -995,7 +1014,12 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
       });
     }
 
-    console.log("📸 Image received from ESP32-CAM:", req.file.originalname);
+    const uploadSource = normalizeUploadSource(req.body?.source);
+
+    console.log(
+      `📸 Image received from ${uploadSource.toUpperCase()}:`,
+      req.file.originalname,
+    );
 
     // Normalize upload to 640x640 (high quality) and save to snapshots folder
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -1025,6 +1049,7 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
       const snapshotName = path.basename(savedImagePath);
       const snapshotsMeta = loadSnapshotsMeta();
       snapshotsMeta[snapshotName] = {
+        source: uploadSource,
         provider: provider || INFERENCE_PROVIDER,
         detected: normalizedDetectedProduce,
         rawDetectedLabel: detected,
@@ -1093,6 +1118,7 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
 
       res.json({
         success: true,
+        source: uploadSource,
         provider: provider || INFERENCE_PROVIDER,
         detected: normalizedDetectedProduce,
         rawDetectedLabel: detected,
@@ -1106,6 +1132,7 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
       const snapshotName = path.basename(savedImagePath);
       const snapshotsMeta = loadSnapshotsMeta();
       snapshotsMeta[snapshotName] = {
+        source: uploadSource,
         provider: INFERENCE_PROVIDER,
         detected: null,
         rawDetectedLabel: null,
@@ -1123,6 +1150,7 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
       // Fallback: continue without detection
       res.json({
         success: true,
+        source: uploadSource,
         provider: INFERENCE_PROVIDER,
         detected: null,
         error: `Inference service unavailable (${INFERENCE_PROVIDER})`,

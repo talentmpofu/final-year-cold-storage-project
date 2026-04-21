@@ -277,6 +277,9 @@ void captureAndSendImage()
 
   // Build multipart body
   String header = "--" + boundary + "\r\n";
+  header += "Content-Disposition: form-data; name=\"source\"\r\n\r\n";
+  header += "esp32cam\r\n";
+  header += "--" + boundary + "\r\n";
   header += "Content-Disposition: form-data; name=\"image\"; filename=\"esp32cam.jpg\"\r\n";
   header += "Content-Type: image/jpeg\r\n\r\n";
 

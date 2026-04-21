@@ -105,8 +105,13 @@ def upload_image_bytes(
         )
     }
 
+    data = {
+        "source": "camo",
+    }
+
     response = requests.post(
         api_url,
+        data=data,
         files=files,
         timeout=(connect_timeout, read_timeout),
     )

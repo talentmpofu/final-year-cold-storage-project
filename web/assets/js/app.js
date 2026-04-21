@@ -1249,6 +1249,9 @@
           <span style="font-size: 12px; opacity: 0.8;">Image ${index + 1} of ${
             snapshots.length
           }</span><br>
+          <span style="font-size: 12px; opacity: 0.85;">Source: ${String(
+            snapshot.source || "esp32cam",
+          ).toUpperCase()}</span><br>
           <span style="font-size: 12px; opacity: 0.85;">Provider: ${String(
             snapshot.provider || "inference",
           ).toUpperCase()}</span>
@@ -2567,7 +2570,10 @@
         <div class="camera-thumb-meta">
           <span class="camera-thumb-time">${new Date(snapshot.timestamp).toLocaleString()}</span>
           <span class="camera-thumb-label">${getSnapshotLabel(snapshot)}</span>
-          <span class="ai-label-pill">${String(snapshot.provider || "inference").toUpperCase()}</span>
+          <div class="camera-thumb-tags">
+            <span class="ai-label-pill">SRC: ${String(snapshot.source || "esp32cam").toUpperCase()}</span>
+            <span class="ai-label-pill">${String(snapshot.provider || "inference").toUpperCase()}</span>
+          </div>
         </div>
       </article>
     `,

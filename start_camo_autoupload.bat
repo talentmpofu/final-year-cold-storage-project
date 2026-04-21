@@ -40,7 +40,7 @@ if errorlevel 1 (
 )
 
 set "CAMO_DEVICE_FOUND="
-for /f "usebackq delims=" %%L in (`powershell -NoProfile -Command "Get-PnpDevice -Class Camera ^| Select-Object -ExpandProperty FriendlyName"`) do (
+for /f "usebackq delims=" %%L in (`powershell -NoProfile -Command "$devices = Get-PnpDevice; foreach($d in $devices){ if($d.Class -eq 'Camera' -or $d.Class -eq 'Image'){ $d.FriendlyName } }"`) do (
   echo %%L | findstr /I "camo" >nul
   if not errorlevel 1 set "CAMO_DEVICE_FOUND=1"
 )
@@ -50,28 +50,33 @@ if "%CAMO_DEVICE_FOUND%"=="" (
   echo [WARNING] No Camo virtual camera device was detected by Windows.
   echo           Current capture is likely to use the built-in webcam.
   echo.
-  echo Ensure Camo virtual camera/output is enabled in Camo Studio, then re-run.
+  echo Windows camera-like devices currently visible:
+  powershell -NoProfile -Command "$devices = Get-PnpDevice; foreach($d in $devices){ if($d.Class -eq 'Camera' -or $d.Class -eq 'Image'){ $d.FriendlyName } }"
   echo.
-  set /p CONTINUE_WITHOUT_CAMO="Continue anyway with current camera list? (y/N): "
-  if /I not "%CONTINUE_WITHOUT_CAMO%"=="y" (
+  set /p CONTINUE_WITHOUT_CAMO="Continue anyway and test indexes from OpenCV? (Y/n): "
+  if /I "%CONTINUE_WITHOUT_CAMO%"=="" set "CONTINUE_WITHOUT_CAMO=Y"
+  if /I "%CONTINUE_WITHOUT_CAMO%"=="y" set "CONTINUE_WITHOUT_CAMO=Y"
+  if /I "%CONTINUE_WITHOUT_CAMO%"=="yes" set "CONTINUE_WITHOUT_CAMO=Y"
+  if /I not "%CONTINUE_WITHOUT_CAMO%"=="Y" (
     echo Exiting so you can enable Camo virtual camera first.
     pause
     exit /b 1
   )
 )
 
+echo.
+echo OpenCV quick camera probe (indexes 0..5):
+python -c "import cv2; print('--- OpenCV cameras ---'); [ (lambda cap, idx: (print('Index {}: {}'.format(idx, 'OPEN' if cap.isOpened() else 'closed')), cap.release()))(cv2.VideoCapture(i, cv2.CAP_DSHOW), i) for i in range(6) ]"
+echo.
+
 if exist "%CONFIG_FILE%" (
   call "%CONFIG_FILE%"
 )
 
-if "%CAMO_WEBCAM_INDEX%"=="" set "CAMO_WEBCAM_INDEX=0"
-if "%CAMO_WEBCAM_INDEX%"=="-1" set "CAMO_WEBCAM_INDEX=0"
-
+set "CAMO_WEBCAM_INDEX=0"
 echo.
-echo Enter Camo webcam index ^(press Enter to keep %CAMO_WEBCAM_INDEX%^)
-set /p CAMO_WEBCAM_INDEX="Index [%CAMO_WEBCAM_INDEX%]: "
-if "%CAMO_WEBCAM_INDEX%"=="" set "CAMO_WEBCAM_INDEX=0"
-if "%CAMO_WEBCAM_INDEX%"=="-1" set "CAMO_WEBCAM_INDEX=0"
+echo [INFO] Using fixed Camo webcam index: %CAMO_WEBCAM_INDEX%
+echo        ^(verified: index 0 = iPhone Camo, index 1 = PC webcam^)
 
 if "%CAMO_INTERVAL_SECONDS%"=="" set "CAMO_INTERVAL_SECONDS=300"
 
