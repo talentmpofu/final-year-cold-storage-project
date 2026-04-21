@@ -2345,11 +2345,11 @@ body {
   margin-right: auto;
   margin-left: 0;
   margin-top: 0;
-  min-width: 40px;
-  height: 40px;
+  min-width: 32px;
+  height: 32px;
   padding: 0;
-  border-radius: 8px;
-  font-size: 24px;
+  border-radius: 6px;
+  font-size: 18px;
   line-height: 1;
   display: inline-flex;
   align-items: center;
@@ -2359,8 +2359,8 @@ body {
   background: var(--primary) !important;
   border: none !important;
   box-shadow: 0 2px 8px rgba(74, 123, 167, 0.25) !important;
-  color: #FFFFFF;
-  width: 40px !important;
+  color: #ffffff;
+  width: 32px !important;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
