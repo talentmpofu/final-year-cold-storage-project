@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -10,7 +10,7 @@
       name="description"
       content="Smart Cold Storage Unit Monitoring System with AI Produce Detection"
     />
-    <meta name="theme-color" content="#4A7BA7" />
+    <meta name="theme-color" content="#0077b6" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
@@ -52,6 +52,7 @@
   <body>
     <header class="app-header" role="banner">
       <div class="brand">
+        <span class="logo" aria-hidden="true">❄</span>
         <div>
           <h1>Cold Storage Monitor</h1>
           <p class="subtitle">Real-time Monitoring System</p>
@@ -268,12 +269,14 @@
               <div class="thresholds-grid">
                 <div class="threshold-item">
                   <span class="threshold-label">Temperature</span>
-                  <span id="threshold-temp" class="threshold-value">0–4°C</span>
+                  <span id="threshold-temp" class="threshold-value"
+                    >0-4&deg;C</span
+                  >
                 </div>
                 <div class="threshold-item">
                   <span class="threshold-label">Humidity</span>
                   <span id="threshold-humidity" class="threshold-value"
-                    >90–95%</span
+                    >90-95%</span
                   >
                 </div>
                 <div class="threshold-item">
@@ -297,19 +300,19 @@
                 <div class="metric-title-wrap">
                   <h3>Temperature</h3>
                 </div>
-                <span class="unit-pill">°C</span>
+                <span class="unit-pill">&deg;C</span>
               </header>
               <div class="metric-gauge" id="temp-ring">
                 <div class="metric-gauge-inner">
                   <div class="metric-gauge-percent" id="temp-percent">0%</div>
                   <div class="metric-gauge-value">
-                    <span id="temp-value">--</span
-                    ><span class="metric-gauge-unit">°C</span>
+                    <span id="temp-value">Target --</span>
                   </div>
                 </div>
               </div>
               <footer class="metric-card-foot">
                 <div class="trend" id="temp-trend">Stable</div>
+                <div class="metric-delta" id="temp-delta">No prior sample</div>
                 <div class="metric-stats">
                   <span><strong id="temp-min">--</strong> min</span>
                   <span><strong id="temp-avg">--</strong> avg</span>
@@ -330,13 +333,13 @@
                     0%
                   </div>
                   <div class="metric-gauge-value">
-                    <span id="humidity-value">--</span
-                    ><span class="metric-gauge-unit">%</span>
+                    <span id="humidity-value">Target --</span>
                   </div>
                 </div>
               </div>
               <footer class="metric-card-foot">
                 <div class="trend" id="humidity-trend">Stable</div>
+                <div class="metric-delta" id="humidity-delta">No prior sample</div>
                 <div class="metric-stats">
                   <span><strong id="humidity-min">--</strong> min</span>
                   <span><strong id="humidity-avg">--</strong> avg</span>
@@ -357,13 +360,13 @@
                     0%
                   </div>
                   <div class="metric-gauge-value">
-                    <span id="ethylene-value">--</span
-                    ><span class="metric-gauge-unit">ppm</span>
+                    <span id="ethylene-value">Limit --</span>
                   </div>
                 </div>
               </div>
               <footer class="metric-card-foot">
                 <div class="trend" id="ethylene-trend">Stable</div>
+                <div class="metric-delta" id="ethylene-delta">No prior sample</div>
                 <div class="metric-stats">
                   <span><strong id="ethylene-min">--</strong> min</span>
                   <span><strong id="ethylene-avg">--</strong> avg</span>
@@ -396,7 +399,7 @@
             <div class="filter-health">
               <h4>Filter Health</h4>
               <div class="filter-item">
-                <span class="filter-label">KMnO₄ Filter</span>
+                <span class="filter-label">KMnO4 Filter</span>
                 <div class="filter-bar">
                   <div id="kmno4-bar" class="filter-fill"></div>
                 </div>
@@ -561,7 +564,7 @@
             <footer class="trend-legend muted">
               <span class="legend-item"
                 ><span class="legend-swatch temperature"></span>Temperature
-                (°C)</span
+                (&deg;C)</span
               >
               <span class="legend-item"
                 ><span class="legend-swatch humidity"></span>Humidity (%)</span
@@ -667,7 +670,7 @@
                 <thead>
                   <tr>
                     <th>Threshold Profile</th>
-                    <th colspan="2">Temperature range (°C)</th>
+                    <th colspan="2">Temperature range (&deg;C)</th>
                     <th colspan="2">Humidity range (%)</th>
                     <th>Ethylene threshold (ppm)</th>
                   </tr>
@@ -906,7 +909,7 @@
           </div>
           <div class="camera-actions">
             <button
-              class="btn camera-btn camera-btn-primary camera-btn-upload"
+              class="btn camera-btn-upload"
               id="upload-image-btn"
               type="button"
               aria-label="Upload image for testing"
@@ -940,7 +943,7 @@
     </main>
 
     <footer class="app-footer" role="contentinfo">
-      <p>© 2025 Cold Storage Unit</p>
+      <p>&copy; 2025 Cold Storage Unit</p>
     </footer>
 
     <div
@@ -1266,8 +1269,8 @@
               "
             >
               <option value="">Select produce...</option>
-              <option value="apples">🍎 Apples</option>
-              <option value="potatoes">🥔 Potatoes</option>
+              <option value="apples">Apples</option>
+              <option value="potatoes">Potatoes</option>
             </select>
           </div>
           <div>
@@ -1334,7 +1337,7 @@
         bottom: 20px;
         left: 20px;
         right: 20px;
-        background: linear-gradient(135deg, #4a7ba7 0%, #3b6fa3 100%);
+        background: linear-gradient(135deg, #0077b6 0%, #00689f 100%);
         color: #ffffff;
         padding: 20px;
         border-radius: 12px;
@@ -1353,7 +1356,7 @@
       >
         <div style="flex: 1; min-width: 200px">
           <div style="font-size: 20px; margin-bottom: 5px">
-            ❄️ Install Cold Storage App
+            Install Cold Storage App
           </div>
           <div style="font-size: 14px; opacity: 0.9">
             Add to your home screen for quick access and offline use
@@ -1364,7 +1367,7 @@
             id="pwa-install-btn"
             style="
               background: #ffffff;
-              color: #4a7ba7;
+              color: #0077b6;
               border: none;
               padding: 12px 24px;
               border-radius: 8px;
@@ -1404,7 +1407,7 @@
             cacheNames.forEach((cacheName) => {
               if (cacheName !== "cold-storage-v3") {
                 caches.delete(cacheName);
-                console.log("🗑️ Deleted old cache:", cacheName);
+                console.log("Deleted old cache:", cacheName);
               }
             });
           });
@@ -1412,7 +1415,7 @@
           navigator.serviceWorker
             .register("/service-worker.js")
             .then((registration) => {
-              console.log("✅ Service Worker registered:", registration.scope);
+              console.log("Service Worker registered:", registration.scope);
 
               // Check for updates
               registration.addEventListener("updatefound", () => {
@@ -1422,7 +1425,7 @@
                     newWorker.state === "installed" &&
                     navigator.serviceWorker.controller
                   ) {
-                    console.log("🔄 New version available! Please refresh.");
+                    console.log("New version available! Please refresh.");
                     // Optionally show update notification
                     if (confirm("New version available! Reload to update?")) {
                       window.location.reload();
@@ -1432,7 +1435,7 @@
               });
             })
             .catch((error) => {
-              console.error("❌ Service Worker registration failed:", error);
+              console.error("Service Worker registration failed:", error);
             });
         });
       }
@@ -1479,7 +1482,7 @@
 
       // Listen for successful install
       window.addEventListener("appinstalled", () => {
-        console.log("✅ PWA installed successfully!");
+        console.log("PWA installed successfully!");
         installBanner.style.display = "none";
         deferredPrompt = null;
       });
@@ -1500,12 +1503,12 @@
 
       // Online/Offline status
       window.addEventListener("online", () => {
-        console.log("🌐 Back online!");
+        console.log("Back online!");
         // Optionally show toast notification
       });
 
       window.addEventListener("offline", () => {
-        console.log("📡 Offline mode - using cached data");
+        console.log("Offline mode - using cached data");
         // Optionally show toast notification
       });
     </script>

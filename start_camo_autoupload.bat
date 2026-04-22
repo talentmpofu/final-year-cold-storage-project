@@ -47,21 +47,16 @@ for /f "usebackq delims=" %%L in (`powershell -NoProfile -Command "$devices = Ge
 
 if "%CAMO_DEVICE_FOUND%"=="" (
   echo.
-  echo [WARNING] No Camo virtual camera device was detected by Windows.
-  echo           Current capture is likely to use the built-in webcam.
+  echo [ERROR] No Camo virtual camera device was detected by Windows.
+  echo         Strict mode is enabled: index 0 ^(Camo^) is required.
+  echo         No snapshots will be captured or uploaded.
   echo.
   echo Windows camera-like devices currently visible:
   powershell -NoProfile -Command "$devices = Get-PnpDevice; foreach($d in $devices){ if($d.Class -eq 'Camera' -or $d.Class -eq 'Image'){ $d.FriendlyName } }"
   echo.
-  set /p CONTINUE_WITHOUT_CAMO="Continue anyway and test indexes from OpenCV? (Y/n): "
-  if /I "%CONTINUE_WITHOUT_CAMO%"=="" set "CONTINUE_WITHOUT_CAMO=Y"
-  if /I "%CONTINUE_WITHOUT_CAMO%"=="y" set "CONTINUE_WITHOUT_CAMO=Y"
-  if /I "%CONTINUE_WITHOUT_CAMO%"=="yes" set "CONTINUE_WITHOUT_CAMO=Y"
-  if /I not "%CONTINUE_WITHOUT_CAMO%"=="Y" (
-    echo Exiting so you can enable Camo virtual camera first.
-    pause
-    exit /b 1
-  )
+  echo Exiting so you can enable Camo virtual camera first.
+  pause
+  exit /b 1
 )
 
 echo.
@@ -74,9 +69,9 @@ if exist "%CONFIG_FILE%" (
 )
 
 set "CAMO_WEBCAM_INDEX=0"
+
 echo.
-echo [INFO] Using fixed Camo webcam index: %CAMO_WEBCAM_INDEX%
-echo        ^(verified: index 0 = iPhone Camo, index 1 = PC webcam^)
+echo [INFO] Strict Camo mode enabled. Using fixed webcam index: %CAMO_WEBCAM_INDEX%
 
 if "%CAMO_INTERVAL_SECONDS%"=="" set "CAMO_INTERVAL_SECONDS=300"
 

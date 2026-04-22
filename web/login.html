@@ -17,29 +17,35 @@
         align-items: center;
         justify-content: center;
         background: var(--bg);
-        padding: 24px;
+        padding: 12px;
       }
       .auth-card {
         width: 100%;
-        max-width: 420px;
+        max-width: 360px;
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: 14px;
         box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
-        padding: 24px;
+        padding: 18px 20px;
       }
       .auth-header {
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-bottom: 14px;
+        margin-bottom: 10px;
       }
       .auth-header .logo {
         font-size: 24px;
+        line-height: 1;
+        color: var(--primary);
       }
       .auth-title {
         margin: 0;
         font-size: 18px;
+      }
+      .auth-subtitle {
+        margin-top: -6px;
+        margin-bottom: 10px;
       }
       .auth-form {
         display: grid;
@@ -70,8 +76,8 @@
       }
       .auth-submit {
         appearance: none;
-        border: 1px solid #4a7ba7;
-        background: #4a7ba7;
+        border: 1px solid #0077b6;
+        background: #0077b6;
         color: #ffffff;
         font-size: 14px;
         font-weight: 600;
@@ -79,26 +85,26 @@
         border-radius: 10px;
         padding: 10px 22px;
         cursor: pointer;
-        box-shadow: 0 6px 14px rgba(74, 123, 167, 0.35);
+        box-shadow: 0 6px 14px rgba(0, 119, 182, 0.35);
         transition:
           transform 0.15s ease,
           box-shadow 0.2s ease,
           background 0.2s ease;
       }
       .auth-submit:hover {
-        background: #3b6fa3;
-        border-color: #3b6fa3;
-        box-shadow: 0 8px 16px rgba(74, 123, 167, 0.45);
+        background: #00689f;
+        border-color: #00689f;
+        box-shadow: 0 8px 16px rgba(0, 119, 182, 0.45);
         transform: translateY(-1px);
       }
       .auth-submit:active {
-        background: #2e5f93;
-        border-color: #2e5f93;
+        background: #005a88;
+        border-color: #005a88;
         transform: translateY(0);
-        box-shadow: 0 4px 10px rgba(74, 123, 167, 0.35);
+        box-shadow: 0 4px 10px rgba(0, 119, 182, 0.35);
       }
       .auth-submit:focus-visible {
-        outline: 3px solid rgba(74, 123, 167, 0.5);
+        outline: 3px solid rgba(0, 119, 182, 0.5);
         outline-offset: 2px;
       }
       .auth-submit:disabled {
@@ -108,7 +114,7 @@
         transform: none;
       }
       .link {
-        color: #4a7ba7;
+        color: #0077b6;
         text-decoration: none;
         font-size: 13px;
       }
@@ -134,12 +140,10 @@
     <div class="auth-wrap">
       <div class="auth-card" role="form" aria-labelledby="login-title">
         <div class="auth-header">
-          <span class="logo" aria-hidden="true">❄️</span>
+          <span class="logo" aria-hidden="true">❄</span>
           <h1 id="login-title" class="auth-title">Sign in to Cold Storage</h1>
         </div>
-        <p class="muted" style="margin-top: -6px; margin-bottom: 10px">
-          Enter your credentials to continue.
-        </p>
+        <p class="muted auth-subtitle">Enter your credentials to continue.</p>
         <div id="login-error" class="error-msg" role="alert">
           Invalid email or password.
         </div>

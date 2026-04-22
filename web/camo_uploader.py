@@ -58,6 +58,7 @@ def capture_frame_bytes(
     jpeg_quality: int,
     frame_width: int,
     frame_height: int,
+    min_mean_luma: float,
 ) -> bytes:
     cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
     if not cap.isOpened():
@@ -79,6 +80,14 @@ def capture_frame_bytes(
 
         if frame is None:
             raise RuntimeError("Unable to read frame from Camo virtual camera")
+
+        # Reject nearly-black frames to avoid uploading invalid captures.
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        mean_luma = float(gray.mean())
+        if mean_luma < float(min_mean_luma):
+            raise RuntimeError(
+                f"Captured frame is too dark/black (mean luma={mean_luma:.2f}, min={min_mean_luma})."
+            )
 
         ok, encoded = cv2.imencode(
             ".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), int(jpeg_quality)]
@@ -176,7 +185,30 @@ def parse_args() -> argparse.Namespace:
         default=60.0,
         help="HTTP read timeout in seconds (default: 60)",
     )
+    parser.add_argument(
+        "--min-mean-luma",
+        type=float,
+        default=10.0,
+        help="Minimum average grayscale brightness to accept a frame (default: 10)",
+    )
+    parser.add_argument(
+        "--max-black-retries",
+        type=int,
+        default=5,
+        help="Consecutive black-frame failures before prompting for manual resume (default: 5)",
+    )
     return parser.parse_args()
+
+
+def wait_for_manual_index_zero() -> None:
+    log("Camo feed appears unavailable.")
+    log("Launch Camo on phone and ensure virtual camera is active on PC.")
+    while True:
+        user_input = input("Enter 0 to resume capture on index 0: ").strip()
+        if user_input == "0":
+            log("Index 0 confirmed. Resuming capture.")
+            return
+        log("Invalid input. Please enter exactly 0.")
 
 
 def main() -> int:
@@ -191,6 +223,12 @@ def main() -> int:
     if not (0 <= args.jpeg_quality <= 100):
         raise ValueError("--jpeg-quality must be between 0 and 100")
 
+    if args.min_mean_luma < 0:
+        raise ValueError("--min-mean-luma must be >= 0")
+
+    if args.max_black_retries < 1:
+        raise ValueError("--max-black-retries must be >= 1")
+
     cv2 = load_cv2()
     camera_index = resolve_camera_index(cv2, args.webcam_index)
 
@@ -198,6 +236,8 @@ def main() -> int:
     log(f"Webcam index: {camera_index}")
     log(f"Upload URL: {args.api_url}")
     log(f"Interval: {args.interval_seconds} seconds")
+
+    consecutive_black_failures = 0
 
     while True:
         cycle_started = time.time()
@@ -208,6 +248,7 @@ def main() -> int:
                 jpeg_quality=args.jpeg_quality,
                 frame_width=args.frame_width,
                 frame_height=args.frame_height,
+                min_mean_luma=args.min_mean_luma,
             )
 
             payload = upload_image_bytes(
@@ -226,6 +267,21 @@ def main() -> int:
             time.sleep(sleep_for)
         except Exception as exc:  # noqa: BLE001
             log(f"Upload failed: {exc}")
+
+            err_text = str(exc).lower()
+            is_black_frame_error = "too dark/black" in err_text
+            if is_black_frame_error:
+                consecutive_black_failures += 1
+                log(
+                    f"Black-frame failure {consecutive_black_failures}/{args.max_black_retries}"
+                )
+                if consecutive_black_failures >= args.max_black_retries:
+                    wait_for_manual_index_zero()
+                    consecutive_black_failures = 0
+                    continue
+            else:
+                consecutive_black_failures = 0
+
             log(f"Retrying in {args.retry_seconds} seconds")
             time.sleep(args.retry_seconds)
 

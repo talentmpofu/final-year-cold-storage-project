@@ -9,12 +9,12 @@
 #include "esp_camera.h"
 #include "esp_http_client.h"
 
-// WiFi credentials
+// WiFi hotspot credentials (only network to use)
 const char *ssid = "Talent";
 const char *password = "talent401";
 
 // Server endpoint
-const char *serverUrl = "http://172.20.10.3:3000/api/upload-image";
+const char *serverUrl = "http://192.168.137.1:3000/api/upload-image";
 
 // Camera pins for AI-Thinker ESP32-CAM
 #define PWDN_GPIO_NUM 32
@@ -101,6 +101,8 @@ void connectWiFi()
   Serial.print("📡 Connecting to WiFi: ");
   Serial.println(ssid);
 
+  WiFi.disconnect(true, true);
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
   int attempts = 0;
@@ -110,9 +112,12 @@ void connectWiFi()
     Serial.print(".");
     attempts++;
   }
+
+  bool connected = WiFi.status() == WL_CONNECTED;
+
   Serial.println();
 
-  if (WiFi.status() == WL_CONNECTED)
+  if (connected)
   {
     Serial.println("✓ WiFi connected successfully!");
     Serial.print("📍 IP Address: ");
@@ -130,9 +135,10 @@ void connectWiFi()
   {
     Serial.println("\n✗ WiFi connection failed!");
     Serial.println("⚠️  Please check:");
-    Serial.println("   1. WiFi SSID and password are correct");
-    Serial.println("   2. Router is powered on and in range");
-    Serial.println("   3. WiFi network is 2.4GHz (ESP32 doesn't support 5GHz)");
+    Serial.println("   1. WiFi name/password are correct");
+    Serial.println("   2. Mobile hotspot is enabled");
+    Serial.println("   3. Router is powered on and in range");
+    Serial.println("   4. WiFi network is 2.4GHz (ESP32 doesn't support 5GHz)");
     Serial.println("\n⚠️  Restarting ESP32-CAM in 5 seconds...\n");
     delay(5000);
     ESP.restart();

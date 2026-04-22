@@ -50,14 +50,13 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 // SGP41 I2C Address
 #define SGP41_ADDRESS 0x59
 
-// WiFi credentials - UPDATE THESE WITH YOUR NETWORK
-
+// WiFi hotspot credentials (only network to use)
 const char *ssid = "Talent";
 const char *password = "talent401";
 
 // Backend API endpoint - UPDATE THIS WITH YOUR SERVER IP
-const char *serverUrl = "http://172.20.10.3:3000/api/metrics";
-const char *thresholdsUrl = "http://172.20.10.3:3000/api/thresholds";
+const char *serverUrl = "http://192.168.137.1:3000/api/metrics";
+const char *thresholdsUrl = "http://192.168.137.1:3000/api/thresholds";
 
 // Pin definitions
 #define DHT_PIN 4      // GPIO 4 for DHT22 data pin
@@ -442,13 +441,16 @@ void setup()
   Serial.println("Temperature Monitoring System");
   Serial.println("=================================\n");
 
-  // Connect to WiFi
+  // Connect to WiFi hotspot
   Serial.print("Connecting to WiFi: ");
   Serial.println(ssid);
+
+  WiFi.disconnect(true, true);
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20)
+  while (WiFi.status() != WL_CONNECTED && attempts < 30)
   {
     delay(500);
     Serial.print(".");
@@ -457,14 +459,14 @@ void setup()
 
   if (WiFi.status() == WL_CONNECTED)
   {
-    Serial.println("\n✓ WiFi connected!");
+    Serial.println("✓ WiFi connected!");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
   }
   else
   {
     Serial.println("\n✗ WiFi connection failed!");
-    Serial.println("Check SSID and password");
+    Serial.println("Check hotspot name/password and ensure hotspot is on (2.4GHz)");
   }
 
   // Initialize relay pins

@@ -1,4 +1,4 @@
-﻿// Mock live data updates and simple UI interactions
+// Mock live data updates and simple UI interactions
 (function () {
   const fmt = (n) => (typeof n === "number" ? n.toFixed(1) : "--");
   const fmtPrecise = (n) => (typeof n === "number" ? n.toFixed(3) : "--");
@@ -24,10 +24,46 @@
   let trendLoadRequestId = 0;
   let alertDismissedUntil = 0;
   let dismissedAlertText = "";
+  let previousMetrics = {
+    temp: null,
+    humidity: null,
+    ethylene: null,
+  };
   let currentProduceContext = {
     type: null,
     thresholds: null,
   };
+
+  function setMetricCardState(ringId, state) {
+    const ring = el(ringId);
+    if (!ring) return;
+    const card = ring.closest(".metric-card");
+    if (!card) return;
+    card.classList.remove("status-good", "status-warn", "status-critical");
+    if (state === "good") card.classList.add("status-good");
+    if (state === "warn") card.classList.add("status-warn");
+    if (state === "critical") card.classList.add("status-critical");
+  }
+
+  function setDelta(elId, delta, decimals, unit) {
+    const node = el(elId);
+    if (!node) return;
+    node.classList.remove("delta-up", "delta-down", "delta-flat");
+    if (typeof delta !== "number" || Number.isNaN(delta)) {
+      node.textContent = "No prior sample";
+      node.classList.add("delta-flat");
+      return;
+    }
+    if (Math.abs(delta) < 0.001) {
+      node.textContent = "No change vs prior sample";
+      node.classList.add("delta-flat");
+      return;
+    }
+    const sign = delta > 0 ? "+" : "-";
+    const amount = Math.abs(delta).toFixed(decimals);
+    node.textContent = `${sign}${amount} ${unit} vs prior sample`;
+    node.classList.add(delta > 0 ? "delta-up" : "delta-down");
+  }
 
   function isBannerSuppressed(message) {
     const localSuppressed =
@@ -69,7 +105,9 @@
       max = Math.max(...data);
     const range = max - min || 1;
     ctx2d.strokeStyle = color;
-    ctx2d.lineWidth = 1.25;
+    ctx2d.lineWidth = 2;
+    ctx2d.lineCap = "round";
+    ctx2d.lineJoin = "round";
     ctx2d.beginPath();
     data.forEach((v, i) => {
       const x = (i / (data.length - 1)) * (w - 2) + 1;
@@ -105,7 +143,7 @@
     const ethRange = ethMax - ethMin || 1;
     const humRange = humMax - humMin || 1;
 
-    canvasCtx.strokeStyle = "#e5e7eb";
+    canvasCtx.strokeStyle = "#edf2f7";
     canvasCtx.lineWidth = 1;
     for (let i = 0; i <= gridRows; i++) {
       const y = PAD + (i / gridRows) * (h - PAD * 2);
@@ -122,7 +160,7 @@
       canvasCtx.stroke();
     }
 
-    canvasCtx.strokeStyle = "#cbd5e1";
+    canvasCtx.strokeStyle = "#d6e0ea";
     canvasCtx.lineWidth = 1.5;
     canvasCtx.beginPath();
     canvasCtx.moveTo(PAD, h - PAD);
@@ -136,21 +174,21 @@
     canvasCtx.fillStyle = "#6b7280";
     canvasCtx.font = "12px Inter, Arial, sans-serif";
 
-    canvasCtx.fillStyle = "#ef4444";
+    canvasCtx.fillStyle = "#d1495b";
     for (let i = 0; i <= gridRows; i++) {
       const y = PAD + (i / gridRows) * (h - PAD * 2);
       const tv = tempMax - (i / gridRows) * tempRange;
       canvasCtx.fillText(tv.toFixed(1), 4, y + 4);
     }
 
-    canvasCtx.fillStyle = "#f59e0b";
+    canvasCtx.fillStyle = "#d97706";
     for (let i = 0; i <= gridRows; i++) {
       const y = PAD + (i / gridRows) * (h - PAD * 2);
       const ev = ethMax - (i / gridRows) * ethRange;
       canvasCtx.fillText(ev.toFixed(2), 46, y + 4);
     }
 
-    canvasCtx.fillStyle = "#b6daf7";
+    canvasCtx.fillStyle = "#0077b6";
     for (let i = 0; i <= gridRows; i++) {
       const y = PAD + (i / gridRows) * (h - PAD * 2);
       const hv = humMax - (i / gridRows) * humRange;
@@ -186,27 +224,27 @@
     }
 
     canvasCtx.font = "13px Inter, Arial, sans-serif";
-    canvasCtx.fillStyle = "#ef4444";
-    canvasCtx.fillText("Temp (°C)", PAD + 6, PAD - 8);
-    canvasCtx.fillStyle = "#f59e0b";
+    canvasCtx.fillStyle = "#d1495b";
+    canvasCtx.fillText("Temp (\u00B0C)", PAD + 6, PAD - 8);
+    canvasCtx.fillStyle = "#d97706";
     canvasCtx.fillText("Ethylene (ppm)", PAD + 90, PAD - 8);
-    canvasCtx.fillStyle = "#b6daf7";
+    canvasCtx.fillStyle = "#0077b6";
     const rightTitle = "Humidity (%)";
     const rtw = canvasCtx.measureText(rightTitle).width;
     canvasCtx.fillText(rightTitle, w - PAD - rtw - 6, PAD - 8);
 
     const lines = [
-      { data: allSeries.temp, color: "#ef4444", width: 1.25, axis: "temp" },
+      { data: allSeries.temp, color: "#d1495b", width: 2.2, axis: "temp" },
       {
         data: allSeries.humidity,
-        color: "#b6daf7",
-        width: 1.25,
+        color: "#0077b6",
+        width: 2.2,
         axis: "humidity",
       },
       {
         data: allSeries.ethylene,
-        color: "#f59e0b",
-        width: 1.25,
+        color: "#d97706",
+        width: 2.2,
         axis: "ethylene",
       },
     ];
@@ -555,13 +593,13 @@
 
       tooltip.innerHTML = `
         <div style="font-weight: 600; margin-bottom: 4px; font-size: 12px;">${timeStr}</div>
-        <div><span style="color:#ef4444">●</span> Temperature: <strong>${fmt(
+        <div><span style="color:#d1495b">&#9679;</span> Temperature: <strong>${fmt(
           item.temp,
-        )} °C</strong></div>
-        <div><span style="color:#b6daf7">●</span> Humidity: <strong>${fmt(
+        )} &deg;C</strong></div>
+        <div><span style="color:#0077b6">&#9679;</span> Humidity: <strong>${fmt(
           item.humidity,
         )} %</strong></div>
-        <div><span style="color:#f59e0b">●</span> Ethylene/VOCs: <strong>${fmtPrecise(
+        <div><span style="color:#d97706">&#9679;</span> Ethylene/VOCs: <strong>${fmtPrecise(
           item.ethylene,
         )} ppm</strong></div>
       `;
@@ -579,9 +617,9 @@
   // Remove last-sync handling (element not present in DOM)
 
   async function updateMetrics() {
-    console.log("🔄 updateMetrics called");
+    console.log("updateMetrics called");
     const fetched = await fetchMetrics();
-    console.log("✅ Fetched result:", fetched);
+    console.log("Fetched result:", fetched);
     let temp, humidity, ethylene, tstamp;
     if (
       fetched &&
@@ -593,42 +631,90 @@
       humidity = fetched.humidity;
       ethylene = fetched.ethylene;
       tstamp = Date.now();
-      console.log("✓ Using real data:", { temp, humidity, ethylene });
+      console.log("Using real data:", { temp, humidity, ethylene });
     } else {
       temp = 3 + Math.random() * 3.5;
       humidity = 85 + Math.random() * 8;
       ethylene = 0.01 + Math.random() * 0.14;
       tstamp = Date.now();
-      console.log("⚠️ Using mock data (fetch failed):", {
+      console.log("Using mock data (fetch failed):", {
         temp,
         humidity,
         ethylene,
       });
     }
 
-    el("temp-value").textContent = fmt(temp);
-    el("humidity-value").textContent = fmt(humidity);
-    el("ethylene-value").textContent = fmtPrecise(ethylene);
-    console.log("📝 Updated DOM elements");
+    el("temp-value").textContent = `Target ${targets.temp.min}-${targets.temp.max}\u00B0C`;
+    el("humidity-value").textContent = `Target ${targets.humidity.min}-${targets.humidity.max}%`;
+    el("ethylene-value").textContent = `Limit ${targets.ethylene.max.toFixed(3)} ppm`;
+    console.log("Updated DOM elements");
 
-    // Update indicator bars
-    // Temperature: 0-15°C range
-    const tempPercent = Math.max(0, Math.min(100, (temp / 15) * 100));
-    const setGauge = (gaugeId, labelId, percent) => {
+    // Update indicator rings using meaningful target-based ranges.
+    const percentWithinRange = (value, minValue, maxValue) => {
+      if (maxValue <= minValue) return 0;
+      return Math.max(
+        0,
+        Math.min(100, ((value - minValue) / (maxValue - minValue)) * 100),
+      );
+    };
+
+    const setGauge = (gaugeId, labelId, percent, labelText) => {
       const gaugeEl = el(gaugeId);
       if (gaugeEl) gaugeEl.style.setProperty("--progress", `${percent}%`);
       const labelEl = el(labelId);
-      if (labelEl) labelEl.textContent = `${Math.round(percent)}%`;
+      if (labelEl) labelEl.textContent = labelText;
     };
-    setGauge("temp-ring", "temp-percent", tempPercent);
 
-    // Humidity: 0-100% range
-    const humidityPercent = Math.max(0, Math.min(100, humidity));
-    setGauge("humidity-ring", "humidity-percent", humidityPercent);
+    const tempRangeMin = targets.temp.min - 5;
+    const tempRangeMax = targets.temp.max + 5;
+    const tempPercent = percentWithinRange(temp, tempRangeMin, tempRangeMax);
+    setGauge("temp-ring", "temp-percent", tempPercent, `${fmt(temp)}`);
 
-    // Ethylene: 0-0.2 ppm range (display range)
-    const ethylenePercent = Math.max(0, Math.min(100, (ethylene / 0.2) * 100));
-    setGauge("ethylene-ring", "ethylene-percent", ethylenePercent);
+    const humidityPercent = percentWithinRange(
+      humidity,
+      targets.humidity.min,
+      targets.humidity.max,
+    );
+    setGauge(
+      "humidity-ring",
+      "humidity-percent",
+      humidityPercent,
+      `${fmt(humidity)}`,
+    );
+
+    const ethyleneRangeMax = Math.max(targets.ethylene.max * 2, 1);
+    const ethylenePercent = percentWithinRange(ethylene, 0, ethyleneRangeMax);
+    setGauge(
+      "ethylene-ring",
+      "ethylene-percent",
+      ethylenePercent,
+      `${fmtPrecise(ethylene)}`,
+    );
+
+    setDelta(
+      "temp-delta",
+      previousMetrics.temp == null ? NaN : temp - previousMetrics.temp,
+      1,
+      "degC",
+    );
+    setDelta(
+      "humidity-delta",
+      previousMetrics.humidity == null
+        ? NaN
+        : humidity - previousMetrics.humidity,
+      1,
+      "%",
+    );
+    setDelta(
+      "ethylene-delta",
+      previousMetrics.ethylene == null
+        ? NaN
+        : ethylene - previousMetrics.ethylene,
+      3,
+      "ppm",
+    );
+
+    previousMetrics = { temp, humidity, ethylene };
 
     // Keep live append behavior only for 24h mode.
     if (currentTimeRange === "24h") {
@@ -641,9 +727,9 @@
       push(series.ethylene, ethylene);
       push(series.times, tstamp);
 
-      drawSpark(ctx("temp-chart"), series.temp, "#ef4444");
-      drawSpark(ctx("humidity-chart"), series.humidity, "#b6daf7");
-      drawSpark(ctx("ethylene-chart"), series.ethylene, "#f59e0b");
+      drawSpark(ctx("temp-chart"), series.temp, "#d1495b");
+      drawSpark(ctx("humidity-chart"), series.humidity, "#0077b6");
+      drawSpark(ctx("ethylene-chart"), series.ethylene, "#d97706");
       drawEnvTrend(ctx("env-trend"), series);
     }
     // realtime stream removed
@@ -662,6 +748,29 @@
           : "On target";
     el("ethylene-trend").textContent =
       ethylene > targets.ethylene.max ? "High" : "Normal";
+
+    const tempState =
+      temp > targets.temp.max + 0.5 || temp < targets.temp.min - 0.5
+        ? "critical"
+        : temp > targets.temp.max || temp < targets.temp.min
+          ? "warn"
+          : "good";
+    const humidityState =
+      humidity > targets.humidity.max + 3 || humidity < targets.humidity.min - 3
+        ? "critical"
+        : humidity > targets.humidity.max || humidity < targets.humidity.min
+          ? "warn"
+          : "good";
+    const ethyleneState =
+      ethylene > targets.ethylene.max
+        ? "critical"
+        : ethylene > targets.ethylene.max * 0.8
+          ? "warn"
+          : "good";
+
+    setMetricCardState("temp-ring", tempState);
+    setMetricCardState("humidity-ring", humidityState);
+    setMetricCardState("ethylene-ring", ethyleneState);
 
     // summary stats (min/avg/max)
     const stat = (arr) => {
@@ -690,30 +799,30 @@
     if (temp > targets.temp.max + 0.5)
       alerts.push({
         type: "err",
-        text: `Temperature ${temp.toFixed(1)}°C is above safe range (max ${
+        text: `Temperature ${temp.toFixed(1)}\u00B0C is above safe range (max ${
           targets.temp.max
-        }°C) — cooling system activated.`,
+        }\u00B0C) - cooling system activated.`,
       });
     else if (temp < targets.temp.min - 0.5)
       alerts.push({
         type: "err",
-        text: `Temperature ${temp.toFixed(1)}°C is below safe range (min ${
+        text: `Temperature ${temp.toFixed(1)}\u00B0C is below safe range (min ${
           targets.temp.min
-        }°C) — heating required.`,
+        }\u00B0C) - heating required.`,
       });
     if (humidity < targets.humidity.min - 3)
       alerts.push({
         type: "err",
         text: `Humidity ${humidity.toFixed(1)}% is below safe range (min ${
           targets.humidity.min
-        }%) — humidifier activated.`,
+        }%) - humidifier activated.`,
       });
     else if (humidity > targets.humidity.max + 3)
       alerts.push({
         type: "err",
         text: `Humidity ${humidity.toFixed(1)}% is above safe range (max ${
           targets.humidity.max
-        }%) — dehumidifier activated.`,
+        }%) - dehumidifier activated.`,
       });
     if (ethylene > targets.ethylene.max) {
       alerts.push({
@@ -722,7 +831,7 @@
           1,
         )}ppm is above safe threshold (max ${
           targets.ethylene.max
-        }ppm) — air scrubber activated.`,
+        }ppm) - air scrubber activated.`,
       });
       // Auto-activate scrubber when VOCs are high
       if (systemStatus.scrubber !== "active") {
@@ -748,16 +857,16 @@
     } else {
       // Show ALL alerts in banner
       if (banner && bannerText && alerts.length > 0) {
-        const allAlertTexts = alerts.map((a) => a.text).join(" • ");
+        const allAlertTexts = alerts.map((a) => a.text).join(" | ");
         if (isBannerSuppressed(allAlertTexts)) {
           banner.hidden = true;
         } else {
           bannerText.textContent = allAlertTexts;
           banner.hidden = false;
           // adjust banner color to red for errors
-          banner.style.background = "#fee2e2";
+          banner.style.background = "#fce8eb";
           banner.style.color = "#7f1d1d";
-          banner.style.borderBottomColor = "#fecaca";
+          banner.style.borderBottomColor = "#f4c5cf";
           // auto-hide when alerts clear
           clearTimeout(window.__alertBannerTimer);
         }
@@ -867,11 +976,11 @@
 
       // Change color based on health
       if (kmno4Health < 20) {
-        kmno4Bar.style.background = "linear-gradient(90deg, #ef4444, #f87171)";
+        kmno4Bar.style.background = "linear-gradient(90deg, #d1495b, #e06a78)";
       } else if (kmno4Health < 50) {
-        kmno4Bar.style.background = "linear-gradient(90deg, #f59e0b, #fbbf24)";
+        kmno4Bar.style.background = "linear-gradient(90deg, #d97706, #fbbf24)";
       } else {
-        kmno4Bar.style.background = "linear-gradient(90deg, #b6daf7, #a4cdef)";
+        kmno4Bar.style.background = "linear-gradient(90deg, #0077b6, #00689f)";
       }
     }
   }
@@ -1221,7 +1330,7 @@
           position: absolute;
           top: 20px;
           right: 20px;
-          background: #ef4444;
+          background: #d1495b;
           color: white;
           border: none;
           padding: 12px 24px;
@@ -1230,7 +1339,7 @@
           border-radius: 8px;
           cursor: pointer;
           z-index: 10002;
-        ">✕ Close</button>
+        ">? Close</button>
 
         <!-- Timestamp -->
         <div style="
@@ -1245,7 +1354,7 @@
           font-weight: 500;
           z-index: 10002;
         ">
-          📅 ${new Date(snapshot.timestamp).toLocaleString()}<br>
+          Captured: ${new Date(snapshot.timestamp).toLocaleString()}<br>
           <span style="font-size: 12px; opacity: 0.8;">Image ${index + 1} of ${
             snapshots.length
           }</span><br>
@@ -1282,7 +1391,7 @@
           z-index: 10002;
           transition: background 0.2s;
         " onmouseover="this.style.background='white'" onmouseout="this.style.background='rgba(255, 255, 255, 0.9)'">
-          ◀
+          ?
         </button>
         `
             : ""
@@ -1313,7 +1422,7 @@
           z-index: 10002;
           transition: background 0.2s;
         " onmouseover="this.style.background='white'" onmouseout="this.style.background='rgba(255, 255, 255, 0.9)'">
-          ▶
+          ?
         </button>
         `
             : ""
@@ -1754,7 +1863,7 @@
     const trendSummaryParts = [];
     if (hasLiveMetrics) {
       trendSummaryParts.push(
-        `Temp ${tempTrend} (${Math.abs(tempDelta).toFixed(1)}°C)`,
+        `Temp ${tempTrend} (${Math.abs(tempDelta).toFixed(1)}\u00B0C)`,
       );
       trendSummaryParts.push(
         `Humidity ${humidityTrend} (${Math.abs(humidityDelta).toFixed(1)}%)`,
@@ -1785,15 +1894,17 @@
     const recommendations = [];
     if (hasLiveMetrics) {
       if (latestTemp > tempMax + 0.2 || tempTrend === "rising") {
-        recommendations.push(`Lower temperature to ${tempMin}–${tempMax}°C.`);
+        recommendations.push(
+          `Lower temperature to ${tempMin}-${tempMax}\u00B0C.`,
+        );
       }
       if (latestHumidity < humidityMin - 1) {
         recommendations.push(
-          `Raise humidity to ${humidityMin}–${humidityMax}%.`,
+          `Raise humidity to ${humidityMin}-${humidityMax}%.`,
         );
       } else if (latestHumidity > humidityMax + 1) {
         recommendations.push(
-          `Lower humidity to ${humidityMin}–${humidityMax}%.`,
+          `Lower humidity to ${humidityMin}-${humidityMax}%.`,
         );
       }
       if (latestEthylene > vocMax || ethyleneTrend === "rising") {
@@ -1855,7 +1966,7 @@
     if (countBadge) {
       countBadge.textContent =
         activeCount > 0 ? `${activeCount} Active Alerts` : "No Active Alerts";
-      countBadge.style.background = activeCount > 0 ? "#ef4444" : "#22c55e";
+      countBadge.style.background = activeCount > 0 ? "#d1495b" : "#22c55e";
     }
 
     if (!container) return;
@@ -2023,10 +2134,10 @@
     const humidEl = el("threshold-humidity");
     const vocEl = el("threshold-voc");
     if (tempEl) {
-      tempEl.textContent = `${profile.temperature.min}–${profile.temperature.max}°C`;
+      tempEl.textContent = `${profile.temperature.min}-${profile.temperature.max}\u00B0C`;
     }
     if (humidEl) {
-      humidEl.textContent = `${profile.humidity.min}–${profile.humidity.max}%`;
+      humidEl.textContent = `${profile.humidity.min}-${profile.humidity.max}%`;
     }
     if (vocEl) {
       vocEl.textContent = `${(profile.voc / 1000).toFixed(0)} ppm`;
@@ -2042,10 +2153,10 @@
       '[aria-label="Ethylene/VOCs"] .target',
     );
     if (tempTarget) {
-      tempTarget.textContent = `Target: ${profile.temperature.min}–${profile.temperature.max}°C`;
+      tempTarget.textContent = `Target: ${profile.temperature.min}-${profile.temperature.max}\u00B0C`;
     }
     if (humidityTarget) {
-      humidityTarget.textContent = `Target: ${profile.humidity.min}–${profile.humidity.max}%`;
+      humidityTarget.textContent = `Target: ${profile.humidity.min}-${profile.humidity.max}%`;
     }
     if (ethyleneTarget) {
       ethyleneTarget.textContent = `Threshold: ${(profile.voc / 1000).toFixed(0)} ppm`;
@@ -2142,7 +2253,7 @@
       applyAutoThresholdMode();
 
       // Show confirmation
-      saveBtn.textContent = "✓ Saved!";
+      saveBtn.textContent = "Saved!";
       setTimeout(() => {
         saveBtn.textContent = "Save Settings";
       }, 1500);
@@ -2172,9 +2283,9 @@
     series.ethylene = nextSeries.ethylene;
     series.times = nextSeries.times;
 
-    drawSpark(ctx("temp-chart"), series.temp, "#ef4444");
-    drawSpark(ctx("humidity-chart"), series.humidity, "#b6daf7");
-    drawSpark(ctx("ethylene-chart"), series.ethylene, "#f59e0b");
+    drawSpark(ctx("temp-chart"), series.temp, "#d1495b");
+    drawSpark(ctx("humidity-chart"), series.humidity, "#0077b6");
+    drawSpark(ctx("ethylene-chart"), series.ethylene, "#d97706");
     drawEnvTrend(ctx("env-trend"), series);
     renderRecommendations();
   }
@@ -2370,7 +2481,7 @@
         statusClass = "warning";
       }
 
-      const itemIcon = produceIcons[item.type] || "📦";
+      const itemIcon = produceIcons[item.type] || "";
       const itemName = produceNames[item.type] || item.type;
 
       row.innerHTML = `
@@ -2378,18 +2489,18 @@
         <td>${item.quantity} units</td>
         <td style="color: ${
           statusClass === "critical"
-            ? "#dc2626"
+            ? "#b23a48"
             : statusClass === "warning"
-              ? "#f59e0b"
+              ? "#d97706"
               : "#059669"
         };">
           ${item.daysLeft} days left
         </td>
         <td style="color: ${
           statusClass === "critical"
-            ? "#dc2626"
+            ? "#b23a48"
             : statusClass === "warning"
-              ? "#f59e0b"
+              ? "#d97706"
               : "#059669"
         }; font-weight: 500;">${status}</td>
         <td>
@@ -2397,7 +2508,7 @@
             class="delete-item-btn" 
             data-item-id="${item.id}"
             style="
-              background: #ef4444;
+              background: #d1495b;
               color: white;
               border: none;
               padding: 6px 12px;
@@ -2406,8 +2517,8 @@
               font-size: 13px;
               font-weight: 600;
             "
-            onmouseover="this.style.background='#dc2626'"
-            onmouseout="this.style.background='#ef4444'"
+            onmouseover="this.style.background='#b23a48'"
+            onmouseout="this.style.background='#d1495b'"
           >Delete</button>
         </td>
       `;
@@ -2457,7 +2568,7 @@
       const daysLeft = parseInt(el("item-days-left").value);
 
       if (!produceType || !quantity || !daysLeft) {
-        showAlert("⚠️ Please fill all fields", "warning");
+        showAlert("Please fill all fields", "warning");
         return;
       }
 
@@ -2475,14 +2586,14 @@
           renderInventory();
           modal.hidden = true;
           showAlert(
-            `✓ ${quantity} units of ${produceNames[produceType]} added to inventory`,
+            `? ${quantity} units of ${produceNames[produceType]} added to inventory`,
             "success",
           );
         } else {
-          showAlert(`✗ Failed to add item: ${data.error}`, "error");
+          showAlert(`? Failed to add item: ${data.error}`, "error");
         }
       } catch (error) {
-        showAlert(`✗ Error adding item: ${error.message}`, "error");
+        showAlert(`? Error adding item: ${error.message}`, "error");
       }
     });
   }
@@ -2520,13 +2631,13 @@
       if (data.success) {
         inventoryItems = data.inventory;
         renderInventory();
-        showAlert("✓ Item deleted successfully", "success");
+        showAlert("? Item deleted successfully", "success");
       } else {
-        showAlert(`✗ Failed to delete item: ${data.error}`, "error");
+        showAlert(`? Failed to delete item: ${data.error}`, "error");
       }
     } catch (error) {
       console.error("Error deleting item:", error);
-      showAlert(`✗ Error deleting item: ${error.message}`, "error");
+      showAlert(`? Error deleting item: ${error.message}`, "error");
     }
   }
 
@@ -2611,7 +2722,7 @@
       const data = await res.json();
 
       if (!data.success || !data.snapshots || data.snapshots.length === 0) {
-        showAlert("📷 No snapshots available yet", "warning");
+        showAlert("No snapshots available yet", "warning");
         return;
       }
 
@@ -2634,13 +2745,13 @@
       `;
 
       const closeBtn = document.createElement("button");
-      closeBtn.textContent = "✕ Close Gallery";
+      closeBtn.textContent = "? Close Gallery";
       closeBtn.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
         padding: 10px 20px;
-        background: #ef4444;
+        background: #d1495b;
         color: white;
         border: none;
         border-radius: 8px;
@@ -2698,7 +2809,7 @@
       document.body.appendChild(modal);
     } catch (e) {
       console.error("Error opening gallery:", e);
-      showAlert("✗ Failed to load gallery", "error");
+      showAlert("? Failed to load gallery", "error");
     }
   }
 
@@ -2845,17 +2956,17 @@
     window.addEventListener("offline", () => {
       isCurrentlyOffline = true;
       if (headerStatusText) {
-        headerStatusText.textContent = "🔴 Offline";
+        headerStatusText.textContent = "Offline";
       }
-      console.log("⚠️ Connection lost - offline mode");
+      console.log("Connection lost - offline mode");
     });
 
     window.addEventListener("online", () => {
       isCurrentlyOffline = false;
       if (headerStatusText) {
-        headerStatusText.textContent = "🟢 Connected";
+        headerStatusText.textContent = "Connected";
       }
-      console.log("✅ Connection restored - fetching fresh data");
+      console.log("? Connection restored - fetching fresh data");
 
       // Auto-refresh data when coming back online
       setTimeout(() => {
@@ -2873,7 +2984,7 @@
         statusBanner.classList.add("offline");
       }
       if (statusIndicator) {
-        statusIndicator.textContent = "🔴 Offline - showing cached data";
+        statusIndicator.textContent = "Offline - showing cached data";
       }
     }
   }
