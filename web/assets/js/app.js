@@ -1,7 +1,7 @@
 // Mock live data updates and simple UI interactions
 (function () {
   const fmt = (n) => (typeof n === "number" ? n.toFixed(1) : "--");
-  const fmtPrecise = (n) => (typeof n === "number" ? n.toFixed(3) : "--");
+  const fmtPrecise = (n) => (typeof n === "number" ? n.toFixed(1) : "--");
   const el = (id) => document.getElementById(id);
   const ctx = (cid) => {
     const c = document.getElementById(cid);
@@ -185,14 +185,14 @@
     for (let i = 0; i <= gridRows; i++) {
       const y = PAD + (i / gridRows) * (h - PAD * 2);
       const ev = ethMax - (i / gridRows) * ethRange;
-      canvasCtx.fillText(ev.toFixed(2), 46, y + 4);
+      canvasCtx.fillText(ev.toFixed(1), 46, y + 4);
     }
 
     canvasCtx.fillStyle = "#0077b6";
     for (let i = 0; i <= gridRows; i++) {
       const y = PAD + (i / gridRows) * (h - PAD * 2);
       const hv = humMax - (i / gridRows) * humRange;
-      const hlabel = hv.toFixed(0) + "%";
+      const hlabel = hv.toFixed(1) + "%";
       const tw = canvasCtx.measureText(hlabel).width;
       canvasCtx.fillText(hlabel, w - PAD - tw - 4, y + 4);
     }
@@ -644,9 +644,9 @@
       });
     }
 
-    el("temp-value").textContent = `Target ${targets.temp.min}-${targets.temp.max}\u00B0C`;
-    el("humidity-value").textContent = `Target ${targets.humidity.min}-${targets.humidity.max}%`;
-    el("ethylene-value").textContent = `Limit ${targets.ethylene.max.toFixed(3)} ppm`;
+    el("temp-value").textContent = `Target ${fmt(targets.temp.min)}-${fmt(targets.temp.max)}\u00B0C`;
+    el("humidity-value").textContent = `Target ${fmt(targets.humidity.min)}-${fmt(targets.humidity.max)}%`;
+    el("ethylene-value").textContent = `Limit ${fmt(targets.ethylene.max)} ppm`;
     console.log("Updated DOM elements");
 
     // Update indicator rings using meaningful target-based ranges.
@@ -1869,7 +1869,7 @@
         `Humidity ${humidityTrend} (${Math.abs(humidityDelta).toFixed(1)}%)`,
       );
       trendSummaryParts.push(
-        `VOC ${ethyleneTrend} (${Math.abs(ethyleneDelta).toFixed(3)} ppm)`,
+        `VOC ${ethyleneTrend} (${Math.abs(ethyleneDelta).toFixed(1)} ppm)`,
       );
     } else {
       trendSummaryParts.push("Waiting for live data");
@@ -2140,7 +2140,7 @@
       humidEl.textContent = `${profile.humidity.min}-${profile.humidity.max}%`;
     }
     if (vocEl) {
-      vocEl.textContent = `${(profile.voc / 1000).toFixed(0)} ppm`;
+      vocEl.textContent = `${fmt(profile.voc / 1000)} ppm`;
     }
 
     const tempTarget = document.querySelector(
@@ -2153,13 +2153,13 @@
       '[aria-label="Ethylene/VOCs"] .target',
     );
     if (tempTarget) {
-      tempTarget.textContent = `Target: ${profile.temperature.min}-${profile.temperature.max}\u00B0C`;
+      tempTarget.textContent = `Target: ${fmt(profile.temperature.min)}-${fmt(profile.temperature.max)}\u00B0C`;
     }
     if (humidityTarget) {
-      humidityTarget.textContent = `Target: ${profile.humidity.min}-${profile.humidity.max}%`;
+      humidityTarget.textContent = `Target: ${fmt(profile.humidity.min)}-${fmt(profile.humidity.max)}%`;
     }
     if (ethyleneTarget) {
-      ethyleneTarget.textContent = `Threshold: ${(profile.voc / 1000).toFixed(0)} ppm`;
+      ethyleneTarget.textContent = `Threshold: ${fmt(profile.voc / 1000)} ppm`;
     }
 
     const modeNote = el("threshold-mode-note");
