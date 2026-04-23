@@ -2,6 +2,7 @@
 (function () {
   const fmt = (n) => (typeof n === "number" ? n.toFixed(1) : "--");
   const fmtPrecise = (n) => (typeof n === "number" ? n.toFixed(1) : "--");
+  const fmtWhole = (n) => (typeof n === "number" ? n.toFixed(0) : "--");
   const el = (id) => document.getElementById(id);
   const ctx = (cid) => {
     const c = document.getElementById(cid);
@@ -644,9 +645,12 @@
       });
     }
 
-    el("temp-value").textContent = `Target ${fmt(targets.temp.min)}-${fmt(targets.temp.max)}\u00B0C`;
-    el("humidity-value").textContent = `Target ${fmt(targets.humidity.min)}-${fmt(targets.humidity.max)}%`;
-    el("ethylene-value").textContent = `Limit ${fmt(targets.ethylene.max)} ppm`;
+    el("temp-value").textContent =
+      `Target ${fmtWhole(targets.temp.min)}-${fmtWhole(targets.temp.max)}\u00B0C`;
+    el("humidity-value").textContent =
+      `Target ${fmtWhole(targets.humidity.min)}-${fmtWhole(targets.humidity.max)}%`;
+    el("ethylene-value").textContent =
+      `Limit ${fmtWhole(targets.ethylene.max)} ppm`;
     console.log("Updated DOM elements");
 
     // Update indicator rings using meaningful target-based ranges.
@@ -695,7 +699,7 @@
       "temp-delta",
       previousMetrics.temp == null ? NaN : temp - previousMetrics.temp,
       1,
-      "degC",
+      "°C",
     );
     setDelta(
       "humidity-delta",
@@ -855,13 +859,58 @@
     if (alerts.length === 0) {
       if (banner) banner.hidden = true;
     } else {
-      // Show ALL alerts in banner
+      // Keep banner concise to avoid clipping when several alerts fire at once.
       if (banner && bannerText && alerts.length > 0) {
-        const allAlertTexts = alerts.map((a) => a.text).join(" | ");
-        if (isBannerSuppressed(allAlertTexts)) {
+        const bannerMessage = alerts[0].text;
+        if (isBannerSuppressed(bannerMessage)) {
           banner.hidden = true;
         } else {
-          bannerText.textContent = allAlertTexts;
+          bannerText.textContent = "";
+          const mainMessage = document.createElement("span");
+          mainMessage.textContent = bannerMessage;
+          bannerText.appendChild(mainMessage);
+
+          if (alerts.length > 1) {
+            const moreAlertsButton = document.createElement("button");
+            moreAlertsButton.type = "button";
+            moreAlertsButton.className = "alert-more-link";
+            moreAlertsButton.textContent = `(+${alerts.length - 1} more alerts)`;
+            moreAlertsButton.addEventListener("click", () => {
+              const metricsSection = document.getElementById("dashboard");
+              if (metricsSection) {
+                metricsSection.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+              }
+
+              const highlightCard = (ringId) => {
+                const ring = document.getElementById(ringId);
+                const card = ring?.closest(".metric-card");
+                if (!card) return;
+                card.classList.remove("metric-card-attention");
+                // restart animation when clicked repeatedly
+                void card.offsetWidth;
+                card.classList.add("metric-card-attention");
+                setTimeout(() => {
+                  card.classList.remove("metric-card-attention");
+                }, 2200);
+              };
+
+              const joined = alerts
+                .map((a) => String(a.text || ""))
+                .join(" ")
+                .toLowerCase();
+              if (joined.includes("temperature")) highlightCard("temp-ring");
+              if (joined.includes("humidity")) highlightCard("humidity-ring");
+              if (joined.includes("voc") || joined.includes("ethylene")) {
+                highlightCard("ethylene-ring");
+              }
+            });
+            bannerText.appendChild(document.createTextNode(" "));
+            bannerText.appendChild(moreAlertsButton);
+          }
+
           banner.hidden = false;
           // adjust banner color to red for errors
           banner.style.background = "#fce8eb";
@@ -1339,7 +1388,7 @@
           border-radius: 8px;
           cursor: pointer;
           z-index: 10002;
-        ">? Close</button>
+        ">Close</button>
 
         <!-- Timestamp -->
         <div style="
@@ -1390,8 +1439,8 @@
           justify-content: center;
           z-index: 10002;
           transition: background 0.2s;
-        " onmouseover="this.style.background='white'" onmouseout="this.style.background='rgba(255, 255, 255, 0.9)'">
-          ?
+        " onmouseover="this.style.background='white'" onmouseout="this.style.background='rgba(255, 255, 255, 0.9)'" aria-label="Previous image" title="Previous image">
+          &larr;
         </button>
         `
             : ""
@@ -1421,8 +1470,8 @@
           justify-content: center;
           z-index: 10002;
           transition: background 0.2s;
-        " onmouseover="this.style.background='white'" onmouseout="this.style.background='rgba(255, 255, 255, 0.9)'">
-          ?
+        " onmouseover="this.style.background='white'" onmouseout="this.style.background='rgba(255, 255, 255, 0.9)'" aria-label="Next image" title="Next image">
+          &rarr;
         </button>
         `
             : ""
@@ -1660,17 +1709,14 @@
       if (!res.ok) throw new Error("Failed to fetch AI alerts");
       const data = await res.json();
       const liveAlerts = Array.isArray(data.alerts) ? data.alerts : [];
-      const useDummy =
-        liveAlerts.length === 0 && !cameraInventorySummary.analyzedAt;
-      aiAlerts = useDummy ? DUMMY_AI_ALERTS : liveAlerts;
+      aiAlerts = liveAlerts;
       renderAIAlerts();
       renderSpoilageBanner(liveAlerts, data);
     } catch (error) {
       console.error("Error loading AI alerts:", error);
-      if (!cameraInventorySummary.analyzedAt) {
-        aiAlerts = DUMMY_AI_ALERTS;
-        renderAIAlerts();
-      }
+      aiAlerts = [];
+      renderAIAlerts();
+      renderSpoilageBanner([], {});
     }
   }
 
@@ -1965,7 +2011,9 @@
     ).length;
     if (countBadge) {
       countBadge.textContent =
-        activeCount > 0 ? `${activeCount} Active Alerts` : "No Active Alerts";
+        activeCount > 0
+          ? `${activeCount} AI Active Alerts`
+          : "No AI Active Alerts";
       countBadge.style.background = activeCount > 0 ? "#d1495b" : "#22c55e";
     }
 
@@ -2134,13 +2182,13 @@
     const humidEl = el("threshold-humidity");
     const vocEl = el("threshold-voc");
     if (tempEl) {
-      tempEl.textContent = `${profile.temperature.min}-${profile.temperature.max}\u00B0C`;
+      tempEl.textContent = `${fmtWhole(profile.temperature.min)}-${fmtWhole(profile.temperature.max)}\u00B0C`;
     }
     if (humidEl) {
-      humidEl.textContent = `${profile.humidity.min}-${profile.humidity.max}%`;
+      humidEl.textContent = `${fmtWhole(profile.humidity.min)}-${fmtWhole(profile.humidity.max)}%`;
     }
     if (vocEl) {
-      vocEl.textContent = `${fmt(profile.voc / 1000)} ppm`;
+      vocEl.textContent = `${fmtWhole(profile.voc / 1000)} ppm`;
     }
 
     const tempTarget = document.querySelector(
@@ -2153,13 +2201,13 @@
       '[aria-label="Ethylene/VOCs"] .target',
     );
     if (tempTarget) {
-      tempTarget.textContent = `Target: ${fmt(profile.temperature.min)}-${fmt(profile.temperature.max)}\u00B0C`;
+      tempTarget.textContent = `Target: ${fmtWhole(profile.temperature.min)}-${fmtWhole(profile.temperature.max)}\u00B0C`;
     }
     if (humidityTarget) {
-      humidityTarget.textContent = `Target: ${fmt(profile.humidity.min)}-${fmt(profile.humidity.max)}%`;
+      humidityTarget.textContent = `Target: ${fmtWhole(profile.humidity.min)}-${fmtWhole(profile.humidity.max)}%`;
     }
     if (ethyleneTarget) {
-      ethyleneTarget.textContent = `Threshold: ${fmt(profile.voc / 1000)} ppm`;
+      ethyleneTarget.textContent = `Threshold: ${fmtWhole(profile.voc / 1000)} ppm`;
     }
 
     const modeNote = el("threshold-mode-note");
@@ -2586,14 +2634,14 @@
           renderInventory();
           modal.hidden = true;
           showAlert(
-            `? ${quantity} units of ${produceNames[produceType]} added to inventory`,
+            `${quantity} units of ${produceNames[produceType]} added to inventory`,
             "success",
           );
         } else {
-          showAlert(`? Failed to add item: ${data.error}`, "error");
+          showAlert(`Failed to add item: ${data.error}`, "error");
         }
       } catch (error) {
-        showAlert(`? Error adding item: ${error.message}`, "error");
+        showAlert(`Error adding item: ${error.message}`, "error");
       }
     });
   }
@@ -2631,13 +2679,13 @@
       if (data.success) {
         inventoryItems = data.inventory;
         renderInventory();
-        showAlert("? Item deleted successfully", "success");
+        showAlert("Item deleted successfully", "success");
       } else {
-        showAlert(`? Failed to delete item: ${data.error}`, "error");
+        showAlert(`Failed to delete item: ${data.error}`, "error");
       }
     } catch (error) {
       console.error("Error deleting item:", error);
-      showAlert(`? Error deleting item: ${error.message}`, "error");
+      showAlert(`Error deleting item: ${error.message}`, "error");
     }
   }
 
@@ -2745,7 +2793,7 @@
       `;
 
       const closeBtn = document.createElement("button");
-      closeBtn.textContent = "? Close Gallery";
+      closeBtn.textContent = "Close Gallery";
       closeBtn.style.cssText = `
         position: fixed;
         top: 20px;
@@ -2809,7 +2857,7 @@
       document.body.appendChild(modal);
     } catch (e) {
       console.error("Error opening gallery:", e);
-      showAlert("? Failed to load gallery", "error");
+      showAlert("Failed to load gallery", "error");
     }
   }
 
@@ -2966,7 +3014,7 @@
       if (headerStatusText) {
         headerStatusText.textContent = "Connected";
       }
-      console.log("? Connection restored - fetching fresh data");
+      console.log("Connection restored - fetching fresh data");
 
       // Auto-refresh data when coming back online
       setTimeout(() => {

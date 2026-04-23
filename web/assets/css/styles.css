@@ -100,16 +100,75 @@ body {
   font-weight: 600;
   font-size: 13px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.alert-banner[hidden] {
+  display: none !important;
 }
 
 #alert-banner-text {
   flex: 1;
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.alert-more-link {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #7f1d1d;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.alert-more-link:hover {
+  color: #5b1212;
+}
+
+.alert-more-link:focus-visible {
+  outline: 2px solid rgba(127, 29, 29, 0.35);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.metric-card-attention {
+  animation: metricAttentionPulse 2.2s ease;
+}
+
+@keyframes metricAttentionPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.35);
+    transform: translateY(0);
+  }
+  30% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.18);
+    transform: translateY(-2px);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+    transform: translateY(0);
+  }
+}
+
+#spoilage-banner-text {
+  flex: 1;
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .spoilage-banner {
-  top: 116px;
+  top: 132px;
   background: #fce8eb;
   color: #7f1d1d;
   border-bottom: 1px solid #f4c5cf;
@@ -122,7 +181,7 @@ body {
   }
 
   .spoilage-banner {
-    top: 116px;
+    top: 132px;
   }
 }
 
@@ -887,7 +946,9 @@ body {
   flex-direction: column;
   gap: 12px;
   min-height: 272px;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .metric-card.status-good {
