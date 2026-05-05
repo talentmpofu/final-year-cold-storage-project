@@ -21,19 +21,6 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
 
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="/assets/img/icon-192.png" />
-    <link
-      rel="apple-touch-icon"
-      sizes="192x192"
-      href="/assets/img/icon-192.png"
-    />
-    <link
-      rel="apple-touch-icon"
-      sizes="512x512"
-      href="/assets/img/icon-512.png"
-    />
-
     <!-- Favicon -->
     <link
       rel="icon"
@@ -118,170 +105,200 @@
     <main class="container dashboard-shell" role="main">
       <aside class="dashboard-sidebar" aria-label="Dashboard sections">
         <div class="sidebar-brand">
-          <h2>Dashboard</h2>
+          <p class="sidebar-section-title">MAIN</p>
         </div>
-        <nav class="sidebar-nav">
-          <a href="#produce-selection" class="nav-link">
-            <svg
-              class="nav-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <path d="M9 7v10M15 7v10" />
-            </svg>
-            <span>Storage Info</span>
-          </a>
-          <a href="#dashboard" class="nav-link">
-            <svg
-              class="nav-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <rect x="3" y="3" width="7" height="7" />
-              <rect x="14" y="3" width="7" height="7" />
-              <rect x="14" y="14" width="7" height="7" />
-              <path d="M3 14h7v7H3z" />
-            </svg>
-            <span>Live Metrics</span>
-          </a>
-          <a href="#controls" class="nav-link">
-            <svg
-              class="nav-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="12" cy="12" r="1" />
-              <circle cx="12" cy="5" r="1" />
-              <circle cx="12" cy="19" r="1" />
-              <path d="M12 8v2M12 14v2M8.5 12h3M12.5 12h3" />
-            </svg>
-            <span>System Controls</span>
-          </a>
-          <a href="#view-ai-alerts" class="nav-link">
-            <svg
-              class="nav-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                d="M8 16H7a4 4 0 01-4-4V8a4 4 0 014-4h10a4 4 0 014 4v4a4 4 0 01-4 4h-1M10 20h4M12 17v3"
-              />
-            </svg>
-            <span>AI & Inventory</span>
-          </a>
-          <a href="#view-analytics" class="nav-link">
-            <svg
-              class="nav-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <polyline points="3 6 7 18 12 9 16 18 21 6" />
-            </svg>
-            <span>Trends</span>
-          </a>
-          <a href="#view-recommendations" class="nav-link">
-            <svg
-              class="nav-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                d="M12 3a7 7 0 00-7 7c0 2.2 1 4.1 2.6 5.4L8 19h8l.4-3.6A7 7 0 0012 3z"
-              />
-              <path d="M9 22h6" />
-            </svg>
-            <span>Insights</span>
-          </a>
-          <a href="#camera" class="nav-link">
-            <svg
-              class="nav-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
-              />
-              <circle cx="12" cy="13" r="4" />
-            </svg>
-            <span>Camera</span>
-          </a>
-          <a href="#view-settings" class="nav-link">
-            <svg
-              class="nav-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path
-                d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6m-17.78 7.78l4.24-4.24m5.08-5.08l4.24-4.24"
-              />
-            </svg>
-            <span>Settings</span>
-          </a>
-        </nav>
+
+        <div class="sidebar-group">
+          <nav class="sidebar-nav">
+            <a href="#dashboard" class="nav-link is-active">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="4" y="4" width="16" height="16" rx="3" />
+              </svg>
+              <span>Dashboard</span>
+            </a>
+            <a href="#produce-selection" class="nav-link">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M5 7h14M5 12h14M5 17h10" />
+              </svg>
+              <span>Storage Info</span>
+            </a>
+            <a href="#live-metrics" class="nav-link">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <path d="M3 14h7v7H3z" />
+              </svg>
+              <span>Live Metrics</span>
+            </a>
+            <a href="#controls" class="nav-link">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="1" />
+                <circle cx="12" cy="5" r="1" />
+                <circle cx="12" cy="19" r="1" />
+                <path d="M12 8v2M12 14v2M8.5 12h3M12.5 12h3" />
+              </svg>
+              <span>System Controls</span>
+            </a>
+          </nav>
+        </div>
+
+        <div class="sidebar-group">
+          <p class="sidebar-section-title">INTELLIGENCE</p>
+          <nav class="sidebar-nav">
+            <a href="#view-ai-alerts" class="nav-link">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="7" />
+                <circle cx="12" cy="12" r="2" />
+              </svg>
+              <span>AI & Inventory</span>
+            </a>
+            <a href="#view-analytics" class="nav-link">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M4 15c2.5 0 2.5-6 5-6s2.5 6 5 6 2.5-6 5-6 2.5 6 5 6" />
+              </svg>
+              <span>Trends</span>
+            </a>
+            <a href="#view-recommendations" class="nav-link">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="8" />
+                <circle cx="12" cy="12" r="2" />
+              </svg>
+              <span>Insights</span>
+            </a>
+          </nav>
+        </div>
+
+        <div class="sidebar-group">
+          <p class="sidebar-section-title">TOOLS</p>
+          <nav class="sidebar-nav">
+            <a href="#camera" class="nav-link">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
+                />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+              <span>Camera</span>
+              <span class="nav-badge" id="camera-nav-badge">3</span>
+            </a>
+            <a href="#view-settings" class="nav-link">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M12 3l7 7-7 7-7-7 7-7z" />
+              </svg>
+              <span>Settings</span>
+            </a>
+          </nav>
+        </div>
       </aside>
 
-      <div class="dashboard-content">
+      <div class="dashboard-content" id="dashboard">
         <!-- Overview Section -->
         <section
           class="dashboard-section"
           id="produce-selection"
           aria-labelledby="produce-title"
         >
-          <h2 id="produce-title">Storage Information</h2>
+          <h2 id="produce-title">Storage Info</h2>
+          <p class="section-subtitle">Active thresholds and detected produce</p>
           <div class="card">
-            <!-- Current Thresholds -->
             <div class="thresholds-section">
-              <div class="thresholds-header">
-                <label class="label-small">Active Thresholds</label>
-                <div class="current-stored-inline" aria-live="polite">
-                  <span class="current-stored-label">Currently Stored</span>
-                  <span id="current-produce-name" class="stored-pill"
-                    >Not detected</span
-                  >
-                  <span id="current-produce-method" class="stored-meta"
-                    >Waiting for detection...</span
-                  >
-                  <span
-                    id="current-produce-confidence"
-                    class="stored-confidence"
-                  ></span>
+              <div class="storage-layout">
+                <div class="storage-produce-card">
+                  <div class="storage-produce-content" aria-live="polite">
+                    <span class="current-stored-label">Currently Stored</span>
+                    <div class="storage-produce-row">
+                      <span
+                        id="current-produce-name"
+                        class="storage-produce-name"
+                        >Not detected</span
+                      >
+                      <span
+                        id="current-produce-confidence"
+                        class="stored-confidence"
+                      ></span>
+                    </div>
+                    <span id="current-produce-method" class="stored-meta"
+                      >Waiting for detection...</span
+                    >
+                  </div>
                 </div>
-              </div>
-              <div class="thresholds-grid">
-                <div class="threshold-item">
-                  <span class="threshold-label">Temperature</span>
-                  <span id="threshold-temp" class="threshold-value"
-                    >0-4&deg;C</span
-                  >
-                </div>
-                <div class="threshold-item">
-                  <span class="threshold-label">Humidity</span>
-                  <span id="threshold-humidity" class="threshold-value"
-                    >90-95%</span
-                  >
-                </div>
-                <div class="threshold-item">
-                  <span class="threshold-label">VOC Limit</span>
-                  <span id="threshold-voc" class="threshold-value">30 ppm</span>
+
+                <div class="storage-thresholds-card">
+                  <div class="thresholds-grid">
+                    <div class="threshold-item">
+                      <span class="threshold-label">Temperature</span>
+                      <span id="threshold-temp" class="threshold-value"
+                        >0-4&deg;C</span
+                      >
+                    </div>
+                    <div class="threshold-item">
+                      <span class="threshold-label">Humidity</span>
+                      <span id="threshold-humidity" class="threshold-value"
+                        >90-95%</span
+                      >
+                    </div>
+                    <div class="threshold-item">
+                      <span class="threshold-label">VOC Limit</span>
+                      <span id="threshold-voc" class="threshold-value"
+                        >30 ppm</span
+                      >
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -290,10 +307,11 @@
 
         <section
           class="dashboard-section"
-          id="dashboard"
+          id="live-metrics"
           aria-labelledby="metrics-title"
         >
           <h2 id="metrics-title">Live Metrics</h2>
+          <p class="section-subtitle">Sensor readings updated every 30s</p>
           <div class="grid">
             <article class="card metric-card" aria-label="Temperature">
               <header class="metric-card-head">
@@ -302,17 +320,24 @@
                 </div>
                 <span class="unit-pill">&deg;C</span>
               </header>
-              <div class="metric-gauge" id="temp-ring">
-                <div class="metric-gauge-inner">
-                  <div class="metric-gauge-percent" id="temp-percent">0%</div>
+              <div class="metric-main-row">
+                <div class="metric-gauge" id="temp-ring">
+                  <div class="metric-gauge-inner">
+                    <div class="metric-gauge-percent" id="temp-percent">0%</div>
+                  </div>
+                </div>
+
+                <div class="metric-summary">
+                  <div class="trend trend-pill" id="temp-trend">Stable</div>
                   <div class="metric-gauge-value">
                     <span id="temp-value">Target --</span>
+                  </div>
+                  <div class="metric-delta" id="temp-delta">
+                    No prior sample
                   </div>
                 </div>
               </div>
               <footer class="metric-card-foot">
-                <div class="trend" id="temp-trend">Stable</div>
-                <div class="metric-delta" id="temp-delta">No prior sample</div>
                 <div class="metric-stats">
                   <span><strong id="temp-min">--</strong> min</span>
                   <span><strong id="temp-avg">--</strong> avg</span>
@@ -327,21 +352,26 @@
                 </div>
                 <span class="unit-pill">%</span>
               </header>
-              <div class="metric-gauge" id="humidity-ring">
-                <div class="metric-gauge-inner">
-                  <div class="metric-gauge-percent" id="humidity-percent">
-                    0%
+              <div class="metric-main-row">
+                <div class="metric-gauge" id="humidity-ring">
+                  <div class="metric-gauge-inner">
+                    <div class="metric-gauge-percent" id="humidity-percent">
+                      0%
+                    </div>
                   </div>
+                </div>
+
+                <div class="metric-summary">
+                  <div class="trend trend-pill" id="humidity-trend">Stable</div>
                   <div class="metric-gauge-value">
                     <span id="humidity-value">Target --</span>
+                  </div>
+                  <div class="metric-delta" id="humidity-delta">
+                    No prior sample
                   </div>
                 </div>
               </div>
               <footer class="metric-card-foot">
-                <div class="trend" id="humidity-trend">Stable</div>
-                <div class="metric-delta" id="humidity-delta">
-                  No prior sample
-                </div>
                 <div class="metric-stats">
                   <span><strong id="humidity-min">--</strong> min</span>
                   <span><strong id="humidity-avg">--</strong> avg</span>
@@ -356,21 +386,26 @@
                 </div>
                 <span class="unit-pill">ppm</span>
               </header>
-              <div class="metric-gauge" id="ethylene-ring">
-                <div class="metric-gauge-inner">
-                  <div class="metric-gauge-percent" id="ethylene-percent">
-                    0%
+              <div class="metric-main-row">
+                <div class="metric-gauge" id="ethylene-ring">
+                  <div class="metric-gauge-inner">
+                    <div class="metric-gauge-percent" id="ethylene-percent">
+                      0%
+                    </div>
                   </div>
+                </div>
+
+                <div class="metric-summary">
+                  <div class="trend trend-pill" id="ethylene-trend">Stable</div>
                   <div class="metric-gauge-value">
                     <span id="ethylene-value">Limit --</span>
+                  </div>
+                  <div class="metric-delta" id="ethylene-delta">
+                    No prior sample
                   </div>
                 </div>
               </div>
               <footer class="metric-card-foot">
-                <div class="trend" id="ethylene-trend">Stable</div>
-                <div class="metric-delta" id="ethylene-delta">
-                  No prior sample
-                </div>
                 <div class="metric-stats">
                   <span><strong id="ethylene-min">--</strong> min</span>
                   <span><strong id="ethylene-avg">--</strong> avg</span>
@@ -378,38 +413,6 @@
                 </div>
               </footer>
             </article>
-          </div>
-
-          <div class="card section-card">
-            <h3>System Status</h3>
-            <div class="status-grid">
-              <div class="status-item" id="cooling-status">
-                <span class="status-name">Cooling System</span>
-                <span class="status-badge active">Active</span>
-              </div>
-              <div class="status-item" id="humidifier-status">
-                <span class="status-name">Humidifier</span>
-                <span class="status-badge active">Active</span>
-              </div>
-              <div class="status-item" id="scrubber-status">
-                <span class="status-name">Air Scrubber</span>
-                <span class="status-badge standby">Standby</span>
-              </div>
-              <div class="status-item" id="camera-status">
-                <span class="status-name">AI Camera</span>
-                <span class="status-badge active">Active</span>
-              </div>
-            </div>
-            <div class="filter-health">
-              <h4>Filter Health</h4>
-              <div class="filter-item">
-                <span class="filter-label">KMnO4 Filter</span>
-                <div class="filter-bar">
-                  <div id="kmno4-bar" class="filter-fill"></div>
-                </div>
-                <span id="kmno4-percent" class="filter-percent">78%</span>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -419,78 +422,109 @@
           aria-labelledby="controls-title"
         >
           <h2 id="controls-title">System Controls</h2>
-
-          <div class="card controls-compact">
-            <!-- Mode Toggle -->
-            <div class="control-mode-bar">
-              <div class="mode-toggle-group">
-                <span>Mode:</span>
-                <label class="toggle-switch">
-                  <input
-                    type="checkbox"
-                    id="auto-manual-toggle"
-                    checked
-                    aria-label="Automatic/Manual mode"
-                  />
-                  <span class="toggle-slider"></span>
-                </label>
-                <span id="mode-indicator" class="mode-text">Automatic</span>
+          <div class="controls-layout">
+            <div class="card controls-panel">
+              <h3>System Status</h3>
+              <div class="status-grid">
+                <div class="status-item" id="cooling-status">
+                  <span class="status-name">Cooling System</span>
+                  <span class="status-badge active">Active</span>
+                </div>
+                <div class="status-item" id="humidifier-status">
+                  <span class="status-name">Humidifier</span>
+                  <span class="status-badge active">Active</span>
+                </div>
+                <div class="status-item" id="scrubber-status">
+                  <span class="status-name">Air Scrubber</span>
+                  <span class="status-badge standby">Standby</span>
+                </div>
+                <div class="status-item" id="camera-status">
+                  <span class="status-name">AI Camera</span>
+                  <span class="status-badge active">Active</span>
+                </div>
+              </div>
+              <div class="filter-health">
+                <h4>KMnO4 Filter Health</h4>
+                <div class="filter-item">
+                  <span class="filter-label">KMnO4 Filter</span>
+                  <div class="filter-bar">
+                    <div id="kmno4-bar" class="filter-fill"></div>
+                  </div>
+                  <span id="kmno4-percent" class="filter-percent">78%</span>
+                </div>
               </div>
             </div>
 
-            <!-- System Controls Row -->
-            <div class="controls-row">
-              <div class="control-item">
-                <div class="control-label">
-                  <span class="control-name">Cooling</span>
-                  <span class="control-status" id="cooling-status-text"
-                    >Auto</span
-                  >
+            <div class="card controls-panel controls-compact">
+              <div class="control-mode-bar">
+                <span class="control-mode-title">Control Mode</span>
+                <div class="mode-toggle-group">
+                  <label class="toggle-switch">
+                    <input
+                      type="checkbox"
+                      id="auto-manual-toggle"
+                      checked
+                      aria-label="Automatic/Manual mode"
+                    />
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <span id="mode-indicator" class="mode-text">Automatic</span>
                 </div>
-                <label class="toggle-switch">
-                  <input
-                    type="checkbox"
-                    id="cooling-toggle"
-                    checked
-                    aria-label="Cooling control"
-                  />
-                  <span class="toggle-slider"></span>
-                </label>
               </div>
 
-              <div class="control-item">
-                <div class="control-label">
-                  <span class="control-name">Humidifier</span>
-                  <span class="control-status" id="humidifier-status-text"
-                    >Auto</span
-                  >
+              <div class="controls-row">
+                <div class="control-item">
+                  <div class="control-label">
+                    <span class="control-name">Cooling</span>
+                    <span class="control-status" id="cooling-status-text"
+                      >Auto</span
+                    >
+                  </div>
+                  <label class="toggle-switch">
+                    <input
+                      type="checkbox"
+                      id="cooling-toggle"
+                      checked
+                      aria-label="Cooling control"
+                    />
+                    <span class="toggle-slider"></span>
+                  </label>
                 </div>
-                <label class="toggle-switch">
-                  <input
-                    type="checkbox"
-                    id="humidifier-toggle"
-                    checked
-                    aria-label="Humidifier control"
-                  />
-                  <span class="toggle-slider"></span>
-                </label>
-              </div>
 
-              <div class="control-item">
-                <div class="control-label">
-                  <span class="control-name">Ethylene/VOCs</span>
-                  <span class="control-status" id="scrubber-status-text"
-                    >Auto</span
-                  >
+                <div class="control-item">
+                  <div class="control-label">
+                    <span class="control-name">Humidifier</span>
+                    <span class="control-status" id="humidifier-status-text"
+                      >Auto</span
+                    >
+                  </div>
+                  <label class="toggle-switch">
+                    <input
+                      type="checkbox"
+                      id="humidifier-toggle"
+                      checked
+                      aria-label="Humidifier control"
+                    />
+                    <span class="toggle-slider"></span>
+                  </label>
                 </div>
-                <label class="toggle-switch">
-                  <input
-                    type="checkbox"
-                    id="scrubber-toggle"
-                    aria-label="Ethylene/VOCs scrubber control"
-                  />
-                  <span class="toggle-slider"></span>
-                </label>
+
+                <div class="control-item">
+                  <div class="control-label">
+                    <span class="control-name">Ethylene/VOCs</span>
+                    <span class="control-status" id="scrubber-status-text"
+                      >Auto</span
+                    >
+                  </div>
+                  <label class="toggle-switch">
+                    <input
+                      type="checkbox"
+                      id="scrubber-toggle"
+                      aria-label="Ethylene/VOCs scrubber control"
+                    />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -501,7 +535,7 @@
           id="view-ai-alerts"
           aria-labelledby="ai-alerts-title"
         >
-          <h2 id="ai-alerts-title">AI Quality Alerts & Camera Summary</h2>
+          <h2 id="ai-alerts-title">AI & Inventory</h2>
           <div class="section-toolbar">
             <span class="muted">Real-time AI monitoring system</span>
             <span class="status-badge status-pill-danger" id="alert-count"
@@ -517,6 +551,7 @@
                   <th scope="col">Good</th>
                   <th scope="col">Bad</th>
                   <th scope="col">Status</th>
+                  <th scope="col">Note</th>
                 </tr>
               </thead>
               <tbody>
@@ -525,14 +560,20 @@
                   <td id="camera-apples-total">0</td>
                   <td id="camera-apples-good">0</td>
                   <td id="camera-apples-bad">0</td>
-                  <td id="camera-apples-status">Healthy</td>
+                  <td id="camera-apples-status">OK</td>
+                  <td id="camera-apples-note">
+                    No spoilage detected in latest camera run.
+                  </td>
                 </tr>
                 <tr>
                   <td>Potatoes</td>
                   <td id="camera-potatoes-total">0</td>
                   <td id="camera-potatoes-good">0</td>
                   <td id="camera-potatoes-bad">0</td>
-                  <td id="camera-potatoes-status">Healthy</td>
+                  <td id="camera-potatoes-status">OK</td>
+                  <td id="camera-potatoes-note">
+                    No spoilage detected in latest camera run.
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -544,7 +585,7 @@
           id="view-analytics"
           aria-labelledby="analytics-title"
         >
-          <h2>Environmental Trends</h2>
+          <h2>Trends</h2>
           <div class="card analytics-card">
             <header class="analytics-header">
               <h3>Environmental Trends</h3>
@@ -599,9 +640,7 @@
           id="view-recommendations"
           aria-labelledby="recommendations-title"
         >
-          <h2 id="recommendations-title">
-            Predictive Analytics & Recommendations
-          </h2>
+          <h2 id="recommendations-title">Insights</h2>
           <div class="insights-grid recommendations-grid">
             <article class="insight-card">
               <div class="insight-head">
@@ -667,7 +706,7 @@
           id="view-settings"
           aria-labelledby="settings-title"
         >
-          <h2 id="settings-title">Storage Settings</h2>
+          <h2 id="settings-title">Settings</h2>
           <div class="card settings-card">
             <div class="settings-table-wrapper">
               <table class="settings-table">
@@ -901,7 +940,7 @@
         </section>
 
         <section class="camera" id="camera" aria-labelledby="camera-title">
-          <h2 id="camera-title">Camera Snapshot</h2>
+          <h2 id="camera-title">Camera</h2>
           <div
             id="latest-snapshots-grid"
             class="camera-grid"
@@ -921,20 +960,22 @@
             >
               +
             </button>
-            <button
-              class="btn camera-btn camera-btn-primary"
-              id="refresh-snapshot"
-              type="button"
-            >
-              Refresh Snapshot
-            </button>
-            <button
-              class="btn camera-btn camera-btn-secondary"
-              id="open-gallery"
-              type="button"
-            >
-              See More Images
-            </button>
+            <div class="camera-actions-controls">
+              <button
+                class="btn camera-btn camera-btn-secondary"
+                id="open-gallery"
+                type="button"
+              >
+                See More Images
+              </button>
+              <button
+                class="btn camera-btn camera-btn-primary"
+                id="refresh-snapshot"
+                type="button"
+              >
+                Refresh Snapshot
+              </button>
+            </div>
             <input
               id="manual-image-input"
               type="file"

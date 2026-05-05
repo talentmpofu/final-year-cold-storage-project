@@ -293,7 +293,8 @@ async function annotateSnapshotImage(
       )}%`;
       const safeLabel = escapeSvgText(label);
       const { stroke, fill } = getDetectionColor(d?.type);
-      const labelW = Math.max(84, label.length * 7 + 10);
+      // Use a wider estimate so long labels like "good_potato 98%" are not clipped.
+      const labelW = Math.max(110, label.length * 9 + 18);
       const labelH = 22;
       const labelX = clamp(x1, 0, Math.max(0, width - labelW));
       const labelY = y1 >= labelH + 2 ? y1 - labelH : y1 + 2;
@@ -475,7 +476,7 @@ function buildCameraInventorySummaryFromDetections(detections = []) {
   };
 }
 
-function getLatestSnapshotDetections() {
+async function getLatestSnapshotDetections() {
   try {
     const latest = fs
       .readdirSync(snapshotsDir)
@@ -493,9 +494,59 @@ function getLatestSnapshotDetections() {
     const meta = loadSnapshotsMeta();
     const snapshotMeta =
       meta && typeof meta[latest.name] === "object" ? meta[latest.name] : null;
-    const detections = Array.isArray(snapshotMeta?.detections)
+    let detections = Array.isArray(snapshotMeta?.detections)
       ? snapshotMeta.detections
       : [];
+
+    // Backfill metadata for legacy snapshots that do not have detections saved yet.
+    if (!detections.length) {
+      try {
+        const latestPath = path.join(snapshotsDir, latest.name);
+        const inference = await runInference(latestPath);
+        const { detected, confidence, all_detections, provider } = inference;
+
+        const normalizedDetections = Array.isArray(all_detections)
+          ? all_detections.map((d) => ({
+              type: normalizeDetectionLabel(d.type),
+              confidence: Number(d.confidence || 0),
+              bbox: Array.isArray(d.bbox)
+                ? d.bbox.map((v) => Number(v || 0))
+                : [0, 0, 0, 0],
+            }))
+          : [];
+
+        const snapshotsMeta = loadSnapshotsMeta();
+        const priorMeta =
+          snapshotsMeta && typeof snapshotsMeta[latest.name] === "object"
+            ? snapshotsMeta[latest.name]
+            : {};
+
+        snapshotsMeta[latest.name] = {
+          ...priorMeta,
+          source: priorMeta.source || "camera",
+          provider: provider || priorMeta.provider || INFERENCE_PROVIDER,
+          detected:
+            getProduceTypeFromLabel(detected) || priorMeta.detected || null,
+          rawDetectedLabel: detected || priorMeta.rawDetectedLabel || null,
+          confidence: Number(confidence || 0),
+          detections: normalizedDetections,
+          capturedAt:
+            priorMeta.capturedAt || new Date(latest.timestamp).toISOString(),
+          backfilledAt: new Date().toISOString(),
+        };
+        saveSnapshotsMeta(snapshotsMeta);
+
+        detections = snapshotsMeta[latest.name].detections;
+        console.log(
+          `🧩 Backfilled snapshot metadata for ${latest.name} (${detections.length} detections)`,
+        );
+      } catch (backfillError) {
+        console.error(
+          `⚠️  Failed to backfill snapshot metadata for ${latest.name}:`,
+          backfillError.message,
+        );
+      }
+    }
 
     return {
       detections,
@@ -943,8 +994,9 @@ app.get("/api/snapshots", (req, res) => {
 });
 
 // API endpoint for dashboard AI quality alerts
-app.get("/api/ai-alerts", (req, res) => {
-  const { detections, snapshotName, timestamp } = getLatestSnapshotDetections();
+app.get("/api/ai-alerts", async (req, res) => {
+  const { detections, snapshotName, timestamp } =
+    await getLatestSnapshotDetections();
   const alertsFromLatest = buildAIQualityAlertsFromDetections(detections);
   const activeCount = alertsFromLatest.filter(
     (a) => a.severity === "high" || a.severity === "medium",
@@ -960,8 +1012,9 @@ app.get("/api/ai-alerts", (req, res) => {
   });
 });
 
-app.get("/api/camera-inventory-summary", (req, res) => {
-  const { detections, snapshotName, timestamp } = getLatestSnapshotDetections();
+app.get("/api/camera-inventory-summary", async (req, res) => {
+  const { detections, snapshotName, timestamp } =
+    await getLatestSnapshotDetections();
   const summaryFromLatest =
     buildCameraInventorySummaryFromDetections(detections);
   res.json({

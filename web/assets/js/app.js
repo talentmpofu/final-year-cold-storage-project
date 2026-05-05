@@ -33,6 +33,7 @@
   let currentProduceContext = {
     type: null,
     thresholds: null,
+    manualOverride: false,
   };
 
   function setMetricCardState(ringId, state) {
@@ -75,6 +76,22 @@
     return localSuppressed || globalSuppressed;
   }
 
+  function syncSidebarActiveLink() {
+    const navLinks = document.querySelectorAll(".sidebar-nav .nav-link");
+    if (!navLinks.length) return;
+
+    const currentHash = location.hash || "#dashboard";
+    navLinks.forEach((link) => {
+      const isActive = link.getAttribute("href") === currentHash;
+      link.classList.toggle("is-active", isActive);
+      if (isActive) {
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    });
+  }
+
   async function fetchMetrics() {
     try {
       const res = await fetch("/api/metrics", { cache: "no-store" });
@@ -82,7 +99,15 @@
       const data = await res.json();
 
       if (data.produce) {
-        updateProduceDisplay(data.produce);
+        if (data.produce.manualOverride) {
+          updateProduceDisplay(data.produce);
+        } else {
+          currentProduceContext = {
+            ...currentProduceContext,
+            thresholds: data.produce?.thresholds || null,
+            manualOverride: false,
+          };
+        }
       }
 
       return {
@@ -876,7 +901,7 @@
             moreAlertsButton.className = "alert-more-link";
             moreAlertsButton.textContent = `(+${alerts.length - 1} more alerts)`;
             moreAlertsButton.addEventListener("click", () => {
-              const metricsSection = document.getElementById("dashboard");
+              const metricsSection = document.getElementById("live-metrics");
               if (metricsSection) {
                 metricsSection.scrollIntoView({
                   behavior: "smooth",
@@ -1161,6 +1186,8 @@
     }
 
     if (uploadBtn && manualImageInput) {
+      uploadBtn.dataset.defaultLabel = uploadBtn.textContent || "+";
+
       uploadBtn.addEventListener("click", () => {
         manualImageInput.click();
       });
@@ -1215,7 +1242,7 @@
           notify(`Upload failed: ${error.message}`);
         } finally {
           uploadBtn.disabled = false;
-          uploadBtn.textContent = "Upload Image";
+          uploadBtn.textContent = uploadBtn.dataset.defaultLabel || "+";
           manualImageInput.value = "";
         }
       });
@@ -1733,12 +1760,14 @@
         ? summary
         : DUMMY_CAMERA_INVENTORY_SUMMARY;
       renderCameraInventorySummary();
+      syncStorageInfoFromCameraSummary(cameraInventorySummary);
       applyAutoThresholdMode();
       renderRecommendations();
     } catch (error) {
       console.error("Error loading camera inventory summary:", error);
       cameraInventorySummary = DUMMY_CAMERA_INVENTORY_SUMMARY;
       renderCameraInventorySummary();
+      syncStorageInfoFromCameraSummary(cameraInventorySummary);
       applyAutoThresholdMode();
       renderRecommendations();
     }
@@ -1749,16 +1778,19 @@
     const applesGoodEl = el("camera-apples-good");
     const applesBadEl = el("camera-apples-bad");
     const applesStatusEl = el("camera-apples-status");
+    const applesNoteEl = el("camera-apples-note");
     const potatoesTotalEl = el("camera-potatoes-total");
     const potatoesGoodEl = el("camera-potatoes-good");
     const potatoesBadEl = el("camera-potatoes-bad");
     const potatoesStatusEl = el("camera-potatoes-status");
+    const potatoesNoteEl = el("camera-potatoes-note");
 
     const setRow = (
       totalEl,
       goodEl,
       badEl,
       statusEl,
+      noteEl,
       itemName,
       total,
       good,
@@ -1768,21 +1800,19 @@
       if (goodEl) goodEl.textContent = String(good || 0);
       if (badEl) badEl.textContent = String(bad || 0);
       if (statusEl) {
-        const severity = bad >= 1 ? "high" : "low";
-        const badgeText = severity === "high" ? "HIGH ALERT" : "OK";
+        const badgeText = bad >= 1 ? "HIGH ALERT" : "OK";
+        statusEl.textContent = badgeText;
+        statusEl.classList.remove("camera-status-high", "camera-status-ok");
+        statusEl.classList.add(
+          bad >= 1 ? "camera-status-high" : "camera-status-ok",
+        );
+      }
+      if (noteEl) {
         const actionText =
           bad > 0
             ? `High alert: check the latest camera images immediately, then remove affected ${itemName.toLowerCase()} from the storage unit.`
             : `No spoilage detected for ${itemName.toLowerCase()} in the latest camera run.`;
-
-        statusEl.innerHTML = `
-          <div class="camera-status-cell">
-            <span class="status-badge ${
-              severity === "high" ? "offline" : "active"
-            } camera-status-badge">${badgeText}</span>
-            <span class="camera-status-note">${actionText}</span>
-          </div>
-        `;
+        noteEl.textContent = actionText;
       }
     };
 
@@ -1791,6 +1821,7 @@
       applesGoodEl,
       applesBadEl,
       applesStatusEl,
+      applesNoteEl,
       "Apples",
       cameraInventorySummary.totalApples,
       cameraInventorySummary.applesGood,
@@ -1801,6 +1832,7 @@
       potatoesGoodEl,
       potatoesBadEl,
       potatoesStatusEl,
+      potatoesNoteEl,
       "Potatoes",
       cameraInventorySummary.totalPotatoes,
       cameraInventorySummary.potatoesGood,
@@ -2005,6 +2037,7 @@
   function renderAIAlerts() {
     const container = document.getElementById("ai-alerts-list");
     const countBadge = document.getElementById("alert-count");
+    const cameraBadge = document.getElementById("camera-nav-badge");
 
     const activeCount = aiAlerts.filter(
       (a) => a.severity === "high" || a.severity === "medium",
@@ -2015,6 +2048,10 @@
           ? `${activeCount} AI Active Alerts`
           : "No AI Active Alerts";
       countBadge.style.background = activeCount > 0 ? "#d1495b" : "#22c55e";
+    }
+    if (cameraBadge) {
+      cameraBadge.textContent = String(activeCount);
+      cameraBadge.hidden = activeCount === 0;
     }
 
     if (!container) return;
@@ -2428,6 +2465,7 @@
     currentProduceContext = {
       type: produce?.type || null,
       thresholds: produce?.thresholds || null,
+      manualOverride: Boolean(produce?.manualOverride),
     };
 
     const name = el("current-produce-name");
@@ -2460,6 +2498,42 @@
     applyAutoThresholdMode();
 
     renderRecommendations();
+  }
+
+  function syncStorageInfoFromCameraSummary(summary) {
+    if (!summary || currentProduceContext.manualOverride) return;
+
+    const apples = Number(summary.totalApples || 0);
+    const potatoes = Number(summary.totalPotatoes || 0);
+    const total = apples + potatoes;
+
+    const name = el("current-produce-name");
+    const method = el("current-produce-method");
+    const confidence = el("current-produce-confidence");
+
+    if (total <= 0) {
+      if (name) name.textContent = produceNames.null;
+      if (method) method.textContent = "No camera detections yet";
+      if (confidence) confidence.textContent = "";
+      currentProduceContext.type = null;
+      return;
+    }
+
+    if (apples > 0 && potatoes > 0) {
+      if (name) name.textContent = "Apples + Potatoes";
+      currentProduceContext.type = null;
+    } else if (apples > 0) {
+      if (name) name.textContent = produceNames.apples;
+      currentProduceContext.type = "apples";
+    } else if (potatoes > 0) {
+      if (name) name.textContent = produceNames.potatoes;
+      currentProduceContext.type = "potatoes";
+    }
+
+    if (method) method.textContent = "AI camera summary";
+    if (confidence) {
+      confidence.textContent = `${total} item${total === 1 ? "" : "s"} detected`;
+    }
   }
 
   async function setProduceType(produceType) {
@@ -2916,6 +2990,8 @@
     if (!location.hash) {
       location.hash = "#dashboard";
     }
+    syncSidebarActiveLink();
+    window.addEventListener("hashchange", syncSidebarActiveLink);
     // If a section anchor is present, scroll to it
     ["camera", "controls"].forEach((id) => {
       if (location.hash === `#${id}`) {
