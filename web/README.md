@@ -80,7 +80,7 @@ Notes:
 
 ## Camo Studio Testing Mode (iPhone Recommended)
 
-Use this mode when DroidCam HTTP endpoints are unavailable or unstable.
+Use this mode when you want to upload images from the phone-linked Camo feed.
 
 1. Open Camo Studio on PC.
 1. Connect your iPhone to Camo and enable the virtual camera.
@@ -94,17 +94,17 @@ cd "C:\Users\talen\Desktop\Cold storage unit"
 The launcher checks for `cv2` and `requests` instead of reinstalling packages
 on every run.
 
-1. Enter webcam index:
+1. Use the Camo camera index for your setup:
 
-- Use `1` for the Camo/iPhone camera in your current setup.
-- Use `0`, `2`, `3` if you want to test a different camera.
+- The launcher runs in strict mode and will not fall back to the built-in webcam.
+- If your Camo device is not on index `1`, update `camo_uploader.local.bat` before starting.
 
 Notes:
 
 - Keep Camo Studio open while uploader runs.
 - Uploaded images still go through `/api/upload-image` and Roboflow/local inference as configured.
 - Default interval is 300 seconds (5 minutes).
-- Windows must detect a Camo virtual camera device; otherwise uploads may come from the built-in webcam.
+- Windows must detect a Camo virtual camera device; otherwise the launcher exits.
 
 ### One-Click Windows Launcher
 

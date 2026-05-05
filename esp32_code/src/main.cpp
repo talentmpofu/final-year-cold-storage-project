@@ -28,16 +28,12 @@
  * - SCL -> GPIO 22 (ESP32 default I2C SCL)
  * - SDA -> GPIO 21 (ESP32 default I2C SDA)
  *
- * 4-Channel Relay Module (active-LOW type, SRD-05VDC-SL-C):
- * - IN1 -> GPIO 23 (Humidifier 12V)
- * - IN2 -> GPIO 19 (Cold-side fans, grouped)
- * - IN3 -> GPIO 18 (Water pump 12V)
- * - IN4 -> GPIO 17 (Scrubber 12V)
- *
- * Peltier MOSFET (IRLZ44N):
- * - Gate -> GPIO 26 (through ~100R series resistor)
- * - Source -> GND
- * - Drain -> Peltier negative terminal (low-side switching)
+ * 5-Relay Control (all active-HIGH):
+ * - IN1 (GPIO23): Humidifier
+ * - IN2 (GPIO19): Peltier Module 1
+ * - IN3 (GPIO18): Peltier Module 2
+ * - IN4 (GPIO17): Scrubber
+ * - Extra Relay (GPIO16): Auxiliary cooling load (fans/pump)
  */
 
 #include <WiFi.h>
@@ -71,16 +67,14 @@ const char *thresholdsUrl = "http://192.168.137.1:3000/api/thresholds";
 #define DHT_TYPE DHT22 // DHT22 sensor type
 #define NUM_READINGS 3 // Number of readings to average
 
-// 4-channel relay module (active-LOW)
-#define RELAY_ACTIVE LOW
-#define RELAY_INACTIVE HIGH
+// Relay control polarity (active-HIGH)
+#define RELAY_ACTIVE HIGH
+#define RELAY_INACTIVE LOW
 #define RELAY_HUMIDIFIER_PIN 23
-#define RELAY_COLD_FANS_PIN 19
-#define RELAY_PUMP_PIN 18
+#define RELAY_PELTIER1_PIN 19
+#define RELAY_PELTIER2_PIN 18
 #define RELAY_SCRUBBER_PIN 17
-
-// Peltier MOSFET gate control (IRLZ44N)
-#define PELTIER_MOSFET_PIN 26
+#define RELAY_AUX_COOLING_PIN 16
 
 // Default control thresholds (will be updated from server)
 float VOC_THRESHOLD = 30000; // VOC raw threshold (clean air: ~25000, polluted: >30000)
@@ -89,17 +83,14 @@ float TEMP_MAX = 4.0;        // Target maximum temperature (°C)
 float HUMIDITY_MIN = 85.0;   // Target minimum humidity (%)
 float HUMIDITY_MAX = 95.0;   // Target maximum humidity (%)
 
-// Cooling controller tuning (hybrid PID + relay-safe supervision)
-const float PID_KP = 45.0;
-const float PID_KI = 0.20;
-const float PID_KD = 6.0;
-const float PID_INTEGRAL_MIN = -200.0;
-const float PID_INTEGRAL_MAX = 200.0;
-const unsigned long PELTIER_WINDOW_MS = 20000; // Time-proportion window
-const float RELAY_ON_DEMAND_PCT = 20.0;
-const float RELAY_OFF_DEMAND_PCT = 5.0;
-const unsigned long RELAY_MIN_ON_MS = 60000;
-const unsigned long RELAY_MIN_OFF_MS = 60000;
+// Relay-safe PID-like cooling control tuning
+const float PID_KP = 40.0;
+const float PID_KI = 0.10;
+const float PID_KD = 5.0;
+const float PID_INTEGRAL_MIN = -250.0;
+const float PID_INTEGRAL_MAX = 250.0;
+const unsigned long RELAY_PWM_WINDOW_MS = 120000; // 2-minute time-proportioning window
+const unsigned long RELAY_MIN_TOGGLE_MS = 20000;  // Minimum 20s between relay state changes
 
 // Last threshold update time
 unsigned long lastThresholdUpdate = 0;
@@ -124,9 +115,9 @@ bool sgpReady = false;
 
 // Relay status tracking
 bool coolingActive = false;
-bool peltierActive = false;
-bool coldFansActive = false;
-bool pumpActive = false;
+bool peltier1Active = false;
+bool peltier2Active = false;
+bool auxCoolingActive = false;
 bool humidifierActive = false;
 bool scrubberActive = false;
 float coolingDemandPct = 0.0;
@@ -134,8 +125,8 @@ float coolingDemandPct = 0.0;
 float pidIntegral = 0.0;
 float pidPrevError = 0.0;
 unsigned long pidPrevMs = 0;
-unsigned long peltierWindowStartMs = 0;
-unsigned long coldPathLastToggleMs = 0;
+unsigned long relayWindowStartMs = 0;
+unsigned long coolingLastToggleMs = 0;
 
 const bool RUN_ACTUATOR_SELF_TEST = true;
 const unsigned long SELF_TEST_ON_MS = 1500;
@@ -163,28 +154,28 @@ void runActuatorSelfTest()
   setRelay(RELAY_HUMIDIFIER_PIN, false);
   delay(SELF_TEST_GAP_MS);
 
-  Serial.println("[2/5] Cold-side fans relay ON");
-  setRelay(RELAY_COLD_FANS_PIN, true);
+  Serial.println("[2/5] Peltier 1 relay ON");
+  setRelay(RELAY_PELTIER1_PIN, true);
   delay(SELF_TEST_ON_MS);
-  setRelay(RELAY_COLD_FANS_PIN, false);
+  setRelay(RELAY_PELTIER1_PIN, false);
   delay(SELF_TEST_GAP_MS);
 
-  Serial.println("[3/5] Water pump relay ON");
-  setRelay(RELAY_PUMP_PIN, true);
+  Serial.println("[3/5] Peltier 2 relay ON");
+  setRelay(RELAY_PELTIER2_PIN, true);
   delay(SELF_TEST_ON_MS);
-  setRelay(RELAY_PUMP_PIN, false);
+  setRelay(RELAY_PELTIER2_PIN, false);
   delay(SELF_TEST_GAP_MS);
 
-  Serial.println("[4/5] Scrubber relay ON");
+  Serial.println("[4/5] Auxiliary cooling relay ON");
+  setRelay(RELAY_AUX_COOLING_PIN, true);
+  delay(SELF_TEST_ON_MS);
+  setRelay(RELAY_AUX_COOLING_PIN, false);
+  delay(SELF_TEST_GAP_MS);
+
+  Serial.println("[5/5] Scrubber relay ON");
   setRelay(RELAY_SCRUBBER_PIN, true);
   delay(SELF_TEST_ON_MS);
   setRelay(RELAY_SCRUBBER_PIN, false);
-  delay(SELF_TEST_GAP_MS);
-
-  Serial.println("[5/5] Peltier MOSFET ON");
-  digitalWrite(PELTIER_MOSFET_PIN, HIGH);
-  delay(SELF_TEST_ON_MS);
-  digitalWrite(PELTIER_MOSFET_PIN, LOW);
 
   Serial.println("Self-test complete. All actuators set to OFF.");
   Serial.println("==================================\n");
@@ -333,16 +324,16 @@ void updateDisplay()
   // System Status
   display.setCursor(0, 50);
   display.print("Status: ");
-  if (peltierActive)
-    display.print("M");
+  if (peltier1Active)
+    display.print("1");
   else
     display.print("-");
-  if (coldFansActive)
-    display.print("F");
+  if (peltier2Active)
+    display.print("2");
   else
     display.print("-");
-  if (pumpActive)
-    display.print("P");
+  if (auxCoolingActive)
+    display.print("A");
   else
     display.print("-");
   if (humidifierActive)
@@ -357,29 +348,31 @@ void updateDisplay()
   display.display();
 }
 
-// Hybrid cooling control:
-// - PID-style demand drives Peltier via time-proportioning (MOSFET-safe).
-// - Relays (fans + pump) are demand-gated with minimum ON/OFF timing.
+// Relay-safe PID-like cooling control.
+// Two Peltier relays plus one auxiliary cooling relay switch as one group.
+// - temp > TEMP_MAX forces ON
+// - temp < TEMP_MIN forces OFF
+// - in-range uses PID demand mapped to a long time-proportioning relay window
 void controlCooling(float temp)
 {
   const unsigned long now = millis();
-  const float tempSetpoint = (TEMP_MIN + TEMP_MAX) * 0.5f;
 
   if (pidPrevMs == 0)
   {
     pidPrevMs = now;
-    peltierWindowStartMs = now;
-    coldPathLastToggleMs = now - RELAY_MIN_OFF_MS;
+    relayWindowStartMs = now;
+    coolingLastToggleMs = now;
   }
 
   const float dt = max(0.001f, (now - pidPrevMs) / 1000.0f);
   pidPrevMs = now;
 
-  // Cooling-only loop: error > 0 means chamber is warmer than setpoint.
+  const float tempSetpoint = (TEMP_MIN + TEMP_MAX) * 0.5f;
   const float error = temp - tempSetpoint;
+
   if (temp <= TEMP_MIN)
   {
-    // Hard floor: never cool below minimum threshold.
+    // Hard floor protection
     pidIntegral = 0.0;
     pidPrevError = error;
     coolingDemandPct = 0.0;
@@ -388,6 +381,7 @@ void controlCooling(float temp)
   {
     pidIntegral += error * dt;
     pidIntegral = constrain(pidIntegral, PID_INTEGRAL_MIN, PID_INTEGRAL_MAX);
+
     const float derivative = (error - pidPrevError) / dt;
     pidPrevError = error;
 
@@ -395,56 +389,48 @@ void controlCooling(float temp)
     coolingDemandPct = constrain(pidOutput, 0.0f, 100.0f);
   }
 
-  // Time-proportioning window for MOSFET drive.
-  if ((now - peltierWindowStartMs) >= PELTIER_WINDOW_MS)
+  if ((now - relayWindowStartMs) >= RELAY_PWM_WINDOW_MS)
   {
-    peltierWindowStartMs = now;
+    relayWindowStartMs = now;
   }
 
   const bool forceCoolingOn = temp > TEMP_MAX;
-  const bool forceCoolingOff = temp <= TEMP_MIN;
+  const bool forceCoolingOff = temp < TEMP_MIN;
 
-  const unsigned long peltierOnMs = (unsigned long)(PELTIER_WINDOW_MS * (coolingDemandPct / 100.0f));
-  bool peltierShouldBeOn = (coolingDemandPct > 0.1f) && ((now - peltierWindowStartMs) < peltierOnMs);
+  const unsigned long relayOnMs = (unsigned long)(RELAY_PWM_WINDOW_MS * (coolingDemandPct / 100.0f));
+  bool shouldCool = (coolingDemandPct > 0.1f) && ((now - relayWindowStartMs) < relayOnMs);
   if (forceCoolingOn)
-    peltierShouldBeOn = true;
+    shouldCool = true;
   else if (forceCoolingOff)
-    peltierShouldBeOn = false;
+    shouldCool = false;
 
-  if (peltierShouldBeOn != peltierActive)
+  const bool canToggle = forceCoolingOn || forceCoolingOff || ((now - coolingLastToggleMs) >= RELAY_MIN_TOGGLE_MS);
+  if (shouldCool != coolingActive && canToggle)
   {
-    digitalWrite(PELTIER_MOSFET_PIN, peltierShouldBeOn ? HIGH : LOW);
-    peltierActive = peltierShouldBeOn;
-    Serial.printf("Peltier MOSFET %s (Demand %.1f%%)\n", peltierActive ? "ON" : "OFF", coolingDemandPct);
+    setRelay(RELAY_PELTIER1_PIN, shouldCool);
+    setRelay(RELAY_PELTIER2_PIN, shouldCool);
+    setRelay(RELAY_AUX_COOLING_PIN, shouldCool);
+
+    peltier1Active = shouldCool;
+    peltier2Active = shouldCool;
+    auxCoolingActive = shouldCool;
+    coolingActive = shouldCool;
+    coolingLastToggleMs = now;
+
+    Serial.printf("Cooling relays %s (Demand %.1f%%)\n", shouldCool ? "ON" : "OFF", coolingDemandPct);
+    if (shouldCool)
+    {
+      Serial.println("   → Peltier 1 ON");
+      Serial.println("   → Peltier 2 ON");
+      Serial.println("   → Auxiliary cooling ON");
+    }
+    else
+    {
+      Serial.println("   → Peltier 1 OFF");
+      Serial.println("   → Peltier 2 OFF");
+      Serial.println("   → Auxiliary cooling OFF");
+    }
   }
-
-  // Relay-safe supervisor for fans + pump (single cold path).
-  bool coldPathDemand = coldFansActive;
-  if (forceCoolingOn)
-    coldPathDemand = true;
-  else if (forceCoolingOff)
-    coldPathDemand = false;
-  else if (coolingDemandPct >= RELAY_ON_DEMAND_PCT)
-    coldPathDemand = true;
-  else if (coolingDemandPct <= RELAY_OFF_DEMAND_PCT)
-    coldPathDemand = false;
-
-  const unsigned long minDwell = coldFansActive ? RELAY_MIN_ON_MS : RELAY_MIN_OFF_MS;
-  const bool canToggleRelays = forceCoolingOn || forceCoolingOff || ((now - coldPathLastToggleMs) >= minDwell);
-
-  if (coldPathDemand != coldFansActive && canToggleRelays)
-  {
-    setRelay(RELAY_COLD_FANS_PIN, coldPathDemand);
-    setRelay(RELAY_PUMP_PIN, coldPathDemand);
-
-    coldFansActive = coldPathDemand;
-    pumpActive = coldPathDemand;
-    coldPathLastToggleMs = now;
-
-    Serial.printf("Cold path relays %s (Demand %.1f%%)\n", coldPathDemand ? "ON" : "OFF", coolingDemandPct);
-  }
-
-  coolingActive = peltierActive || coldFansActive || pumpActive;
 }
 
 // Function to control humidifier relay independently
@@ -631,30 +617,29 @@ void setup()
     Serial.println("Check hotspot name/password and ensure hotspot is on (2.4GHz)");
   }
 
-  // Initialize relay and MOSFET control pins
+  // Initialize relay control pins
   pinMode(RELAY_HUMIDIFIER_PIN, OUTPUT);
-  pinMode(RELAY_COLD_FANS_PIN, OUTPUT);
-  pinMode(RELAY_PUMP_PIN, OUTPUT);
+  pinMode(RELAY_PELTIER1_PIN, OUTPUT);
+  pinMode(RELAY_PELTIER2_PIN, OUTPUT);
   pinMode(RELAY_SCRUBBER_PIN, OUTPUT);
-  pinMode(PELTIER_MOSFET_PIN, OUTPUT);
+  pinMode(RELAY_AUX_COOLING_PIN, OUTPUT);
 
-  // Start OFF (relay board is active-LOW)
+  // Start OFF (active-HIGH logic)
   setRelay(RELAY_HUMIDIFIER_PIN, false);
-  setRelay(RELAY_COLD_FANS_PIN, false);
-  setRelay(RELAY_PUMP_PIN, false);
+  setRelay(RELAY_PELTIER1_PIN, false);
+  setRelay(RELAY_PELTIER2_PIN, false);
   setRelay(RELAY_SCRUBBER_PIN, false);
-  digitalWrite(PELTIER_MOSFET_PIN, LOW);
+  setRelay(RELAY_AUX_COOLING_PIN, false);
 
   runActuatorSelfTest();
 
   Serial.println("\n=== ACTUATOR CONFIGURATION ===");
-  Serial.println("4-Channel Relay (active-LOW):");
+  Serial.println("5-Relay Layout (active-HIGH):");
   Serial.println("  • CH1 GPIO23: Humidifier");
-  Serial.println("  • CH2 GPIO19: Cold-side fan group");
-  Serial.println("  • CH3 GPIO18: Water pump");
+  Serial.println("  • CH2 GPIO19: Peltier 1");
+  Serial.println("  • CH3 GPIO18: Peltier 2");
   Serial.println("  • CH4 GPIO17: Scrubber (VOC control)");
-  Serial.println("Peltier control via IRLZ44N MOSFET:");
-  Serial.println("  • GPIO26: MOSFET gate (PID time-proportioning)");
+  Serial.println("  • CH5 GPIO16: Auxiliary cooling (fans/pump)");
   Serial.println("==============================\n");
 
   // Initialize I2C for SGP41
@@ -801,12 +786,12 @@ void loop()
     Serial.print(" (Demand=");
     Serial.print(coolingDemandPct, 1);
     Serial.print("%)");
-    Serial.print(" | PeltierMOSFET=");
-    Serial.print(peltierActive ? "ON" : "OFF");
-    Serial.print(" | ColdFans=");
-    Serial.print(coldFansActive ? "ON" : "OFF");
-    Serial.print(" | Pump=");
-    Serial.print(pumpActive ? "ON" : "OFF");
+    Serial.print(" | Peltier1=");
+    Serial.print(peltier1Active ? "ON" : "OFF");
+    Serial.print(" | Peltier2=");
+    Serial.print(peltier2Active ? "ON" : "OFF");
+    Serial.print(" | AuxCooling=");
+    Serial.print(auxCoolingActive ? "ON" : "OFF");
     Serial.print(" | Humidifier=");
     Serial.print(humidifierActive ? "ON" : "OFF");
     Serial.print(" | Scrubber=");

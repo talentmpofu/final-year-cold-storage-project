@@ -1,6 +1,6 @@
 """Camo periodic uploader for Cold Storage dashboard testing.
 
-Captures still frames from a local webcam device (Camo virtual camera)
+Captures still frames from the configured Camo virtual camera index
 and uploads them to the existing backend endpoint (/api/upload-image)
 at a fixed interval.
 """
@@ -29,29 +29,6 @@ def load_cv2():
     return cv2
 
 
-def resolve_camera_index(cv2, preferred_index: int) -> int:
-    if preferred_index >= 0:
-        return preferred_index
-
-    last_working_index = None
-    for index in range(0, 8):
-        cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
-        if cap.isOpened():
-            ok, _ = cap.read()
-            cap.release()
-            if ok:
-                last_working_index = index
-        else:
-            cap.release()
-
-    if last_working_index is not None:
-        return last_working_index
-
-    raise RuntimeError(
-        "No usable webcam device found. Ensure Camo Studio virtual camera is running."
-    )
-
-
 def capture_frame_bytes(
     cv2,
     camera_index: int,
@@ -63,7 +40,7 @@ def capture_frame_bytes(
     cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
     if not cap.isOpened():
         raise RuntimeError(
-            f"Failed to open webcam index {camera_index}. Check Camo virtual camera status."
+            f"Failed to open Camo camera index {camera_index}. Check the Camo virtual camera status."
         )
 
     try:
@@ -79,7 +56,7 @@ def capture_frame_bytes(
                 frame = current
 
         if frame is None:
-            raise RuntimeError("Unable to read frame from Camo virtual camera")
+            raise RuntimeError("Unable to read frame from the configured Camo camera")
 
         # Reject nearly-black frames to avoid uploading invalid captures.
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -135,8 +112,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--webcam-index",
         type=int,
-        default=-1,
-        help="Webcam index to use (-1 = auto detect, default: -1)",
+        required=True,
+        help="Camo virtual camera index to use (required; do not use the built-in webcam)",
     )
     parser.add_argument(
         "--api-url",
@@ -202,7 +179,7 @@ def parse_args() -> argparse.Namespace:
 
 def wait_for_manual_index_zero() -> None:
     log("Camo feed appears unavailable.")
-    log("Launch Camo on phone and ensure virtual camera is active on PC.")
+    log("Launch Camo on the phone and ensure the Camo virtual camera is active on the PC.")
     while True:
         user_input = input("Enter 0 to resume capture on index 0: ").strip()
         if user_input == "0":
@@ -230,7 +207,7 @@ def main() -> int:
         raise ValueError("--max-black-retries must be >= 1")
 
     cv2 = load_cv2()
-    camera_index = resolve_camera_index(cv2, args.webcam_index)
+    camera_index = args.webcam_index
 
     log("Starting Camo uploader")
     log(f"Webcam index: {camera_index}")

@@ -235,6 +235,13 @@
  C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/mbedtls/port/include/aes/esp_aes.h \
  C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/hal/include/hal/aes_types.h \
  C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/mbedtls/mbedtls/include/mbedtls/error.h \
+ C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_wifi/include/esp_wifi.h \
+ C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_wifi/include/esp_wifi_types.h \
+ C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_wifi/include/esp_private/esp_wifi_private.h \
+ C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_wifi/include/esp_wifi_crypto_types.h \
+ C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_wifi/include/esp_private/wifi_os_adapter.h \
+ C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_wifi/include/esp_wifi_default.h \
+ C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/wpa_supplicant/esp_supplicant/include/esp_wpa2.h \
  C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp32-camera/driver/include/esp_camera.h \
  C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/driver/include/driver/ledc.h \
  C:/Users/talen/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/hal/include/hal/ledc_types.h \

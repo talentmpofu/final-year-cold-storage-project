@@ -1,13 +1,13 @@
-# Full Cold-Storage Wiring Guide (ESP32 + DHT22 + SGP41 + OLED + Relay + Peltier MOSFET)
+# Full Cold-Storage Wiring Guide (ESP32 + DHT22 + SGP41 + OLED + 5 Relays)
 
 This guide matches the current firmware behavior and pin mapping in `esp32_code/src/main.cpp`.
 
 ## 1) Final Control Logic (as requested)
 
 1. Scrubber relay turns ON when VOC is greater than 30.0 ppm and OFF when VOC is 30.0 ppm or below.
-2. Peltier MOSFET is driven by PID-style time-proportioning around the temperature setpoint.
-3. Cold-side fans relay (IN2) and pump relay (IN3) are supervised by cooling demand with relay-safe minimum ON/OFF timing.
-4. A hard floor is applied: if temperature is at or below TEMP_MIN, cooling demand is forced to zero.
+2. Two Peltier relays plus the auxiliary cooling relay are controlled as one cooling group.
+3. Cooling group is forced ON above TEMP_MAX and forced OFF below TEMP_MIN.
+4. In range, cooling uses PID-like relay-safe time-proportioning.
 5. Humidifier relay turns ON when humidity is below threshold and OFF when humidity is above threshold.
 
 ## 2) Final Pin Map
@@ -16,14 +16,12 @@ This guide matches the current firmware behavior and pin mapping in `esp32_code/
 - I2C SDA (SGP41 + OLED): GPIO21
 - I2C SCL (SGP41 + OLED): GPIO22
 
-Relay inputs (active-LOW board):
+Relay inputs (active-HIGH board logic in firmware):
 - IN1 -> GPIO23 (Humidifier)
-- IN2 -> GPIO19 (Cold-side fans)
-- IN3 -> GPIO18 (Water pump)
+- IN2 -> GPIO19 (Peltier Module 1)
+- IN3 -> GPIO18 (Peltier Module 2)
 - IN4 -> GPIO17 (Scrubber)
-
-Peltier control:
-- IRLZ44N Gate -> GPIO26 (through 100 ohm resistor)
+- Extra single-channel relay input -> GPIO16 (Auxiliary cooling: fans/pump)
 
 ## 3) Quick Bench Pinout Table
 
@@ -36,17 +34,17 @@ Peltier control:
 | I2C SCL | SGP41 SCL + OLED SCL | ESP32 GPIO22 | Shared I2C bus |
 | SGP41 power | SGP41 VCC/GND | ESP32 3.3V / GND | I2C address 0x59 |
 | OLED power | OLED VCC/GND | ESP32 3.3V / GND | I2C address usually 0x3C |
-| Relay logic power | Relay VCC/GND | 5V / ESP32 GND | Active-LOW board |
+| Relay logic power | Relay VCC/GND | 5V / ESP32 GND | Active-HIGH logic |
 | Relay IN1 | Relay IN1 | ESP32 GPIO23 | Humidifier control |
-| Relay IN2 | Relay IN2 | ESP32 GPIO19 | Cold-side fan control |
-| Relay IN3 | Relay IN3 | ESP32 GPIO18 | Water pump control |
+| Relay IN2 | Relay IN2 | ESP32 GPIO19 | Peltier Module 1 control |
+| Relay IN3 | Relay IN3 | ESP32 GPIO18 | Peltier Module 2 control |
 | Relay IN4 | Relay IN4 | ESP32 GPIO17 | Scrubber control |
+| Relay CH5 input | Single relay IN | ESP32 GPIO16 | Auxiliary cooling relay control |
 | Humidifier power path | PSU+ -> COM1 -> NO1 -> Humidifier+ | Humidifier- -> PSU- | Use COM+NO |
 | Scrubber power path | PSU+ -> COM4 -> NO4 -> Scrubber+ | Scrubber- -> PSU- | Use COM+NO |
-| Peltier MOSFET gate | IRLZ44N Gate | ESP32 GPIO26 via 100 ohm | 10k Gate-to-Source pulldown |
-| Peltier MOSFET source | IRLZ44N Source | PSU negative rail | Common ground node |
-| Peltier MOSFET drain | IRLZ44N Drain | Combined Peltier negative | Low-side switching |
-| Peltier positive | Both TEC1-12706 + | PSU +12V | Not through relay |
+| Peltier 1 power path | PSU+ -> COM2 -> NO2 -> Peltier1+ | Peltier1- -> PSU- | Dedicated relay channel |
+| Peltier 2 power path | PSU+ -> COM3 -> NO3 -> Peltier2+ | Peltier2- -> PSU- | Dedicated relay channel |
+| Auxiliary cooling path | PSU+ -> COM5 -> NO5 -> Fan/Pump+ | Fan/Pump- -> PSU- | Single extra relay on GPIO16 |
 | System ground | PSU-, ESP32 GND, Relay GND | Commoned together | Mandatory |
 
 ## 4) Low-Voltage Wiring (ESP32, Sensors, Display)
@@ -72,6 +70,9 @@ Peltier control:
 Relay header:
 - GND IN1 IN2 IN3 IN4 VCC
 
+Extra single-channel relay:
+- IN, VCC, GND
+
 Connections:
 - Relay VCC -> 5V
 - Relay GND -> ESP32 GND
@@ -79,10 +80,11 @@ Connections:
 - IN2 -> GPIO19
 - IN3 -> GPIO18
 - IN4 -> GPIO17
+- Extra relay IN -> GPIO16
 
 Notes:
 - Keep JD-VCC jumper installed for simple mode.
-- This board is active-LOW in current firmware (`LOW = ON`, `HIGH = OFF`).
+- Firmware is configured for active-HIGH relay control (`HIGH = ON`, `LOW = OFF`).
 
 ## 6) 12V Load Wiring (relay contact side)
 
@@ -98,34 +100,20 @@ Use COM and NO for normal OFF behavior.
 - NO4 -> Scrubber +
 - Scrubber - -> PSU -
 
-### CH2 (Cold-side fans)
+### CH2 (Peltier Module 1)
 - PSU +12V -> COM2
-- NO2 -> cold-side fan group +
-- cold-side fan group - -> PSU -
+- NO2 -> Peltier 1 +
+- Peltier 1 - -> PSU -
 
-### CH3 (Water pump)
+### CH3 (Peltier Module 2)
 - PSU +12V -> COM3
-- NO3 -> pump +
-- pump - -> PSU -
+- NO3 -> Peltier 2 +
+- Peltier 2 - -> PSU -
 
-## 7) IRLZ44N Wiring for Peltiers
-
-TO-220 orientation (front text facing you, legs down):
-- Left pin: Gate
-- Middle pin: Drain
-- Right pin: Source
-
-Connections:
-- Source -> PSU negative rail
-- Drain -> Combined negative of both Peltier modules
-- Positive of both Peltiers -> PSU +12V
-- GPIO26 -> 100 ohm -> Gate
-- 10k resistor from Gate to Source
-
-Notes:
-- Use a heatsink + thermal paste.
-- Keep current paths short and thick.
-- Peltiers are resistive loads; no flyback diode needed across Peltiers.
+### CH5 (Auxiliary cooling, extra relay on GPIO16)
+- PSU +12V -> COM5
+- NO5 -> Fan/Pump +
+- Fan/Pump - -> PSU -
 
 ## 8) Grounding (critical)
 
@@ -133,7 +121,7 @@ All grounds must be common:
 - 12V PSU negative
 - ESP32 GND
 - Relay board GND
-- MOSFET source reference ground
+- Extra relay GND
 
 ## 9) Protection and Good Practice
 
@@ -148,10 +136,10 @@ Recommended:
 
 On boot, firmware pulses outputs briefly in sequence:
 1. Humidifier relay
-2. IN2 relay (cold-side fan channel)
-3. IN3 relay (water pump channel)
-4. Scrubber relay
-5. Peltier MOSFET
+2. Peltier 1 relay
+3. Peltier 2 relay
+4. Auxiliary cooling relay (GPIO16)
+5. Scrubber relay
 
 Default timings:
 - ON time per step: 1500 ms
@@ -163,11 +151,10 @@ Set `RUN_ACTUATOR_SELF_TEST = false` in code to skip startup test.
 
 Temperature control:
 - Setpoint is midpoint of TEMP_MIN and TEMP_MAX.
-- PID-style output is converted to a 20-second time window for MOSFET ON/OFF duty.
-- If temperature <= TEMP_MIN: MOSFET duty forced to 0% (cooling floor protection).
-- If cooling demand >= 20%: IN2 and IN3 relays are requested ON.
-- If cooling demand <= 5%: IN2 and IN3 relays are requested OFF.
-- IN2 and IN3 relay state changes are delayed by minimum dwell timers (60s ON and 60s OFF) to avoid relay chatter.
+- PID-like demand is converted to a 2-minute relay time-proportioning window.
+- If temperature > TEMP_MAX: cooling relays are forced ON.
+- If temperature < TEMP_MIN: cooling relays are forced OFF.
+- In range, duty follows PID demand with a minimum 20-second relay toggle interval to reduce chatter.
 
 Humidity control:
 - If humidity < HUMIDITY_MIN: Humidifier relay ON
@@ -184,7 +171,7 @@ VOC control:
 3. Confirm relay LEDs and startup self-test sequence.
 4. Connect humidifier and verify humidity trigger.
 5. Connect scrubber and verify VOC trigger.
-6. Connect Peltiers last and monitor MOSFET temperature.
+6. Connect Peltiers last and verify relay channels switch cleanly under load.
 7. Re-tighten terminals after first thermal cycle.
 
 ---

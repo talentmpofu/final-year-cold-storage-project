@@ -48,7 +48,7 @@ for /f "usebackq delims=" %%L in (`powershell -NoProfile -Command "$devices = Ge
 if "%CAMO_DEVICE_FOUND%"=="" (
   echo.
   echo [ERROR] No Camo virtual camera device was detected by Windows.
-  echo         Strict mode is enabled: index 0 ^(Camo^) is required.
+  echo         Strict mode is enabled: a Camo device is required.
   echo         No snapshots will be captured or uploaded.
   echo.
   echo Windows camera-like devices currently visible:
@@ -59,19 +59,14 @@ if "%CAMO_DEVICE_FOUND%"=="" (
   exit /b 1
 )
 
-echo.
-echo OpenCV quick camera probe (indexes 0..5):
-python -c "import cv2; print('--- OpenCV cameras ---'); [ (lambda cap, idx: (print('Index {}: {}'.format(idx, 'OPEN' if cap.isOpened() else 'closed')), cap.release()))(cv2.VideoCapture(i, cv2.CAP_DSHOW), i) for i in range(6) ]"
-echo.
-
 if exist "%CONFIG_FILE%" (
   call "%CONFIG_FILE%"
 )
 
-set "CAMO_WEBCAM_INDEX=0"
+if "%CAMO_WEBCAM_INDEX%"=="" set "CAMO_WEBCAM_INDEX=1"
 
 echo.
-echo [INFO] Strict Camo mode enabled. Using fixed webcam index: %CAMO_WEBCAM_INDEX%
+echo [INFO] Strict Camo mode enabled. Using fixed Camo camera index: %CAMO_WEBCAM_INDEX%
 
 if "%CAMO_INTERVAL_SECONDS%"=="" set "CAMO_INTERVAL_SECONDS=300"
 
@@ -89,10 +84,10 @@ start "Camo Auto Uploader" /D "%WEB_DIR%" cmd /k "python camo_uploader.py --webc
 
 echo.
 echo Started.
-echo - Webcam index: %CAMO_WEBCAM_INDEX%
+echo - Camo index  : %CAMO_WEBCAM_INDEX%
 echo - Interval    : %CAMO_INTERVAL_SECONDS% seconds
 echo.
-echo Keep Camo Studio open with virtual camera enabled.
+echo Keep Camo Studio open with the phone camera feed enabled.
 echo Keep backend running ^(start_servers.bat^).
 echo Press any key to close this launcher.
 pause >nul
