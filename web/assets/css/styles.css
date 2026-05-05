@@ -476,11 +476,23 @@ body {
 }
 
 #camera {
-  order: 1;
+  order: 5;
+}
+
+#view-ai-alerts {
+  order: 6;
+}
+
+#view-analytics {
+  order: 7;
+}
+
+#view-recommendations {
+  order: 8;
 }
 
 #view-settings {
-  order: 2;
+  order: 9;
 }
 
 .view {
