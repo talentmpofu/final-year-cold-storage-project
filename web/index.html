@@ -170,6 +170,22 @@
         <div class="sidebar-group">
           <p class="sidebar-section-title">INTELLIGENCE</p>
           <nav class="sidebar-nav">
+            <a href="#camera" class="nav-link">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
+                />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+              <span>Camera</span>
+              <span class="nav-badge" id="camera-nav-badge">3</span>
+            </a>
             <a href="#view-ai-alerts" class="nav-link">
               <svg
                 class="nav-icon"
@@ -214,22 +230,6 @@
         <div class="sidebar-group">
           <p class="sidebar-section-title">TOOLS</p>
           <nav class="sidebar-nav">
-            <a href="#camera" class="nav-link">
-              <svg
-                class="nav-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
-                />
-                <circle cx="12" cy="13" r="4" />
-              </svg>
-              <span>Camera</span>
-              <span class="nav-badge" id="camera-nav-badge">3</span>
-            </a>
             <a href="#view-settings" class="nav-link">
               <svg
                 class="nav-icon"
@@ -527,6 +527,52 @@
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section class="camera" id="camera" aria-labelledby="camera-title">
+          <h2 id="camera-title">Camera</h2>
+          <div
+            id="latest-snapshots-grid"
+            class="camera-grid"
+            aria-live="polite"
+          >
+            <article class="camera-thumb-card camera-thumb-card--empty">
+              <div class="camera-thumb-empty">No snapshots yet</div>
+            </article>
+          </div>
+          <div class="camera-actions">
+            <button
+              class="btn camera-btn-upload"
+              id="upload-image-btn"
+              type="button"
+              aria-label="Upload image for testing"
+              title="Upload image for testing"
+            >
+              +
+            </button>
+            <div class="camera-actions-controls">
+              <button
+                class="btn camera-btn camera-btn-secondary"
+                id="open-gallery"
+                type="button"
+              >
+                See More Images
+              </button>
+              <button
+                class="btn camera-btn camera-btn-primary"
+                id="refresh-snapshot"
+                type="button"
+              >
+                Refresh Snapshot
+              </button>
+            </div>
+            <input
+              id="manual-image-input"
+              type="file"
+              accept="image/*"
+              hidden
+            />
           </div>
         </section>
 
@@ -936,52 +982,6 @@
                 Save Settings
               </button>
             </div>
-          </div>
-        </section>
-
-        <section class="camera" id="camera" aria-labelledby="camera-title">
-          <h2 id="camera-title">Camera</h2>
-          <div
-            id="latest-snapshots-grid"
-            class="camera-grid"
-            aria-live="polite"
-          >
-            <article class="camera-thumb-card camera-thumb-card--empty">
-              <div class="camera-thumb-empty">No snapshots yet</div>
-            </article>
-          </div>
-          <div class="camera-actions">
-            <button
-              class="btn camera-btn-upload"
-              id="upload-image-btn"
-              type="button"
-              aria-label="Upload image for testing"
-              title="Upload image for testing"
-            >
-              +
-            </button>
-            <div class="camera-actions-controls">
-              <button
-                class="btn camera-btn camera-btn-secondary"
-                id="open-gallery"
-                type="button"
-              >
-                See More Images
-              </button>
-              <button
-                class="btn camera-btn camera-btn-primary"
-                id="refresh-snapshot"
-                type="button"
-              >
-                Refresh Snapshot
-              </button>
-            </div>
-            <input
-              id="manual-image-input"
-              type="file"
-              accept="image/*"
-              hidden
-            />
           </div>
         </section>
       </div>
