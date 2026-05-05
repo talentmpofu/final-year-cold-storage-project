@@ -1119,8 +1119,8 @@ body {
 
 .metric-gauge {
   --progress: 0%;
-  width: 78px;
-  height: 78px;
+  width: 130px;
+  height: 130px;
   margin: 0;
   border-radius: 50%;
   background: conic-gradient(#0077b6 var(--progress), #e6f2f8 0);
@@ -1130,8 +1130,8 @@ body {
 }
 
 .metric-gauge-inner {
-  width: 64px;
-  height: 64px;
+  width: 104px;
+  height: 104px;
   border-radius: 50%;
   background: var(--card);
   border: 1px solid #e6f2f8;
@@ -1142,7 +1142,7 @@ body {
 }
 
 .metric-gauge-percent {
-  font-size: 38px;
+  font-size: 44px;
   font-weight: 700;
   line-height: 1;
   color: #1f2937;
@@ -1284,7 +1284,7 @@ body {
   }
 
   .metric-gauge-value {
-    font-size: 13px;
+    font-size: 15px;
   }
 
   .app-header {
@@ -2022,13 +2022,14 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 66px;
+  min-width: 44px;
   border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 12px;
+  padding: 2px 6px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
 }
 
 .camera-status-ok {
