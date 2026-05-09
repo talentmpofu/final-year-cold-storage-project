@@ -2770,14 +2770,30 @@
       : [];
     if (!detections.length) return "No detections";
 
-    const top = detections
+    const sorted = detections
       .slice()
-      .sort((a, b) => Number(b.confidence || 0) - Number(a.confidence || 0))[0];
-    const label = String(top?.type || "unknown")
-      .replace(/[_-]+/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase());
-    const score = `${Math.round(Number(top?.confidence || 0) * 100)}%`;
-    return `${label} (${score})`;
+      .sort((a, b) => Number(b.confidence || 0) - Number(a.confidence || 0));
+    const uniqueLabels = [];
+
+    for (const detection of sorted) {
+      const label = String(detection?.type || "unknown")
+        .replace(/[_-]+/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+      if (!uniqueLabels.includes(label)) {
+        uniqueLabels.push(label);
+      }
+      if (uniqueLabels.length >= 2) {
+        break;
+      }
+    }
+
+    if (uniqueLabels.length === 1) {
+      const top = sorted[0];
+      const score = `${Math.round(Number(top?.confidence || 0) * 100)}%`;
+      return `${uniqueLabels[0]} (${score})`;
+    }
+
+    return uniqueLabels.join(", ");
   }
 
   function renderLatestSnapshotsGrid(snapshots) {
