@@ -754,248 +754,225 @@
         >
           <h2 id="settings-title">Settings</h2>
           <div class="card settings-card">
-            <div class="settings-grid">
-              <article class="settings-profile-card" data-profile="custom">
-                <div class="settings-profile-head">
-                  <div>
-                    <h3>Custom</h3>
-                    <p>Mixed storage</p>
-                  </div>
-                  <span class="settings-profile-pill">Active</span>
-                </div>
-
-                <div class="settings-field-grid">
-                  <label class="settings-field settings-field--compact">
-                    <span>T min</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="custom"
-                      data-field="temp-min"
-                      min="-5"
-                      max="15"
-                      step="0.1"
-                      value="4"
-                    />
-                  </label>
-                  <label class="settings-field settings-field--compact">
-                    <span>T max</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="custom"
-                      data-field="temp-max"
-                      min="-5"
-                      max="15"
-                      step="0.1"
-                      value="7"
-                    />
-                  </label>
-                  <label class="settings-field settings-field--compact">
-                    <span>H min</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="custom"
-                      data-field="humidity-min"
-                      min="50"
-                      max="100"
-                      step="1"
-                      value="85"
-                    />
-                  </label>
-                  <label class="settings-field settings-field--compact">
-                    <span>H max</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="custom"
-                      data-field="humidity-max"
-                      min="50"
-                      max="100"
-                      step="1"
-                      value="95"
-                    />
-                  </label>
-                  <label
-                    class="settings-field settings-field--compact settings-field--wide"
-                  >
-                    <span>VOC</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="custom"
-                      data-field="voc"
-                      min="0"
-                      max="50000"
-                      step="1"
-                      value="30000"
-                    />
-                  </label>
-                </div>
-              </article>
-
-              <article class="settings-profile-card" data-profile="apples">
-                <div class="settings-profile-head">
-                  <div>
-                    <h3>Apples</h3>
-                    <p>Cold fruit profile</p>
-                  </div>
-                  <span class="settings-profile-pill">Preset</span>
-                </div>
-
-                <div class="settings-field-grid">
-                  <label class="settings-field settings-field--compact">
-                    <span>T min</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="apples"
-                      data-field="temp-min"
-                      min="-5"
-                      max="15"
-                      step="0.1"
-                      value="1"
-                    />
-                  </label>
-                  <label class="settings-field settings-field--compact">
-                    <span>T max</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="apples"
-                      data-field="temp-max"
-                      min="-5"
-                      max="15"
-                      step="0.1"
-                      value="4"
-                    />
-                  </label>
-                  <label class="settings-field settings-field--compact">
-                    <span>H min</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="apples"
-                      data-field="humidity-min"
-                      min="50"
-                      max="100"
-                      step="1"
-                      value="85"
-                    />
-                  </label>
-                  <label class="settings-field settings-field--compact">
-                    <span>H max</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="apples"
-                      data-field="humidity-max"
-                      min="50"
-                      max="100"
-                      step="1"
-                      value="95"
-                    />
-                  </label>
-                  <label
-                    class="settings-field settings-field--compact settings-field--wide"
-                  >
-                    <span>VOC</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="apples"
-                      data-field="voc"
-                      min="0"
-                      max="50000"
-                      step="1"
-                      value="30000"
-                    />
-                  </label>
-                </div>
-              </article>
-
-              <article class="settings-profile-card" data-profile="potatoes">
-                <div class="settings-profile-head">
-                  <div>
-                    <h3>Potatoes</h3>
-                    <p>Cool root profile</p>
-                  </div>
-                  <span class="settings-profile-pill">Preset</span>
-                </div>
-
-                <div class="settings-field-grid">
-                  <label class="settings-field settings-field--compact">
-                    <span>T min</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="potatoes"
-                      data-field="temp-min"
-                      min="-5"
-                      max="15"
-                      step="0.1"
-                      value="7"
-                    />
-                  </label>
-                  <label class="settings-field settings-field--compact">
-                    <span>T max</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="potatoes"
-                      data-field="temp-max"
-                      min="-5"
-                      max="15"
-                      step="0.1"
-                      value="10"
-                    />
-                  </label>
-                  <label class="settings-field settings-field--compact">
-                    <span>H min</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="potatoes"
-                      data-field="humidity-min"
-                      min="50"
-                      max="100"
-                      step="1"
-                      value="85"
-                    />
-                  </label>
-                  <label class="settings-field settings-field--compact">
-                    <span>H max</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="potatoes"
-                      data-field="humidity-max"
-                      min="50"
-                      max="100"
-                      step="1"
-                      value="95"
-                    />
-                  </label>
-                  <label
-                    class="settings-field settings-field--compact settings-field--wide"
-                  >
-                    <span>VOC</span>
-                    <input
-                      type="number"
-                      class="threshold-input"
-                      data-profile="potatoes"
-                      data-field="voc"
-                      min="0"
-                      max="50000"
-                      step="1"
-                      value="30000"
-                    />
-                  </label>
-                </div>
-              </article>
+            <div class="settings-table-wrapper">
+              <table class="settings-table">
+                <thead>
+                  <tr>
+                    <th>Threshold Profile</th>
+                    <th colspan="2">Temperature range (&deg;C)</th>
+                    <th colspan="2">Humidity range (%)</th>
+                    <th>Ethylene threshold (ppm)</th>
+                  </tr>
+                  <tr class="settings-table-subheader">
+                    <th></th>
+                    <th>Min</th>
+                    <th>Max</th>
+                    <th>Min</th>
+                    <th>Max</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Custom (Mixed Storage) -->
+                  <tr data-profile="custom">
+                    <td class="profile-name">Custom (Mixed Storage)</td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="custom"
+                        data-field="temp-min"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="4"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="custom"
+                        data-field="temp-max"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="7"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="custom"
+                        data-field="humidity-min"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="85"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="custom"
+                        data-field="humidity-max"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="95"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="custom"
+                        data-field="voc"
+                        min="0"
+                        max="50000"
+                        step="1"
+                        value="30000"
+                      />
+                    </td>
+                  </tr>
+                  <!-- Apples -->
+                  <tr data-profile="apples">
+                    <td class="profile-name">Apples</td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="apples"
+                        data-field="temp-min"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="1"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="apples"
+                        data-field="temp-max"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="4"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="apples"
+                        data-field="humidity-min"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="85"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="apples"
+                        data-field="humidity-max"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="95"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="apples"
+                        data-field="voc"
+                        min="0"
+                        max="50000"
+                        step="1"
+                        value="30000"
+                      />
+                    </td>
+                  </tr>
+                  <!-- Potatoes -->
+                  <tr data-profile="potatoes">
+                    <td class="profile-name">Potatoes</td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="potatoes"
+                        data-field="temp-min"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="7"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="potatoes"
+                        data-field="temp-max"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="10"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="potatoes"
+                        data-field="humidity-min"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="85"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="potatoes"
+                        data-field="humidity-max"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="95"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="potatoes"
+                        data-field="voc"
+                        min="0"
+                        max="50000"
+                        step="1"
+                        value="30000"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
             <div class="settings-actions">
+              <p class="muted settings-info">
+                Edit threshold values for each profile. Active thresholds will
+                automatically update when saved based on detected produce type.
+              </p>
               <button
                 type="button"
                 id="settings-save-btn"

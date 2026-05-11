@@ -2347,102 +2347,43 @@ body {
 
 /* ===== SETTINGS ===== */
 .settings-card {
-  padding: 18px;
+  padding: 22px;
 }
 
-.settings-grid {
+.settings-form {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
-}
-
-.settings-profile-card {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
-  padding: 14px;
-  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
-  display: grid;
-  gap: 10px;
-}
-
-.settings-profile-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.settings-profile-head h3 {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.2;
-}
-
-.settings-profile-head p,
-.settings-profile-summary,
-.settings-info {
-  margin: 0;
-}
-
-.settings-profile-head p {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.settings-profile-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(0, 119, 182, 0.08);
-  color: var(--primary);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.settings-profile-summary {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.settings-field-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
 }
 
 .settings-field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 13px;
   color: var(--text-secondary);
 }
 
 .settings-field span {
   font-weight: 600;
   color: var(--text);
-  letter-spacing: 0.01em;
 }
 
-.settings-field--wide {
-  grid-column: 1 / -1;
+.settings-range-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .settings-field input,
 .settings-field select {
   width: 100%;
-  padding: 8px 10px;
+  padding: 11px 12px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   background: #ffffff;
   color: var(--text);
   font: inherit;
-  font-size: 13px;
 }
 
 .settings-field input:focus,
@@ -2455,7 +2396,7 @@ body {
 .settings-submit {
   grid-column: 1 / -1;
   justify-self: end;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .settings-mode-note {
@@ -2463,15 +2404,77 @@ body {
   margin: 0;
 }
 
+/* Settings Table Layout */
+.settings-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.settings-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.settings-table thead {
+  background: var(--accent-gray);
+  border-bottom: none;
+}
+
+.settings-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.settings-table th + th,
+.settings-table td + td {
+  border-left: 1px solid rgba(107, 114, 128, 0.14);
+}
+
+.settings-table-subheader {
+  background: #f9fafb;
+  border-bottom: none;
+}
+
+.settings-table-subheader th {
+  padding: 8px 12px;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.settings-table tbody tr {
+  border-bottom: none;
+  transition: background-color 0.2s;
+}
+
+.settings-table tbody tr:hover {
+  background-color: #fafbfc;
+}
+
+.settings-table td {
+  padding: 12px;
+}
+
+.settings-table .profile-name {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 180px;
+}
+
 .threshold-input {
   width: 100%;
-  padding: 7px 8px;
+  padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: #ffffff;
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .threshold-input:focus {
@@ -2489,11 +2492,12 @@ body {
 .settings-actions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
   align-items: flex-start;
 }
 
 .settings-info {
+  margin: 0;
   font-size: 12px;
 }
 
