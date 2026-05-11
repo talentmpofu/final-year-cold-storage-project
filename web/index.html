@@ -10,7 +10,6 @@
       name="description"
       content="Smart Cold Storage Unit Monitoring System with AI Produce Detection"
     />
-    <meta name="theme-color" content="#0077b6" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
@@ -24,10 +23,11 @@
     <!-- Favicon -->
     <link
       rel="icon"
-      type="image/png"
+      type="image/svg+xml"
       sizes="192x192"
-      href="/assets/img/icon-192.png"
+      href="/assets/img/icon-192.svg"
     />
+    <link rel="apple-touch-icon" href="/assets/img/icon-192.svg" />
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -786,6 +786,7 @@
                         max="15"
                         step="0.1"
                         value="4"
+                        title="Temperature minimum for custom profile"
                       />
                     </td>
                     <td>
@@ -798,6 +799,7 @@
                         max="15"
                         step="0.1"
                         value="7"
+                        title="Temperature maximum for custom profile"
                       />
                     </td>
                     <td>
@@ -810,6 +812,7 @@
                         max="100"
                         step="1"
                         value="85"
+                        title="Humidity minimum for custom profile"
                       />
                     </td>
                     <td>
@@ -822,6 +825,7 @@
                         max="100"
                         step="1"
                         value="95"
+                        title="Humidity maximum for custom profile"
                       />
                     </td>
                     <td>
@@ -834,6 +838,7 @@
                         max="50000"
                         step="1"
                         value="30000"
+                        title="Ethylene threshold for custom profile"
                       />
                     </td>
                   </tr>
@@ -850,6 +855,7 @@
                         max="15"
                         step="0.1"
                         value="1"
+                        title="Temperature minimum for apples profile"
                       />
                     </td>
                     <td>
@@ -862,6 +868,7 @@
                         max="15"
                         step="0.1"
                         value="4"
+                        title="Temperature maximum for apples profile"
                       />
                     </td>
                     <td>
@@ -874,6 +881,7 @@
                         max="100"
                         step="1"
                         value="85"
+                        title="Humidity minimum for apples profile"
                       />
                     </td>
                     <td>
@@ -886,6 +894,7 @@
                         max="100"
                         step="1"
                         value="95"
+                        title="Humidity maximum for apples profile"
                       />
                     </td>
                     <td>
@@ -898,6 +907,7 @@
                         max="50000"
                         step="1"
                         value="30000"
+                        title="Ethylene threshold for apples profile"
                       />
                     </td>
                   </tr>
@@ -914,6 +924,7 @@
                         max="15"
                         step="0.1"
                         value="7"
+                        title="Temperature minimum for potatoes profile"
                       />
                     </td>
                     <td>
@@ -926,6 +937,7 @@
                         max="15"
                         step="0.1"
                         value="10"
+                        title="Temperature maximum for potatoes profile"
                       />
                     </td>
                     <td>
@@ -938,6 +950,7 @@
                         max="100"
                         step="1"
                         value="85"
+                        title="Humidity minimum for potatoes profile"
                       />
                     </td>
                     <td>
@@ -950,6 +963,7 @@
                         max="100"
                         step="1"
                         value="95"
+                        title="Humidity maximum for potatoes profile"
                       />
                     </td>
                     <td>
@@ -962,6 +976,7 @@
                         max="50000"
                         step="1"
                         value="30000"
+                        title="Ethylene threshold for potatoes profile"
                       />
                     </td>
                   </tr>
@@ -1131,7 +1146,7 @@
             if (modeIndicator) modeIndicator.textContent = "Manual";
             if (modeDescription) {
               modeDescription.innerHTML =
-                '<strong style="color: #DC2626;">Manual Override Active</strong> - You are controlling components manually';
+                '<strong class="manual-override-active">Manual Override Active</strong> - You are controlling components manually';
             }
             if (manualControlsGrid) {
               manualControlsGrid.style.opacity = "1";
@@ -1294,34 +1309,21 @@
 
     <!-- Add Inventory Item Modal -->
     <div id="add-inventory-modal" class="modal" hidden aria-hidden="true">
-      <div class="modal-content" style="max-width: 500px">
-        <h2 style="margin-top: 0">Add Inventory Item</h2>
-        <form id="add-inventory-form" style="display: grid; gap: 16px">
+      <div class="modal-content modal-card modal-card-wide">
+        <h2 class="modal-card-title">Add Inventory Item</h2>
+        <form id="add-inventory-form" class="modal-form">
           <div>
-            <label
-              for="item-produce-type"
-              style="display: block; margin-bottom: 4px; font-weight: 500"
+            <label for="item-produce-type" class="modal-form-label"
               >Produce Type</label
             >
-            <select
-              id="item-produce-type"
-              required
-              style="
-                width: 100%;
-                padding: 10px;
-                border: 1px solid #d1d9e8;
-                border-radius: 6px;
-              "
-            >
+            <select id="item-produce-type" required class="modal-form-select">
               <option value="">Select produce...</option>
               <option value="apples">Apples</option>
               <option value="potatoes">Potatoes</option>
             </select>
           </div>
           <div>
-            <label
-              for="item-quantity"
-              style="display: block; margin-bottom: 4px; font-weight: 500"
+            <label for="item-quantity" class="modal-form-label"
               >Quantity (units)</label
             >
             <input
@@ -1330,18 +1332,11 @@
               required
               min="1"
               placeholder="e.g., 50"
-              style="
-                width: 100%;
-                padding: 10px;
-                border: 1px solid #d1d9e8;
-                border-radius: 6px;
-              "
+              class="modal-form-control"
             />
           </div>
           <div>
-            <label
-              for="item-days-left"
-              style="display: block; margin-bottom: 4px; font-weight: 500"
+            <label for="item-days-left" class="modal-form-label"
               >Expected Shelf Life (days)</label
             >
             <input
@@ -1350,21 +1345,15 @@
               required
               min="1"
               placeholder="e.g., 30"
-              style="
-                width: 100%;
-                padding: 10px;
-                border: 1px solid #d1d9e8;
-                border-radius: 6px;
-              "
+              class="modal-form-control"
             />
           </div>
-          <div style="display: flex; gap: 12px; margin-top: 8px">
-            <button type="submit" class="btn" style="flex: 1">Add Item</button>
+          <div class="modal-form-actions">
+            <button type="submit" class="btn">Add Item</button>
             <button
               type="button"
               id="cancel-add-item"
-              class="btn"
-              style="flex: 1; background: #6b7280"
+              class="btn btn-secondary-muted"
             >
               Cancel
             </button>
@@ -1374,67 +1363,21 @@
     </div>
 
     <!-- PWA Install Banner -->
-    <div
-      id="pwa-install-banner"
-      style="
-        display: none;
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        right: 20px;
-        background: linear-gradient(135deg, #0077b6 0%, #00689f 100%);
-        color: #ffffff;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        z-index: 10000;
-      "
-    >
-      <div
-        style="
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 15px;
-        "
-      >
-        <div style="flex: 1; min-width: 200px">
-          <div style="font-size: 20px; margin-bottom: 5px">
-            Install Cold Storage App
-          </div>
-          <div style="font-size: 14px; opacity: 0.9">
+    <div id="pwa-install-banner" class="pwa-install-banner">
+      <div class="pwa-install-banner-inner">
+        <div class="pwa-install-banner-copy">
+          <div class="pwa-install-banner-title">Install Cold Storage App</div>
+          <div class="pwa-install-banner-subtitle">
             Add to your home screen for quick access and offline use
           </div>
         </div>
-        <div style="display: flex; gap: 10px">
-          <button
-            id="pwa-install-btn"
-            style="
-              background: #ffffff;
-              color: #0077b6;
-              border: none;
-              padding: 12px 24px;
-              border-radius: 8px;
-              font-weight: 600;
-              cursor: pointer;
-              font-size: 14px;
-            "
-          >
+        <div class="pwa-install-banner-actions">
+          <button id="pwa-install-btn" class="pwa-install-banner-btn">
             Install
           </button>
           <button
             id="pwa-dismiss-btn"
-            style="
-              background: rgba(255, 255, 255, 0.45);
-              color: #ffffff;
-              border: none;
-              padding: 12px 24px;
-              border-radius: 8px;
-              font-weight: 600;
-              cursor: pointer;
-              font-size: 14px;
-            "
+            class="pwa-install-banner-btn pwa-install-banner-btn-secondary"
           >
             Later
           </button>

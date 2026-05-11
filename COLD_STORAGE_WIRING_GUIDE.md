@@ -17,6 +17,7 @@ This guide matches the current firmware behavior and pin mapping in `esp32_code/
 - I2C SCL (SGP41 + OLED): GPIO22
 
 Relay inputs (active-LOW board logic in firmware):
+
 - IN1 -> GPIO23 (Humidifier)
 - IN2 -> GPIO19 (Peltier Module 1)
 - IN3 -> GPIO18 (Peltier Module 2)
@@ -26,7 +27,7 @@ Relay inputs (active-LOW board logic in firmware):
 ## 3) Quick Bench Pinout Table
 
 | Function | Device Pin | Connects To | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | DHT22 power | DHT22 VCC | ESP32 3.3V | Add 10k pull-up on DATA to 3.3V |
 | DHT22 ground | DHT22 GND | ESP32 GND | Common ground required |
 | DHT22 data | DHT22 DATA | ESP32 GPIO4 | Temperature + humidity input |
@@ -50,16 +51,19 @@ Relay inputs (active-LOW board logic in firmware):
 ## 4) Low-Voltage Wiring (ESP32, Sensors, Display)
 
 ### 4.1 ESP32 Power
+
 - Power ESP32 from USB (development) or stable 5V.
 - Keep ESP32 GND tied to system common ground.
 
 ### 4.2 DHT22 Wiring
+
 - DHT22 VCC -> ESP32 3.3V
 - DHT22 GND -> ESP32 GND
 - DHT22 DATA -> ESP32 GPIO4
 - 10k resistor between DHT22 DATA and 3.3V
 
 ### 4.3 Shared I2C (SGP41 + OLED)
+
 - ESP32 GPIO21 -> SGP41 SDA and OLED SDA
 - ESP32 GPIO22 -> SGP41 SCL and OLED SCL
 - ESP32 3.3V -> SGP41 VCC and OLED VCC
@@ -68,12 +72,15 @@ Relay inputs (active-LOW board logic in firmware):
 ## 5) Relay Module Wiring (control header)
 
 Relay header:
+
 - GND IN1 IN2 IN3 IN4 VCC
 
 Extra single-channel relay:
+
 - IN, VCC, GND
 
 Connections:
+
 - Relay VCC -> 5V
 - Relay GND -> ESP32 GND
 - IN1 -> GPIO23
@@ -83,6 +90,7 @@ Connections:
 - Extra relay IN -> GPIO16
 
 Notes:
+
 - Keep JD-VCC jumper installed for simple mode.
 - Firmware is configured for active-LOW relay control (`LOW = ON`, `HIGH = OFF`).
 
@@ -91,26 +99,31 @@ Notes:
 Use COM and NO for normal OFF behavior.
 
 ### CH1 (Humidifier)
+
 - PSU +12V -> COM1
 - NO1 -> Humidifier +
 - Humidifier - -> PSU -
 
 ### CH4 (Scrubber)
+
 - PSU +12V -> COM4
 - NO4 -> Scrubber +
 - Scrubber - -> PSU -
 
 ### CH2 (Peltier Module 1)
+
 - PSU +12V -> COM2
 - NO2 -> Peltier 1 +
 - Peltier 1 - -> PSU -
 
 ### CH3 (Peltier Module 2)
+
 - PSU +12V -> COM3
 - NO3 -> Peltier 2 +
 - Peltier 2 - -> PSU -
 
 ### CH5 (Auxiliary cooling, extra relay on GPIO16)
+
 - PSU +12V -> COM5
 - NO5 -> Fan/Pump +
 - Fan/Pump - -> PSU -
@@ -118,6 +131,7 @@ Use COM and NO for normal OFF behavior.
 ## 8) Grounding (critical)
 
 All grounds must be common:
+
 - 12V PSU negative
 - ESP32 GND
 - Relay board GND
@@ -126,6 +140,7 @@ All grounds must be common:
 ## 9) Protection and Good Practice
 
 Recommended:
+
 - Main fuse on 12V output
 - Branch fuse for humidifier and scrubber lines
 - Correct wire gauge for actuator currents
@@ -135,6 +150,7 @@ Recommended:
 ## 10) Startup Self-Test (current firmware)
 
 On boot, firmware pulses outputs briefly in sequence:
+
 1. Humidifier relay
 2. Peltier 1 relay
 3. Peltier 2 relay
@@ -142,6 +158,7 @@ On boot, firmware pulses outputs briefly in sequence:
 5. Scrubber relay
 
 Default timings:
+
 - ON time per step: 1500 ms
 - Gap between steps: 500 ms
 
@@ -150,6 +167,7 @@ Set `RUN_ACTUATOR_SELF_TEST = false` in code to skip startup test.
 ## 11) Functional Behavior Summary
 
 Temperature control:
+
 - Setpoint is midpoint of TEMP_MIN and TEMP_MAX.
 - PID-like demand is converted to a 2-minute relay time-proportioning window.
 - If temperature > TEMP_MAX: cooling relays are forced ON.
@@ -157,10 +175,12 @@ Temperature control:
 - In range, duty follows PID demand with a minimum 20-second relay toggle interval to reduce chatter.
 
 Humidity control:
+
 - If humidity < HUMIDITY_MIN: Humidifier relay ON
 - If humidity > HUMIDITY_MAX: Humidifier relay OFF
 
 VOC control:
+
 - If VOC > 30.0 ppm: Scrubber relay ON
 - If VOC <= 30.0 ppm: Scrubber relay OFF
 

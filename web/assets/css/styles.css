@@ -1436,6 +1436,109 @@ body {
   border: 1px solid #d9dee8;
   border-radius: 14px;
   box-shadow:
+
+.modal-card-wide {
+  max-width: 500px;
+}
+
+.modal-form {
+  display: grid;
+  gap: 16px;
+}
+
+.modal-form-field label,
+.modal-form-label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.modal-form-control,
+.modal-form-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d9e8;
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+}
+
+.modal-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.modal-form-actions .btn {
+  flex: 1;
+}
+
+.btn.btn-secondary-muted {
+  background: #6b7280;
+}
+
+.manual-override-active {
+  color: #DC2626;
+}
+
+.pwa-install-banner {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #0077b6 0%, #00689f 100%);
+  color: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+}
+
+.pwa-install-banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.pwa-install-banner-copy {
+  flex: 1;
+  min-width: 200px;
+}
+
+.pwa-install-banner-title {
+  font-size: 20px;
+  margin-bottom: 5px;
+}
+
+.pwa-install-banner-subtitle {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.pwa-install-banner-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.pwa-install-banner-btn {
+  background: #ffffff;
+  color: #0077b6;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.pwa-install-banner-btn-secondary {
+  background: rgba(255, 255, 255, 0.45);
+  color: #ffffff;
+}
     0 18px 38px -18px rgba(15, 23, 42, 0.45),
     0 8px 16px -10px rgba(15, 23, 42, 0.2);
   max-width: 420px;
@@ -1450,6 +1553,10 @@ body {
   font-weight: 700;
   margin: 0 0 16px 0;
   color: var(--text);
+}
+
+.modal-card-title {
+  margin-top: 0;
 }
 
 .modal-card p {
