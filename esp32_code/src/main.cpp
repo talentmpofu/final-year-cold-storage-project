@@ -28,7 +28,7 @@
  * - SCL -> GPIO 22 (ESP32 default I2C SCL)
  * - SDA -> GPIO 21 (ESP32 default I2C SDA)
  *
- * 5-Relay Control (all active-HIGH):
+ * 5-Relay Control (active-LOW relay module):
  * - IN1 (GPIO23): Humidifier
  * - IN2 (GPIO19): Peltier Module 1
  * - IN3 (GPIO18): Peltier Module 2
@@ -67,9 +67,9 @@ const char *thresholdsUrl = "http://192.168.137.1:3000/api/thresholds";
 #define DHT_TYPE DHT22 // DHT22 sensor type
 #define NUM_READINGS 3 // Number of readings to average
 
-// Relay control polarity (active-HIGH)
-#define RELAY_ACTIVE HIGH
-#define RELAY_INACTIVE LOW
+// Relay control polarity (most 5-relay modules are active-LOW)
+#define RELAY_ACTIVE LOW
+#define RELAY_INACTIVE HIGH
 #define RELAY_HUMIDIFIER_PIN 23
 #define RELAY_PELTIER1_PIN 19
 #define RELAY_PELTIER2_PIN 18
@@ -77,11 +77,11 @@ const char *thresholdsUrl = "http://192.168.137.1:3000/api/thresholds";
 #define RELAY_AUX_COOLING_PIN 16
 
 // Default control thresholds (will be updated from server)
-float VOC_THRESHOLD = 30000; // VOC raw threshold (clean air: ~25000, polluted: >30000)
-float TEMP_MIN = 2.0;        // Target minimum temperature (°C)
-float TEMP_MAX = 4.0;        // Target maximum temperature (°C)
-float HUMIDITY_MIN = 85.0;   // Target minimum humidity (%)
-float HUMIDITY_MAX = 95.0;   // Target maximum humidity (%)
+float VOC_THRESHOLD = 30.0; // VOC threshold in ppm
+float TEMP_MIN = 2.0;       // Target minimum temperature (°C)
+float TEMP_MAX = 4.0;       // Target maximum temperature (°C)
+float HUMIDITY_MIN = 85.0;  // Target minimum humidity (%)
+float HUMIDITY_MAX = 95.0;  // Target maximum humidity (%)
 
 // Relay-safe PID-like cooling control tuning
 const float PID_KP = 40.0;
@@ -94,7 +94,7 @@ const unsigned long RELAY_MIN_TOGGLE_MS = 20000;  // Minimum 20s between relay s
 
 // Last threshold update time
 unsigned long lastThresholdUpdate = 0;
-const unsigned long THRESHOLD_UPDATE_INTERVAL = 30000; // Update every 30 seconds
+const unsigned long THRESHOLD_UPDATE_INTERVAL = 300000; // Update every 5 minutes
 
 // Calibration offsets (adjust based on known reference values)
 #define TEMP_OFFSET 0.0 // No calibration - raw DHT22 reading
@@ -309,16 +309,19 @@ void updateDisplay()
   // VOC
   display.setCursor(0, 38);
   display.print("Ethyl/VOC: ");
-  display.print(vocRaw / 1000.0, 1);
-  display.print("ppm");
 
-  // Debug: print to serial
-  Serial.printf("VOC Check: vocRaw=%d, threshold=%.0f, show alert=%d\n",
-                vocRaw, VOC_THRESHOLD, (vocRaw > VOC_THRESHOLD));
-
-  if (vocRaw > VOC_THRESHOLD)
+  if (!isnan(vocIndex))
   {
-    display.print("!");
+    display.print(vocIndex, 1);
+    display.print("ppm");
+    if (vocIndex > VOC_THRESHOLD)
+    {
+      display.print("!");
+    }
+  }
+  else
+  {
+    display.print("---ppm");
   }
 
   // System Status
@@ -456,18 +459,27 @@ void controlHumidifier(float hum)
   }
 }
 
-// Function to control scrubber relay by VOC threshold.
-// `vocLevel` is raw SGP41 value; convert to ppm-equivalent with /1000.0.
+// Function to control scrubber relay by VOC threshold in ppm.
 void controlScrubber(float vocLevel)
 {
-  const float vocPpm = vocLevel / 1000.0;
-  if (vocPpm > 30.0)
+  if (isnan(vocLevel))
+  {
+    if (scrubberActive)
+    {
+      setRelay(RELAY_SCRUBBER_PIN, false);
+      scrubberActive = false;
+      Serial.println("⚠ VOC reading invalid. Scrubber DEACTIVATED");
+    }
+    return;
+  }
+
+  if (vocLevel > VOC_THRESHOLD)
   {
     if (!scrubberActive)
     {
       setRelay(RELAY_SCRUBBER_PIN, true);
       scrubberActive = true;
-      Serial.println("⚠️ VOC > 30.0 ppm. Scrubber ACTIVATED");
+      Serial.printf("⚠️ VOC > %.1f ppm. Scrubber ACTIVATED\n", VOC_THRESHOLD);
     }
   }
   else
@@ -476,7 +488,7 @@ void controlScrubber(float vocLevel)
     {
       setRelay(RELAY_SCRUBBER_PIN, false);
       scrubberActive = false;
-      Serial.println("✓ VOC <= 30.0 ppm. Scrubber DEACTIVATED");
+      Serial.printf("✓ VOC <= %.1f ppm. Scrubber DEACTIVATED\n", VOC_THRESHOLD);
     }
   }
 }
@@ -558,13 +570,15 @@ void updateThresholds()
         // Update VOC threshold
         if (doc.containsKey("voc"))
         {
-          VOC_THRESHOLD = doc["voc"];
+          float incomingVoc = doc["voc"].as<float>();
+          // Backward compatibility: convert old raw-style threshold (e.g. 30000) to ppm.
+          VOC_THRESHOLD = incomingVoc > 1000.0f ? incomingVoc / 1000.0f : incomingVoc;
         }
 
         Serial.println("✓ Thresholds updated from server:");
         Serial.printf("  Temperature: %.1f–%.1f°C\n", TEMP_MIN, TEMP_MAX);
         Serial.printf("  Humidity: %.1f–%.1f%%\n", HUMIDITY_MIN, HUMIDITY_MAX);
-        Serial.printf("  VOC: %.0f\n", VOC_THRESHOLD);
+        Serial.printf("  VOC: %.1f ppm\n", VOC_THRESHOLD);
       }
       else
       {
@@ -610,6 +624,11 @@ void setup()
     Serial.println("✓ WiFi connected!");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
+    // Fetch thresholds from server immediately after connecting so targets
+    // reflect the current storage profile (temperature/humidity/VOC)
+    Serial.println("Fetching thresholds from server...");
+    updateThresholds();
+    lastThresholdUpdate = millis();
   }
   else
   {
@@ -624,7 +643,7 @@ void setup()
   pinMode(RELAY_SCRUBBER_PIN, OUTPUT);
   pinMode(RELAY_AUX_COOLING_PIN, OUTPUT);
 
-  // Start OFF (active-HIGH logic)
+  // Start OFF (active-LOW logic)
   setRelay(RELAY_HUMIDIFIER_PIN, false);
   setRelay(RELAY_PELTIER1_PIN, false);
   setRelay(RELAY_PELTIER2_PIN, false);
@@ -634,7 +653,7 @@ void setup()
   runActuatorSelfTest();
 
   Serial.println("\n=== ACTUATOR CONFIGURATION ===");
-  Serial.println("5-Relay Layout (active-HIGH):");
+  Serial.println("5-Relay Layout (active-LOW):");
   Serial.println("  • CH1 GPIO23: Humidifier");
   Serial.println("  • CH2 GPIO19: Peltier 1");
   Serial.println("  • CH3 GPIO18: Peltier 2");
@@ -747,12 +766,13 @@ void loop()
 
       if (vocRaw > 0)
       {
-        // Use raw value directly (typical clean air: 20000-30000)
-        vocIndex = (float)vocRaw;
+        // Convert SGP41 raw signal to ppm-style value used by UI and relay thresholding.
+        vocIndex = (float)vocRaw / 1000.0f;
       }
       else
       {
         Serial.println("⚠ VOC sensor reading failed");
+        vocIndex = NAN;
       }
     }
 
@@ -773,11 +793,15 @@ void loop()
 
     if (sgpReady && !isnan(vocIndex))
     {
-      Serial.print("VOC Index: ");
-      Serial.print(vocIndex, 0);
-      Serial.print(" (Threshold: ");
-      Serial.print(VOC_THRESHOLD, 0);
-      Serial.println(")");
+      Serial.print("VOC: ");
+      Serial.print(vocIndex, 1);
+      Serial.print(" ppm (Threshold: ");
+      Serial.print(VOC_THRESHOLD, 1);
+      Serial.println(" ppm)");
+    }
+    else if (!sgpReady)
+    {
+      Serial.println("VOC: ⚠ Sensor not detected");
     }
 
     // Display system status

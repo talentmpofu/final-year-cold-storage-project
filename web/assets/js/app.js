@@ -1,4 +1,4 @@
-// Mock live data updates and simple UI interactions
+// Live dashboard updates and UI interactions
 (function () {
   const fmt = (n) => (typeof n === "number" ? n.toFixed(1) : "--");
   const fmtPrecise = (n) => (typeof n === "number" ? n.toFixed(1) : "--");
@@ -7,6 +7,13 @@
   const ctx = (cid) => {
     const c = document.getElementById(cid);
     return c ? c.getContext("2d") : null;
+  };
+
+  // Accept both legacy raw VOC values (~30000) and current ppm values (~30).
+  const normalizeVocPpm = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return NaN;
+    return numeric > 1000 ? numeric / 1000 : numeric;
   };
 
   const series = {
@@ -113,7 +120,10 @@
       return {
         temp: Number(data?.temperature?.value),
         humidity: Number(data?.humidity?.value),
-        ethylene: Number(data?.vocs?.value) / 1000.0,
+        ethylene: normalizeVocPpm(data?.vocs?.value),
+        timestamp: Number.isFinite(new Date(data?.timestamp).getTime())
+          ? new Date(data.timestamp).getTime()
+          : NaN,
         produce: data.produce,
       };
     } catch (e) {
@@ -347,7 +357,7 @@
     const humidityRange = thresholds.humidity || targets.humidity;
     const vocLimit =
       typeof thresholds.voc === "number"
-        ? thresholds.voc / 1000
+        ? normalizeVocPpm(thresholds.voc)
         : targets.ethylene.max;
 
     return {
@@ -647,8 +657,14 @@
     const fetched = await fetchMetrics();
     console.log("Fetched result:", fetched);
     let temp, humidity, ethylene, tstamp;
+    const isFresh =
+      fetched &&
+      Number.isFinite(fetched.timestamp) &&
+      Date.now() - fetched.timestamp <= 45000;
+
     if (
       fetched &&
+      isFresh &&
       ["temp", "humidity", "ethylene"].every(
         (k) => typeof fetched[k] === "number" && !Number.isNaN(fetched[k]),
       )
@@ -656,18 +672,43 @@
       temp = fetched.temp;
       humidity = fetched.humidity;
       ethylene = fetched.ethylene;
-      tstamp = Date.now();
+      tstamp = fetched.timestamp;
       console.log("Using real data:", { temp, humidity, ethylene });
     } else {
-      temp = 3 + Math.random() * 3.5;
-      humidity = 85 + Math.random() * 8;
-      ethylene = 0.01 + Math.random() * 0.14;
-      tstamp = Date.now();
-      console.log("Using mock data (fetch failed):", {
-        temp,
-        humidity,
-        ethylene,
-      });
+      console.log("No fresh sensor data available");
+
+      const metricsNavBadge = document.getElementById("metrics-nav-badge");
+      if (metricsNavBadge) {
+        metricsNavBadge.textContent = "0";
+        metricsNavBadge.hidden = true;
+      }
+
+      const tempRing = el("temp-ring");
+      if (tempRing) tempRing.style.setProperty("--progress", "0%");
+      const humidityRing = el("humidity-ring");
+      if (humidityRing) humidityRing.style.setProperty("--progress", "0%");
+      const ethyleneRing = el("ethylene-ring");
+      if (ethyleneRing) ethyleneRing.style.setProperty("--progress", "0%");
+
+      const tempPercentEl = el("temp-percent");
+      if (tempPercentEl) tempPercentEl.textContent = "--";
+      const humidityPercentEl = el("humidity-percent");
+      if (humidityPercentEl) humidityPercentEl.textContent = "--";
+      const ethylenePercentEl = el("ethylene-percent");
+      if (ethylenePercentEl) ethylenePercentEl.textContent = "--";
+
+      setDelta("temp-delta", NaN, 1, "°C");
+      setDelta("humidity-delta", NaN, 1, "%");
+      setDelta("ethylene-delta", NaN, 3, "ppm");
+
+      el("temp-trend").textContent = "No data";
+      el("humidity-trend").textContent = "No data";
+      el("ethylene-trend").textContent = "No data";
+
+      setMetricCardState("temp-ring", "unknown");
+      setMetricCardState("humidity-ring", "unknown");
+      setMetricCardState("ethylene-ring", "unknown");
+      return;
     }
 
     el("temp-value").textContent =
@@ -876,6 +917,12 @@
         systemStatus.scrubber = "standby";
         updateSystemStatus();
       }
+    }
+
+    const metricsNavBadge = document.getElementById("metrics-nav-badge");
+    if (metricsNavBadge) {
+      metricsNavBadge.textContent = String(alerts.length);
+      metricsNavBadge.hidden = alerts.length === 0;
     }
 
     // Update alert banner at top for important alerts
@@ -1801,11 +1848,10 @@
       if (badEl) badEl.textContent = String(bad || 0);
       if (statusEl) {
         const badgeText = bad >= 1 ? "HIGH ALERT" : "OK";
-        statusEl.textContent = badgeText;
+        const badgeClass = bad >= 1 ? "camera-status-high" : "camera-status-ok";
+        // Render badge inside the table cell so the STATUS column alignment stays centered.
+        statusEl.innerHTML = `<span class="${badgeClass}">${badgeText}</span>`;
         statusEl.classList.remove("camera-status-high", "camera-status-ok");
-        statusEl.classList.add(
-          bad >= 1 ? "camera-status-high" : "camera-status-ok",
-        );
       }
       if (noteEl) {
         const actionText =
@@ -1869,7 +1915,9 @@
     const tempMax = activeThresholds.temperature?.max ?? targets.temp.max;
     const humidityMin = activeThresholds.humidity?.min ?? targets.humidity.min;
     const humidityMax = activeThresholds.humidity?.max ?? targets.humidity.max;
-    const vocMax = (activeThresholds.voc ?? targets.ethylene.max * 1000) / 1000;
+    const normalizedVocMax = normalizeVocPpm(
+      activeThresholds.voc ?? targets.ethylene.max,
+    );
 
     const recentWindow = 6;
     const recentTemp = series.temp.slice(-recentWindow);
@@ -1907,7 +1955,7 @@
         (humidityTrend === "falling" ? Math.max(0, -humidityDelta) * 0.8 : 0)
       : 0;
     const ethyleneStress = hasLiveMetrics
-      ? Math.max(0, latestEthylene - vocMax) * 18 +
+      ? Math.max(0, latestEthylene - normalizedVocMax) * 18 +
         (ethyleneTrend === "rising" ? Math.max(0, ethyleneDelta) * 140 : 0)
       : 0;
 
@@ -1985,7 +2033,7 @@
           `Lower humidity to ${humidityMin}-${humidityMax}%.`,
         );
       }
-      if (latestEthylene > vocMax || ethyleneTrend === "rising") {
+      if (latestEthylene > normalizedVocMax || ethyleneTrend === "rising") {
         recommendations.push("Run scrubber and remove damaged produce.");
       }
       if (recommendations.length === 0) {
@@ -2213,7 +2261,7 @@
     targets.temp.max = profile.temperature.max;
     targets.humidity.min = profile.humidity.min;
     targets.humidity.max = profile.humidity.max;
-    targets.ethylene.max = profile.voc / 1000;
+    targets.ethylene.max = normalizeVocPpm(profile.voc);
 
     const tempEl = el("threshold-temp");
     const humidEl = el("threshold-humidity");
@@ -2225,7 +2273,7 @@
       humidEl.textContent = `${fmtWhole(profile.humidity.min)}-${fmtWhole(profile.humidity.max)}%`;
     }
     if (vocEl) {
-      vocEl.textContent = `${fmtWhole(profile.voc / 1000)} ppm`;
+      vocEl.textContent = `${fmtWhole(normalizeVocPpm(profile.voc))} ppm`;
     }
 
     const tempTarget = document.querySelector(
@@ -2244,7 +2292,7 @@
       humidityTarget.textContent = `Target: ${fmtWhole(profile.humidity.min)}-${fmtWhole(profile.humidity.max)}%`;
     }
     if (ethyleneTarget) {
-      ethyleneTarget.textContent = `Threshold: ${fmtWhole(profile.voc / 1000)} ppm`;
+      ethyleneTarget.textContent = `Threshold: ${fmtWhole(normalizeVocPpm(profile.voc))} ppm`;
     }
 
     const modeNote = el("threshold-mode-note");
@@ -2416,7 +2464,7 @@
       applyTrendSeries({
         temp: points.map((p) => Number(p.temperature || 0)),
         humidity: points.map((p) => Number(p.humidity || 0)),
-        ethylene: points.map((p) => Number(p.ethylene || 0)),
+        ethylene: points.map((p) => normalizeVocPpm(p.voc ?? p.ethylene ?? 0)),
         times: points.map((p) => Number(p.timestamp || Date.now())),
       });
     } catch (error) {

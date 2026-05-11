@@ -597,6 +597,12 @@ app.get("/api/history", (req, res) => {
   const effectiveRows = hasRangeData ? rows : getAllHistoryRows();
   const sampled = downsampleRows(effectiveRows, 240);
 
+  // Support both legacy raw VOC values (~30000) and ppm values (~30).
+  const toPpm = (voc) => {
+    const numeric = Number(voc || 0);
+    return numeric > 1000 ? numeric / 1000 : numeric;
+  };
+
   res.json({
     success: true,
     range: resolved.key,
@@ -607,7 +613,7 @@ app.get("/api/history", (req, res) => {
       timestamp: row.timestamp,
       temperature: row.temperature,
       humidity: row.humidity,
-      ethylene: row.voc / 1000.0,
+      ethylene: toPpm(row.voc),
       voc: row.voc,
     })),
   });

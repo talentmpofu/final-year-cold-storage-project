@@ -16,7 +16,7 @@ This guide matches the current firmware behavior and pin mapping in `esp32_code/
 - I2C SDA (SGP41 + OLED): GPIO21
 - I2C SCL (SGP41 + OLED): GPIO22
 
-Relay inputs (active-HIGH board logic in firmware):
+Relay inputs (active-LOW board logic in firmware):
 - IN1 -> GPIO23 (Humidifier)
 - IN2 -> GPIO19 (Peltier Module 1)
 - IN3 -> GPIO18 (Peltier Module 2)
@@ -84,7 +84,7 @@ Connections:
 
 Notes:
 - Keep JD-VCC jumper installed for simple mode.
-- Firmware is configured for active-HIGH relay control (`HIGH = ON`, `LOW = OFF`).
+- Firmware is configured for active-LOW relay control (`LOW = ON`, `HIGH = OFF`).
 
 ## 6) 12V Load Wiring (relay contact side)
 
