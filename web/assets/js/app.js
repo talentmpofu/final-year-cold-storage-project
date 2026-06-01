@@ -35,7 +35,7 @@
     times: [],
   };
   const targets = {
-    temp: { min: 2, max: 4 },
+    temp: { min: 10, max: 13 },
     humidity: { min: 85, max: 95 },
     ethylene: { max: 50 }, // VOCs threshold: 50 IAQ
   };
@@ -608,8 +608,8 @@
     if (summaryEl) {
       summaryEl.textContent =
         applesShelfLife < potatoesShelfLife
-          ? "Apples are under more pressure right now, so they should be inspected first."
-          : "Potatoes are currently the longer-lived batch, while apples need closer attention.";
+          ? "Tomatoes are under more pressure right now, so they should be inspected first."
+          : "Potatoes are currently the longer-lived batch, while tomatoes need closer attention.";
     }
 
     const actions = [];
@@ -653,7 +653,7 @@
 
     const priorities = [
       {
-        label: `Apples - ${applesShelfLife.toFixed(1)} days estimated`,
+        label: `Tomatoes - ${applesShelfLife.toFixed(1)} days estimated`,
         score: applesShelfLife - (cameraInventorySummary.applesBad || 0) * 0.5,
       },
       {
@@ -1821,11 +1821,11 @@
 
   const DUMMY_AI_ALERTS = [
     {
-      id: "dummy-apple-alert",
-      title: "Apples",
+      id: "dummy-tomato-alert",
+      title: "Tomatoes",
       severity: "high",
       message:
-        "AI detected overripening in 3 apples. Please inspect latest images and remove affected apples physically.",
+        "AI detected overripening in 3 tomatoes. Please inspect latest images and remove affected tomatoes physically.",
     },
     {
       id: "dummy-potato-alert",
@@ -1971,7 +1971,7 @@
       applesBadEl,
       applesStatusEl,
       applesNoteEl,
-      "Apples",
+      "Tomatoes",
       cameraInventorySummary.totalApples,
       cameraInventorySummary.applesGood,
       cameraInventorySummary.applesBad,
@@ -2142,7 +2142,7 @@
       if (recommendations.length === 0) {
         recommendations.push("Conditions are good. Keep current settings.");
       }
-      recommendations.push("Check apples first.");
+      recommendations.push("Check tomatoes first.");
     } else {
       recommendations.push("Waiting for live data.");
     }
@@ -2161,7 +2161,7 @@
 
     const priorityItems = [
       {
-        name: "Apples",
+        name: "Tomatoes",
         score: priorityScore("apples"),
         reason:
           cameraInventorySummary.applesBad > 0
@@ -2405,7 +2405,7 @@
           "Mixed produce detected (or unknown). Using Custom range thresholds.";
       } else if (normalizedMode === "apples") {
         modeNote.textContent =
-          "AI camera detects apples only. Apples thresholds are applied automatically.";
+          "AI camera detects tomatoes only. Tomatoes thresholds are applied automatically.";
       } else {
         modeNote.textContent =
           "AI camera detects potatoes only. Potatoes thresholds are applied automatically.";
@@ -2607,7 +2607,7 @@
 
   // Produce management functions
   const produceNames = {
-    apples: "Apples",
+    apples: "Tomatoes",
     potatoes: "Potatoes",
     null: "Not detected",
   };
@@ -2671,7 +2671,7 @@
     }
 
     if (apples > 0 && potatoes > 0) {
-      if (name) name.textContent = "Apples + Potatoes";
+      if (name) name.textContent = "Tomatoes + Potatoes";
       currentProduceContext.type = null;
     } else if (apples > 0) {
       if (name) name.textContent = produceNames.apples;
