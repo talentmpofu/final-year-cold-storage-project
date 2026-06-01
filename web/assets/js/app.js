@@ -9,12 +9,24 @@
     return c ? c.getContext("2d") : null;
   };
 
-  // Accept both legacy raw VOC values (~30000) and current ppm values (~30).
-  const normalizeVocPpm = (value) => {
+  // Accept both legacy raw VOC values (~30000) and current IAQ index values (~30).
+  const normalizeVocIaq = (value) => {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return NaN;
     return numeric > 1000 ? numeric / 1000 : numeric;
   };
+
+  // Map IAQ numeric value to qualitative category per requested ranges
+  function getIaqCategory(iaq) {
+    if (typeof iaq !== "number" || Number.isNaN(iaq)) return "Unknown";
+    if (iaq >= 0 && iaq <= 50) return "Excellent";
+    if (iaq <= 100) return "Good";
+    if (iaq <= 150) return "Lightly polluted";
+    if (iaq <= 200) return "Moderately polluted";
+    if (iaq <= 250) return "Heavily polluted";
+    if (iaq <= 350) return "Severely polluted";
+    return "Extremely polluted";
+  }
 
   const series = {
     temp: [],
@@ -25,7 +37,7 @@
   const targets = {
     temp: { min: 2, max: 4 },
     humidity: { min: 85, max: 95 },
-    ethylene: { max: 30 }, // VOCs threshold: 30 ppm
+    ethylene: { max: 50 }, // VOCs threshold: 50 IAQ
   };
   const MAX_POINTS = 50;
   let currentTimeRange = "24h";
@@ -42,6 +54,58 @@
     thresholds: null,
     manualOverride: false,
   };
+  let currentIaq = null;
+
+  // Simulation helpers (used when `Simulate Metrics` is enabled)
+  let simulateMetricsEnabled = false;
+  let simValues = {
+    temp: (targets.temp.min + targets.temp.max) / 2,
+    humidity: (targets.humidity.min + targets.humidity.max) / 2,
+    ethylene: Math.min(targets.ethylene.max, 25),
+  };
+  let simIntervalId = null;
+
+  function startSimulation() {
+    if (simIntervalId) return;
+    // small random-walk updates every 2.5s
+    simIntervalId = setInterval(() => {
+      // temp random walk
+      const tRange = Math.max(0.5, (targets.temp.max - targets.temp.min) / 2);
+      simValues.temp = Math.max(
+        -50,
+        Math.min(50, simValues.temp + (Math.random() - 0.5) * tRange),
+      );
+      // humidity random walk
+      const hRange = Math.max(
+        2,
+        (targets.humidity.max - targets.humidity.min) / 2,
+      );
+      simValues.humidity = Math.max(
+        0,
+        Math.min(100, simValues.humidity + (Math.random() - 0.5) * hRange),
+      );
+      // ethylene IAQ random walk with occasional spikes/out-of-range
+      const eStep = (Math.random() - 0.5) * 8;
+      simValues.ethylene = Math.max(0, simValues.ethylene + eStep);
+      if (Math.random() < 0.06) {
+        // 6% chance of a transient spike well above threshold
+        simValues.ethylene = targets.ethylene.max * (1 + Math.random() * 6);
+      }
+
+      // trigger an immediate update so UI reflects changes
+      try {
+        updateMetrics();
+      } catch (e) {
+        console.warn("Simulation updateMetrics call failed:", e);
+      }
+    }, 2500);
+  }
+
+  function stopSimulation() {
+    if (!simIntervalId) return;
+    clearInterval(simIntervalId);
+    simIntervalId = null;
+  }
 
   function setMetricCardState(ringId, state) {
     const ring = el(ringId);
@@ -100,6 +164,16 @@
   }
 
   async function fetchMetrics() {
+    if (simulateMetricsEnabled) {
+      return {
+        temp: Number(simValues.temp),
+        humidity: Number(simValues.humidity),
+        ethylene: Number(simValues.ethylene),
+        timestamp: Date.now(),
+        produce: null,
+        scrubberActive: undefined,
+      };
+    }
     try {
       const res = await fetch("/api/metrics", { cache: "no-store" });
       if (!res.ok) throw new Error("bad status");
@@ -120,11 +194,16 @@
       return {
         temp: Number(data?.temperature?.value),
         humidity: Number(data?.humidity?.value),
-        ethylene: normalizeVocPpm(data?.vocs?.value),
+        ethylene: normalizeVocIaq(data?.vocs?.value),
         timestamp: Number.isFinite(new Date(data?.timestamp).getTime())
           ? new Date(data.timestamp).getTime()
           : NaN,
         produce: data.produce,
+        // firmware now includes whether the scrubber is considered active
+        scrubberActive:
+          typeof data?.scrubber_active === "boolean"
+            ? data.scrubber_active
+            : undefined,
       };
     } catch (e) {
       return null;
@@ -263,7 +342,7 @@
     canvasCtx.fillStyle = "#d1495b";
     canvasCtx.fillText("Temp (\u00B0C)", PAD + 6, PAD - 8);
     canvasCtx.fillStyle = "#d97706";
-    canvasCtx.fillText("Ethylene (ppm)", PAD + 90, PAD - 8);
+    canvasCtx.fillText("Ethylene (IAQ)", PAD + 90, PAD - 8);
     canvasCtx.fillStyle = "#0077b6";
     const rightTitle = "Humidity (%)";
     const rtw = canvasCtx.measureText(rightTitle).width;
@@ -357,7 +436,7 @@
     const humidityRange = thresholds.humidity || targets.humidity;
     const vocLimit =
       typeof thresholds.voc === "number"
-        ? normalizeVocPpm(thresholds.voc)
+        ? normalizeVocIaq(thresholds.voc)
         : targets.ethylene.max;
 
     return {
@@ -637,7 +716,7 @@
         )} %</strong></div>
         <div><span style="color:#d97706">&#9679;</span> Ethylene/VOCs: <strong>${fmtPrecise(
           item.ethylene,
-        )} ppm</strong></div>
+        )} IAQ</strong></div>
       `;
       // Position relative to canvas, not viewport
       tooltip.style.left = `${x + 15}px`;
@@ -699,7 +778,7 @@
 
       setDelta("temp-delta", NaN, 1, "°C");
       setDelta("humidity-delta", NaN, 1, "%");
-      setDelta("ethylene-delta", NaN, 3, "ppm");
+      setDelta("ethylene-delta", NaN, 3, "IAQ");
 
       el("temp-trend").textContent = "No data";
       el("humidity-trend").textContent = "No data";
@@ -716,7 +795,7 @@
     el("humidity-value").textContent =
       `Target ${fmtWhole(targets.humidity.min)}-${fmtWhole(targets.humidity.max)}%`;
     el("ethylene-value").textContent =
-      `Limit ${fmtWhole(targets.ethylene.max)} ppm`;
+      `Limit ${fmtWhole(targets.ethylene.max)} IAQ`;
     console.log("Updated DOM elements");
 
     // Update indicator rings using meaningful target-based ranges.
@@ -761,6 +840,12 @@
       `${fmtPrecise(ethylene)}`,
     );
 
+    // Show IAQ qualitative category
+    const ethCatEl = el("ethylene-category");
+    if (ethCatEl) {
+      ethCatEl.textContent = `Category: ${getIaqCategory(ethylene)}`;
+    }
+
     setDelta(
       "temp-delta",
       previousMetrics.temp == null ? NaN : temp - previousMetrics.temp,
@@ -781,7 +866,7 @@
         ? NaN
         : ethylene - previousMetrics.ethylene,
       3,
-      "ppm",
+      "IAQ",
     );
 
     previousMetrics = { temp, humidity, ethylene };
@@ -899,24 +984,33 @@
         type: "err",
         text: `VOC/Ethylene ${ethylene.toFixed(
           1,
-        )}ppm is above safe threshold (max ${
+        )} IAQ is above safe threshold (max ${
           targets.ethylene.max
-        }ppm) - air scrubber activated.`,
+        } IAQ) - check KMnO4 filter effectiveness.`,
       });
-      // Auto-activate scrubber when VOCs are high
-      if (systemStatus.scrubber !== "active") {
-        systemStatus.scrubber = "active";
-        updateSystemStatus();
+    }
+
+    currentIaq = ethylene;
+
+    // Auto-control behavior (only when dashboard is in Automatic mode)
+    const autoManualToggle = document.getElementById("auto-manual-toggle");
+    const isAutoMode = autoManualToggle ? autoManualToggle.checked : true;
+    if (isAutoMode) {
+      // Cooling: active when above max, standby when below min
+      if (temp > targets.temp.max) {
+        systemStatus.cooling = "active";
+      } else if (temp < targets.temp.min) {
+        systemStatus.cooling = "standby";
       }
-    } else {
-      // Auto-deactivate when VOCs are normal (with 20% hysteresis)
-      if (
-        systemStatus.scrubber === "active" &&
-        ethylene < targets.ethylene.max * 0.8
-      ) {
-        systemStatus.scrubber = "standby";
-        updateSystemStatus();
+
+      // Humidifier: active when below min, standby when above max
+      if (humidity < targets.humidity.min) {
+        systemStatus.humidifier = "active";
+      } else if (humidity > targets.humidity.max) {
+        systemStatus.humidifier = "standby";
       }
+
+      updateSystemStatus();
     }
 
     const metricsNavBadge = document.getElementById("metrics-nav-badge");
@@ -1003,7 +1097,7 @@
   const systemStatus = {
     cooling: "active",
     humidifier: "active",
-    scrubber: "standby",
+    scrubber: "passive",
     camera: "active",
   };
 
@@ -1067,21 +1161,26 @@
 
     const statusMap = {
       active: { text: "Active", class: "active" },
+      passive: { text: "Passive", class: "standby" },
       standby: { text: "Standby", class: "standby" },
       offline: { text: "Offline", class: "offline" },
     };
 
     ["cooling", "humidifier", "scrubber", "camera"].forEach((component) => {
-      const status = statusMap[systemStatus[component]] || statusMap.standby;
+      const currentStatus =
+        component === "scrubber" && systemStatus.cooling === "active"
+          ? "passive"
+          : systemStatus[component];
+      const status = statusMap[currentStatus] || statusMap.standby;
       setStatusBadge(component, status);
     });
   }
 
   function updateFilterHealth() {
-    // Degrade KMnO4 filter when scrubber is active
-    if (systemStatus.scrubber === "active") {
+    // Degrade KMnO4 filter gradually when filter is in use
+    if (currentIaq != null && currentIaq > targets.ethylene.max) {
       scrubberRunTime += 1;
-      // KMnO4 degrades by 0.01% per update cycle when active (reacting with ethylene/VOCs)
+      // KMnO4 degrades by 0.01% per update cycle when air quality is above threshold
       if (scrubberRunTime % 10 === 0 && kmno4Health > 0) {
         kmno4Health = Math.max(0, kmno4Health - 0.1);
       }
@@ -1089,16 +1188,28 @@
 
     // Update UI
     const kmno4Bar = el("kmno4-bar");
-    const kmno4Percent = el("kmno4-percent");
+    const kmno4Status = el("kmno4-status");
 
-    if (kmno4Bar && kmno4Percent) {
-      kmno4Bar.style.width = `${kmno4Health}%`;
-      kmno4Percent.textContent = `${Math.round(kmno4Health)}%`;
+    if (kmno4Bar) {
+      kmno4Bar.style.width = "100%";
+      if (kmno4Status) {
+        let statusText = "Effective";
+        if (currentIaq != null && currentIaq > targets.ethylene.max) {
+          statusText = "Compromised — inspect KMnO4 filter";
+        } else if (kmno4Health < 40) {
+          statusText = "Replace KMnO4 filter";
+        } else if (kmno4Health < 70) {
+          statusText = "Check KMnO4 filter soon";
+        }
+        kmno4Status.textContent = statusText;
+      }
 
-      // Change color based on health
-      if (kmno4Health < 20) {
+      // Change color based on health state or IAQ concern
+      if (currentIaq != null && currentIaq > targets.ethylene.max) {
         kmno4Bar.style.background = "linear-gradient(90deg, #d1495b, #e06a78)";
-      } else if (kmno4Health < 50) {
+      } else if (kmno4Health < 40) {
+        kmno4Bar.style.background = "linear-gradient(90deg, #d1495b, #e06a78)";
+      } else if (kmno4Health < 70) {
         kmno4Bar.style.background = "linear-gradient(90deg, #d97706, #fbbf24)";
       } else {
         kmno4Bar.style.background = "linear-gradient(90deg, #0077b6, #00689f)";
@@ -1136,11 +1247,6 @@
           key: "humidifier",
           toggleId: "humidifier-toggle",
           statusId: "humidifier-status-text",
-        },
-        {
-          key: "scrubber",
-          toggleId: "scrubber-toggle",
-          statusId: "scrubber-status-text",
         },
       ];
 
@@ -1199,21 +1305,18 @@
       });
     }
 
-    if (scrubberToggle) {
-      scrubberToggle.addEventListener("change", (e) => {
-        systemStatus.scrubber = e.target.checked ? "active" : "standby";
-        const isAuto = autoManualToggle?.checked ?? true;
-        el("scrubber-status-text").textContent = isAuto
-          ? e.target.checked
-            ? "Active"
-            : "Standby"
-          : e.target.checked
-            ? "Active"
-            : "Off";
-        updateSystemStatus();
-        notify(
-          e.target.checked ? "Scrubber activated" : "Scrubber deactivated",
-        );
+    // Simulation toggle
+    const simulateToggle = el("simulate-toggle");
+    const simulateStatusText = el("simulate-status-text");
+    if (simulateToggle) {
+      simulateToggle.addEventListener("change", (e) => {
+        simulateMetricsEnabled = e.target.checked;
+        if (simulateStatusText)
+          simulateStatusText.textContent = e.target.checked ? "On" : "Off";
+        if (simulateMetricsEnabled) startSimulation();
+        else stopSimulation();
+        // Force an immediate metrics refresh so UI reflects new source
+        updateMetrics();
       });
     }
 
@@ -1915,7 +2018,7 @@
     const tempMax = activeThresholds.temperature?.max ?? targets.temp.max;
     const humidityMin = activeThresholds.humidity?.min ?? targets.humidity.min;
     const humidityMax = activeThresholds.humidity?.max ?? targets.humidity.max;
-    const normalizedVocMax = normalizeVocPpm(
+    const normalizedVocMax = normalizeVocIaq(
       activeThresholds.voc ?? targets.ethylene.max,
     );
 
@@ -1995,7 +2098,7 @@
         `Humidity ${humidityTrend} (${Math.abs(humidityDelta).toFixed(1)}%)`,
       );
       trendSummaryParts.push(
-        `VOC ${ethyleneTrend} (${Math.abs(ethyleneDelta).toFixed(1)} ppm)`,
+        `VOC ${ethyleneTrend} (${Math.abs(ethyleneDelta).toFixed(1)} IAQ)`,
       );
     } else {
       trendSummaryParts.push("Waiting for live data");
@@ -2261,7 +2364,7 @@
     targets.temp.max = profile.temperature.max;
     targets.humidity.min = profile.humidity.min;
     targets.humidity.max = profile.humidity.max;
-    targets.ethylene.max = normalizeVocPpm(profile.voc);
+    targets.ethylene.max = normalizeVocIaq(profile.voc);
 
     const tempEl = el("threshold-temp");
     const humidEl = el("threshold-humidity");
@@ -2273,7 +2376,7 @@
       humidEl.textContent = `${fmtWhole(profile.humidity.min)}-${fmtWhole(profile.humidity.max)}%`;
     }
     if (vocEl) {
-      vocEl.textContent = `${fmtWhole(normalizeVocPpm(profile.voc))} ppm`;
+      vocEl.textContent = `${fmtWhole(normalizeVocIaq(profile.voc))} IAQ`;
     }
 
     const tempTarget = document.querySelector(
@@ -2292,7 +2395,7 @@
       humidityTarget.textContent = `Target: ${fmtWhole(profile.humidity.min)}-${fmtWhole(profile.humidity.max)}%`;
     }
     if (ethyleneTarget) {
-      ethyleneTarget.textContent = `Threshold: ${fmtWhole(normalizeVocPpm(profile.voc))} ppm`;
+      ethyleneTarget.textContent = `Threshold: ${fmtWhole(normalizeVocIaq(profile.voc))} IAQ`;
     }
 
     const modeNote = el("threshold-mode-note");
@@ -2464,7 +2567,7 @@
       applyTrendSeries({
         temp: points.map((p) => Number(p.temperature || 0)),
         humidity: points.map((p) => Number(p.humidity || 0)),
-        ethylene: points.map((p) => normalizeVocPpm(p.voc ?? p.ethylene ?? 0)),
+        ethylene: points.map((p) => normalizeVocIaq(p.voc ?? p.ethylene ?? 0)),
         times: points.map((p) => Number(p.timestamp || Date.now())),
       });
     } catch (error) {

@@ -296,7 +296,7 @@
                     <div class="threshold-item">
                       <span class="threshold-label">VOC Limit</span>
                       <span id="threshold-voc" class="threshold-value"
-                        >30 ppm</span
+                        >50 IAQ</span
                       >
                     </div>
                   </div>
@@ -384,7 +384,7 @@
                 <div class="metric-title-wrap">
                   <h3>Ethylene/VOCs</h3>
                 </div>
-                <span class="unit-pill">ppm</span>
+                <span class="unit-pill">IAQ</span>
               </header>
               <div class="metric-main-row">
                 <div class="metric-gauge" id="ethylene-ring">
@@ -402,6 +402,14 @@
                   </div>
                   <div class="metric-delta" id="ethylene-delta">
                     No prior sample
+                  </div>
+                  <div
+                    class="metric-category"
+                    id="ethylene-category"
+                    aria-live="polite"
+                    style="margin-top: 6px; font-weight: 600; color: #d97706"
+                  >
+                    Category: --
                   </div>
                 </div>
               </div>
@@ -444,13 +452,13 @@
                 </div>
               </div>
               <div class="filter-health">
-                <h4>KMnO4 Filter Health</h4>
+                <h4>KMnO4 Filter Status</h4>
                 <div class="filter-item">
                   <span class="filter-label">KMnO4 Filter</span>
                   <div class="filter-bar">
                     <div id="kmno4-bar" class="filter-fill"></div>
                   </div>
-                  <span id="kmno4-percent" class="filter-percent">78%</span>
+                  <span id="kmno4-status" class="filter-status">Effective</span>
                 </div>
               </div>
             </div>
@@ -511,16 +519,16 @@
 
                 <div class="control-item">
                   <div class="control-label">
-                    <span class="control-name">Ethylene/VOCs</span>
-                    <span class="control-status" id="scrubber-status-text"
-                      >Auto</span
+                    <span class="control-name">Simulate Metrics</span>
+                    <span class="control-status" id="simulate-status-text"
+                      >Off</span
                     >
                   </div>
                   <label class="toggle-switch">
                     <input
                       type="checkbox"
-                      id="scrubber-toggle"
-                      aria-label="Ethylene/VOCs scrubber control"
+                      id="simulate-toggle"
+                      aria-label="Enable metrics simulation"
                     />
                     <span class="toggle-slider"></span>
                   </label>
@@ -662,7 +670,7 @@
               >
               <span class="legend-item"
                 ><span class="legend-swatch ethylene"></span>Ethylene/VOCs
-                (ppm)</span
+                (IAQ)</span
               >
             </footer>
             <div
@@ -761,7 +769,7 @@
                     <th>Threshold Profile</th>
                     <th colspan="2">Temperature range (&deg;C)</th>
                     <th colspan="2">Humidity range (%)</th>
-                    <th>Ethylene threshold (ppm)</th>
+                    <th>Ethylene threshold (IAQ)</th>
                   </tr>
                   <tr class="settings-table-subheader">
                     <th></th>
@@ -1030,7 +1038,10 @@
         <p><strong>Manual mode turns off automatic PID control.</strong></p>
         <ul>
           <li>Automatic regulation stops</li>
-          <li>You control cooling, humidifier, and scrubber manually</li>
+          <li>
+            You control cooling and humidifier manually; the KMnO4 scrubber
+            remains passive
+          </li>
         </ul>
         <p class="modal-callout modal-callout-danger modal-callout-text">
           Use only when required. Wrong settings can reduce produce quality.
@@ -1154,9 +1165,9 @@
             }
             if (coolingToggle) coolingToggle.disabled = false;
             if (humidifierToggle) humidifierToggle.disabled = false;
-            if (scrubberToggle) scrubberToggle.disabled = false;
+            if (scrubberToggle) scrubberToggle.disabled = true;
 
-            // Start with all toggles OFF when entering manual mode
+            // Start with cooling and humidifier toggles OFF when entering manual mode
             if (coolingToggle) coolingToggle.checked = false;
             if (humidifierToggle) humidifierToggle.checked = false;
             if (scrubberToggle) scrubberToggle.checked = false;
@@ -1210,12 +1221,8 @@
                 : "status-badge standby";
             }
             if (scrubberBadge) {
-              scrubberBadge.textContent = scrubberToggle.checked
-                ? "Active"
-                : "Standby";
-              scrubberBadge.className = scrubberToggle.checked
-                ? "status-badge active"
-                : "status-badge standby";
+              scrubberBadge.textContent = "Passive";
+              scrubberBadge.className = "status-badge standby";
             }
           }
           // In auto mode, badges are controlled by app.js based on real sensor data
@@ -1362,30 +1369,7 @@
       </div>
     </div>
 
-    <!-- PWA Install Banner -->
-    <div id="pwa-install-banner" class="pwa-install-banner">
-      <div class="pwa-install-banner-inner">
-        <div class="pwa-install-banner-copy">
-          <div class="pwa-install-banner-title">Install Cold Storage App</div>
-          <div class="pwa-install-banner-subtitle">
-            Add to your home screen for quick access and offline use
-          </div>
-        </div>
-        <div class="pwa-install-banner-actions">
-          <button id="pwa-install-btn" class="pwa-install-banner-btn">
-            Install
-          </button>
-          <button
-            id="pwa-dismiss-btn"
-            class="pwa-install-banner-btn pwa-install-banner-btn-secondary"
-          >
-            Later
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- PWA & Service Worker Script -->
+    <!-- Service Worker Script -->
     <script>
       // Register Service Worker - TEMPORARILY DISABLED FOR CACHE REFRESH
       if ("serviceWorker" in navigator && false) {
@@ -1427,46 +1411,6 @@
             });
         });
       }
-
-      // PWA Install Prompt
-      let deferredPrompt;
-      const installBanner = document.getElementById("pwa-install-banner");
-      const installBtn = document.getElementById("pwa-install-btn");
-      const dismissBtn = document.getElementById("pwa-dismiss-btn");
-
-      window.addEventListener("beforeinstallprompt", (e) => {
-        // Prevent the mini-infobar from appearing on mobile
-        e.preventDefault();
-        // Save the event for later use
-        deferredPrompt = e;
-
-        // Show custom install banner
-        if (!localStorage.getItem("pwa-install-dismissed")) {
-          installBanner.style.display = "block";
-        }
-      });
-
-      installBtn.addEventListener("click", async () => {
-        if (!deferredPrompt) {
-          return;
-        }
-
-        // Show the install prompt
-        deferredPrompt.prompt();
-
-        // Wait for the user's response
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response: ${outcome}`);
-
-        // Clear the deferred prompt
-        deferredPrompt = null;
-        installBanner.style.display = "none";
-      });
-
-      dismissBtn.addEventListener("click", () => {
-        installBanner.style.display = "none";
-        localStorage.setItem("pwa-install-dismissed", "true");
-      });
 
       // Listen for successful install
       window.addEventListener("appinstalled", () => {
