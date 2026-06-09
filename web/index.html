@@ -284,7 +284,7 @@
                     <div class="threshold-item">
                       <span class="threshold-label">Temperature</span>
                       <span id="threshold-temp" class="threshold-value"
-                        >0-4&deg;C</span
+                        >9-11&deg;C</span
                       >
                     </div>
                     <div class="threshold-item">
@@ -611,11 +611,11 @@
               <tbody>
                 <tr>
                   <td>Tomatoes</td>
-                  <td id="camera-apples-total">0</td>
-                  <td id="camera-apples-good">0</td>
-                  <td id="camera-apples-bad">0</td>
-                  <td id="camera-apples-status">OK</td>
-                  <td id="camera-apples-note">
+                  <td id="camera-tomatoes-total">0</td>
+                  <td id="camera-tomatoes-good">0</td>
+                  <td id="camera-tomatoes-bad">0</td>
+                  <td id="camera-tomatoes-status">OK</td>
+                  <td id="camera-tomatoes-note">
                     No spoilage detected in latest camera run.
                   </td>
                 </tr>
@@ -706,7 +706,7 @@
               <div class="forecast-stack">
                 <div class="forecast-row">
                   <span>Tomatoes</span>
-                  <strong id="forecast-apples">Analyzing...</strong>
+                  <strong id="forecast-tomatoes">Analyzing...</strong>
                 </div>
                 <div class="forecast-row">
                   <span>Potatoes</span>
@@ -781,83 +781,83 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <!-- Custom (Mixed Storage) -->
-                  <tr data-profile="custom">
-                    <td class="profile-name">Custom (Mixed Storage)</td>
+                  <!-- Mixed Storage -->
+                  <tr data-profile="mixed">
+                    <td class="profile-name">Mixed Storage</td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="custom"
+                        data-profile="mixed"
                         data-field="temp-min"
                         min="-5"
                         max="15"
                         step="0.1"
-                        value="4"
-                        title="Temperature minimum for custom profile"
+                        value="9"
+                        title="Temperature minimum for mixed storage profile"
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="custom"
+                        data-profile="mixed"
                         data-field="temp-max"
                         min="-5"
                         max="15"
                         step="0.1"
-                        value="7"
-                        title="Temperature maximum for custom profile"
+                        value="11"
+                        title="Temperature maximum for mixed storage profile"
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="custom"
+                        data-profile="mixed"
                         data-field="humidity-min"
                         min="50"
                         max="100"
                         step="1"
                         value="85"
-                        title="Humidity minimum for custom profile"
+                        title="Humidity minimum for mixed storage profile"
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="custom"
+                        data-profile="mixed"
                         data-field="humidity-max"
                         min="50"
                         max="100"
                         step="1"
                         value="95"
-                        title="Humidity maximum for custom profile"
+                        title="Humidity maximum for mixed storage profile"
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="custom"
+                        data-profile="mixed"
                         data-field="voc"
                         min="0"
                         max="50000"
                         step="1"
-                        value="30000"
-                        title="Ethylene threshold for custom profile"
+                        value="50000"
+                        title="Ethylene threshold for mixed storage profile"
                       />
                     </td>
                   </tr>
                   <!-- Tomatoes -->
-                  <tr data-profile="apples">
+                  <tr data-profile="tomatoes">
                     <td class="profile-name">Tomatoes</td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="apples"
+                        data-profile="tomatoes"
                         data-field="temp-min"
                         min="-5"
                         max="15"
@@ -870,7 +870,7 @@
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="apples"
+                        data-profile="tomatoes"
                         data-field="temp-max"
                         min="-5"
                         max="15"
@@ -883,12 +883,12 @@
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="apples"
+                        data-profile="tomatoes"
                         data-field="humidity-min"
                         min="50"
                         max="100"
                         step="1"
-                        value="85"
+                        value="90"
                         title="Humidity minimum for tomatoes profile"
                       />
                     </td>
@@ -896,7 +896,7 @@
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="apples"
+                        data-profile="tomatoes"
                         data-field="humidity-max"
                         min="50"
                         max="100"
@@ -909,12 +909,12 @@
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="apples"
+                        data-profile="tomatoes"
                         data-field="voc"
                         min="0"
                         max="50000"
                         step="1"
-                        value="30000"
+                        value="50000"
                         title="Ethylene threshold for tomatoes profile"
                       />
                     </td>
@@ -970,7 +970,7 @@
                         min="50"
                         max="100"
                         step="1"
-                        value="95"
+                        value="90"
                         title="Humidity maximum for potatoes profile"
                       />
                     </td>
@@ -983,7 +983,7 @@
                         min="0"
                         max="50000"
                         step="1"
-                        value="30000"
+                        value="50000"
                         title="Ethylene threshold for potatoes profile"
                       />
                     </td>
@@ -1325,7 +1325,7 @@
             >
             <select id="item-produce-type" required class="modal-form-select">
               <option value="">Select produce...</option>
-              <option value="apples">Tomatoes</option>
+              <option value="tomatoes">Tomatoes</option>
               <option value="potatoes">Potatoes</option>
             </select>
           </div>
@@ -1371,19 +1371,9 @@
 
     <!-- Service Worker Script -->
     <script>
-      // Register Service Worker - TEMPORARILY DISABLED FOR CACHE REFRESH
-      if ("serviceWorker" in navigator && false) {
+      // Register Service Worker so the PWA stays up-to-date.
+      if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          // Clear old caches on load
-          caches.keys().then((cacheNames) => {
-            cacheNames.forEach((cacheName) => {
-              if (cacheName !== "cold-storage-v3") {
-                caches.delete(cacheName);
-                console.log("Deleted old cache:", cacheName);
-              }
-            });
-          });
-
           navigator.serviceWorker
             .register("/service-worker.js")
             .then((registration) => {
@@ -1398,7 +1388,6 @@
                     navigator.serviceWorker.controller
                   ) {
                     console.log("New version available! Please refresh.");
-                    // Optionally show update notification
                     if (confirm("New version available! Reload to update?")) {
                       window.location.reload();
                     }

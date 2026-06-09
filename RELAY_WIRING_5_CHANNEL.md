@@ -1,4 +1,4 @@
-# Complete Relay Wiring Guide - 5 Channel Configuration (OPTIMIZED)
+# Complete Relay Wiring Guide - 4-Channel + Single-Channel Relay Configuration
 
 ## Shopping List
 
@@ -12,30 +12,29 @@
 
 ## Complete System Configuration (ALL CHANNELS UNDER 10A ✓)
 
-### Single Relay Module (1 channel)
+# Single Relay Module (1 channel)
 | GPIO | Device | Current | Function |
 |------|--------|---------|----------|
-| 26 | **Humidifier + Scrubber** | 4A | Activates when humidity low OR VOC high |
+| 16 | **Peltier 4** | 6A | Cooling (single-channel relay) |
 
 ### 4-Channel Relay Module
 | Channel | GPIO | Device | Current | Function |
 |---------|------|--------|---------|----------|
-| CH1 | 18 | **Peltier 1 + Water Pump** | 8A ✓ | Cooling system |
-| CH2 | 19 | **Peltier 2 + All Fans** | 6.5A ✓ | Cooling system |
-| CH3 | 23 | **Peltier 3** | 6A ✓ | Cooling system |
-| CH4 | 25 | **Peltier 4** | 6A ✓ | Cooling system |
+| IN1 | 23 | **Peltier 1 + Cooling Fans** | 8A ✓ | Cooling (air pushed through passive KMnO4 scrubber/filter) |
+| IN2 | 19 | **Peltier 2 + Pump** | 8A ✓ | Cooling + pump |
+| IN3 | 18 | **Humidifier** | 2A | Humidifier control |
+| IN4 | 17 | **Peltier 3 + Radiator Fan** | 6A ✓ | Cooling + radiator fan |
 
 ---
 
 ## ✅ SAFETY STATUS: ALL CHANNELS SAFE!
 
-**All relay channels are under 10A rating - no overload risk!**
+**All relay channels should be checked against actual load current.**
 
-- CH1: 8A (80% of 10A rating)
-- CH2: 6.5A (65% of rating)
-- CH3: 6A (60% of rating)
-- CH4: 6A (60% of rating)
-- Single Relay: 4A (40% of rating)
+- IN1: estimated 8A (Peltier 1 + fans/scrubber) — verify combined current
+- IN2: estimated 6–8A (Peltier 2 + pump) — verify combined current
+- IN4: estimated 6A (Peltier 3 + radiator fan) — verify combined current
+- Single relay IN (GPIO16): estimated 6A (Peltier 4)
 
 ---
 
@@ -58,17 +57,17 @@ ESP32               4-CH Relay Module
 -----               ------------------
 5V      ────────→   VCC
 GND     ────────→   GND
-GPIO 18 ────────→   IN1 (Peltier 1 + Pump)
-GPIO 19 ────────→   IN2 (Peltier 2 + Fans)
-GPIO 23 ────────→   IN3 (Peltier 3)
-GPIO 25 ────────→   IN4 (Peltier 4)
+GPIO 23 ────────→   IN1 (Peltier 1 + fans + scrubber)
+GPIO 19 ────────→   IN2 (Peltier 2 + pump)
+GPIO 18 ────────→   IN3 (Humidifier)
+GPIO 17 ────────→   IN4 (Peltier 3 + radiator fan)
 ```
 
 ---
 
 ### Power Wiring (Load Side)
 
-#### Channel 1 (GPIO 18): Peltier 1 + Water Pump
+#### Channel IN1 (GPIO 23): Peltier 1 + Cooling Fans + Scrubber
 
 ```
 12V PSU (+) ──┬──→ Relay CH1 NO terminal
@@ -79,11 +78,10 @@ GPIO 25 ────────→   IN4 (Peltier 4)
 Peltier 1 (-) ──┬──→ 12V PSU (-)
 Water Pump (-) ─┘
 
-Total Current: 8A (6A + 2A)
-Wire: 16-18 AWG
+Total Current: estimate based on Peltier + fans/scrubber. Verify measured current and choose wire gauge accordingly (16–12 AWG common for high currents).
 ```
 
-#### Channel 2 (GPIO 19): Peltier 2 + All Fans
+#### Channel IN2 (GPIO 19): Peltier 2 + Pump
 
 ```
 12V PSU (+) ──┬──→ Relay CH2 NO terminal
@@ -97,11 +95,10 @@ Wire: 16-18 AWG
 Peltier 2 (-) ──┬──→ 12V PSU (-)
 Fans 1-4 (-) ───┘
 
-Total Current: 6.5A (6A + 0.5A)
-Wire: 16-18 AWG
+Total Current: estimate based on Peltier + pump. Verify measured current and choose wire gauge accordingly.
 ```
 
-#### Channel 3 (GPIO 23): Peltier 3
+#### Channel IN4 (GPIO 17): Peltier 3 + Radiator Fan
 
 ```
 12V PSU (+) ──┬──→ Relay CH3 NO terminal
@@ -110,11 +107,10 @@ Wire: 16-18 AWG
 
 Peltier 3 (-) ──→ 12V PSU (-)
 
-Total Current: 6A
-Wire: 16-18 AWG
+Total Current: estimate based on Peltier + fan. Verify measured current and choose wire gauge accordingly.
 ```
 
-#### Channel 4 (GPIO 25): Peltier 4
+#### Single relay (GPIO 16): Peltier 4
 
 ```
 12V PSU (+) ──┬──→ Relay CH4 NO terminal
@@ -123,24 +119,14 @@ Wire: 16-18 AWG
 
 Peltier 4 (-) ──→ 12V PSU (-)
 
-Total Current: 6A
-Wire: 16-18 AWG
+Total Current: estimate based on Peltier. Verify measured current and choose wire gauge accordingly.
 ```
 
-#### Single Relay (GPIO 26): Humidifier + Scrubber
+#### Notes on humidifier / scrubber wiring
 
-```
-12V PSU (+) ──┬──→ Single Relay NO terminal
-              │
-              └──→ Single Relay COM ──┬──→ Humidifier (+)
-                                      └──→ Scrubber (+)
+- The humidifier is wired to IN3 (GPIO18) on the 4-channel module.
+- The scrubber in this design is a passive Potassium permanganate (KMnO4) filter. It does not require a relay or power; place it in the airflow path so the cold air circulation fans push air through the filter for VOC/ethylene removal. If you instead have an active scrubber that requires power, wire it to its own relay channel and update the firmware to control it.
 
-Humidifier (-) ──┬──→ 12V PSU (-)
-Scrubber (-) ────┘
-
-Total Current: 4A (2A + 2A)
-Wire: 18-20 AWG OK
-```
 
 ---
 
@@ -148,24 +134,20 @@ Wire: 18-20 AWG OK
 
 | Device | Activates When | Deactivates When | GPIO |
 |--------|---------------|------------------|------|
-| **Cooling System** (All 4 Peltiers + Pump + Fans) | Temp > 4°C | Temp < 2°C | 18, 19, 23, 25 |
-| **Humidifier + Scrubber** | Humidity < 85% OR VOC > 30000 | Humidity > 95% AND VOC < 24000 | 26 |
+| **Cooling System** (All 4 Peltiers + pumps/fans) | Temp > TEMP_MAX | Temp < TEMP_MIN | IN1: GPIO23, IN2: GPIO19, IN4: GPIO17, Single relay: GPIO16 |
+| **Humidifier** | Humidity < HUMIDITY_MIN | Humidity > HUMIDITY_MAX | IN3: GPIO18 |
 
-**Note:** 
-- All 4 Peltiers, water pump, and fans activate/deactivate **together** as one cooling system
-- Humidifier and scrubber share one relay - they activate together when EITHER condition is met
+**Note:**
+- All Peltiers operate as a unified cooling group in firmware; the scrubber (if wired to IN1) will be powered when that group is active.
+- If you need independent VOC-based scrubber control, wire the scrubber to a separate relay channel and modify `esp32_code/src/main.cpp` to enable `controlScrubber()` or equivalent logic.
 
 ---
 
-## OLED Display Status Indicators
+### OLED Display Status Indicators
 
-The OLED shows status as: `C P H`
+The OLED status line shows active systems. Current firmware prints `1 2 3 4 H` (numbers indicate Peltiers 1–4, `H` = humidifier) when active.
 
-- **C** = Cooling system active (all 4 Peltiers)
-- **P** = Pump active (same as cooling)
-- **H** = Humidifier+Scrubber active
-
-Example: `C P -` = Cooling system ON, Humidifier+Scrubber OFF
+Example: `1 2 3 4 H` = All Peltiers ON and Humidifier ON
 
 ---
 
@@ -192,7 +174,7 @@ Example: `C P -` = Cooling system ON, Humidifier+Scrubber OFF
 ### 1. Upload Code First
 ```bash
 # In VS Code, use PlatformIO
-Upload to ESP32 (COM3 or COM4)
+Upload to ESP32 (select the correct COM port)
 ```
 
 ### 2. Connect ESP32 to Relays (Control Wiring)

@@ -1,14 +1,14 @@
-# Full Cold-Storage Wiring Guide (ESP32 + DHT22 + SGP41 + OLED + 5 Relays)
+# Cold-Storage Wiring Guide (ESP32 + DHT22 + SGP41 + OLED + Relays)
 
 This guide matches the current firmware behavior and pin mapping in `esp32_code/src/main.cpp`.
 
-## 1) Final Control Logic (as requested)
+## 1) Final Control Logic (current firmware)
 
-1. Scrubber relay turns ON when VOC is greater than 30.0 ppm and OFF when VOC is 30.0 ppm or below.
-2. Two Peltier relays plus the auxiliary cooling relay are controlled as one cooling group.
-3. Cooling group is forced ON above TEMP_MAX and forced OFF below TEMP_MIN.
-4. In range, cooling uses PID-like relay-safe time-proportioning.
-5. Humidifier relay turns ON when humidity is below threshold and OFF when humidity is above threshold.
+1. The scrubbing system is powered together with Peltier 1 (co-located on IN1). There is no independent VOC-driven scrubber relay in the firmware — the scrubber runs when the cooling group is active.
+2. All four Peltier modules are controlled as a single cooling group: Peltiers 1, 2, 3 (on the 4-channel module) and Peltier 4 (on the single relay).
+3. Cooling group is forced ON above `TEMP_MAX` and forced OFF below `TEMP_MIN`.
+4. When temperature is in-range, the PID-like controller maps demand to a long time-proportioning relay window to avoid frequent toggles.
+5. Humidifier relay is controlled independently by humidity thresholds (`HUMIDITY_MIN` / `HUMIDITY_MAX`).
 
 ## 2) Final Pin Map
 
@@ -16,13 +16,13 @@ This guide matches the current firmware behavior and pin mapping in `esp32_code/
 - I2C SDA (SGP41 + OLED): GPIO21
 - I2C SCL (SGP41 + OLED): GPIO22
 
-Relay inputs (active-LOW board logic in firmware):
+Relay inputs (firmware uses active-LOW logic):
 
-- IN1 -> GPIO23 (Humidifier)
-- IN2 -> GPIO19 (Peltier Module 1)
-- IN3 -> GPIO18 (Peltier Module 2)
-- IN4 -> GPIO17 (Scrubber)
-- Extra single-channel relay input -> GPIO16 (Auxiliary cooling: fans/pump)
+- IN1 -> GPIO23 : Peltier 1 + cooling fans (air pushed through passive KMnO4 scrubber/filter)
+- IN2 -> GPIO19 : Peltier 2 + pump
+- IN3 -> GPIO18 : Humidifier
+- IN4 -> GPIO17 : Peltier 3 + radiator fan
+- Single-channel relay IN -> GPIO16 : Peltier 4
 
 ## 3) Quick Bench Pinout Table
 
@@ -35,17 +35,18 @@ Relay inputs (active-LOW board logic in firmware):
 | I2C SCL | SGP41 SCL + OLED SCL | ESP32 GPIO22 | Shared I2C bus |
 | SGP41 power | SGP41 VCC/GND | ESP32 3.3V / GND | I2C address 0x59 |
 | OLED power | OLED VCC/GND | ESP32 3.3V / GND | I2C address usually 0x3C |
-| Relay logic power | Relay VCC/GND | 5V / ESP32 GND | Active-HIGH logic |
-| Relay IN1 | Relay IN1 | ESP32 GPIO23 | Humidifier control |
-| Relay IN2 | Relay IN2 | ESP32 GPIO19 | Peltier Module 1 control |
-| Relay IN3 | Relay IN3 | ESP32 GPIO18 | Peltier Module 2 control |
-| Relay IN4 | Relay IN4 | ESP32 GPIO17 | Scrubber control |
-| Relay CH5 input | Single relay IN | ESP32 GPIO16 | Auxiliary cooling relay control |
-| Humidifier power path | PSU+ -> COM1 -> NO1 -> Humidifier+ | Humidifier- -> PSU- | Use COM+NO |
-| Scrubber power path | PSU+ -> COM4 -> NO4 -> Scrubber+ | Scrubber- -> PSU- | Use COM+NO |
-| Peltier 1 power path | PSU+ -> COM2 -> NO2 -> Peltier1+ | Peltier1- -> PSU- | Dedicated relay channel |
-| Peltier 2 power path | PSU+ -> COM3 -> NO3 -> Peltier2+ | Peltier2- -> PSU- | Dedicated relay channel |
-| Auxiliary cooling path | PSU+ -> COM5 -> NO5 -> Fan/Pump+ | Fan/Pump- -> PSU- | Single extra relay on GPIO16 |
+| Relay logic power | Relay VCC/GND | 5V / ESP32 GND | Relay board VCC = 5V, common ground required |
+| Relay IN1 | Relay IN1 | ESP32 GPIO23 | Peltier 1 + fans + scrubber (powered together when cooling ON) |
+| Relay IN2 | Relay IN2 | ESP32 GPIO19 | Peltier 2 + pump |
+| Relay IN3 | Relay IN3 | ESP32 GPIO18 | Humidifier |
+| Relay IN4 | Relay IN4 | ESP32 GPIO17 | Peltier 3 + radiator fan |
+| Single relay IN | Single relay IN | ESP32 GPIO16 | Peltier 4 (single-channel relay) |
+| Peltier 1 power path | PSU+ -> COM1 -> NO1 -> Peltier1+ | Peltier1- -> PSU- | Use COM & NO for normal-OFF behavior |
+| Peltier 2 power path | PSU+ -> COM2 -> NO2 -> Peltier2+ | Peltier2- -> PSU- | Dedicated relay channel |
+| Peltier 3 power path | PSU+ -> COM3 -> NO3 -> Peltier3+ | Peltier3- -> PSU- | Dedicated relay channel |
+| Peltier 4 power path | PSU+ -> COM4 -> NO4 -> Peltier4+ | Peltier4- -> PSU- | Single-channel relay contact |
+| Humidifier power path | PSU+ -> COMx -> NOx -> Humidifier+ | Humidifier- -> PSU- | Use COM & NO |
+| Scrubber | Passive KMnO4 filter placed in the airflow path; no relay or power required. The cold air circulation fans push air through the filter to perform VOC/ethylene removal. |
 | System ground | PSU-, ESP32 GND, Relay GND | Commoned together | Mandatory |
 
 ## 4) Low-Voltage Wiring (ESP32, Sensors, Display)

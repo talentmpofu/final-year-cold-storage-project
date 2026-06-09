@@ -8,7 +8,10 @@ const fs = require("fs");
 const sharp = require("sharp");
 const cron = require("node-cron");
 const PDFDocument = require("pdfkit");
-const { getProduceSettings } = require("./produceDatabase");
+const {
+  getProduceSettings,
+  normalizeProduceType,
+} = require("./produceDatabase");
 const {
   checkAndAlert,
   verifyEmailConfig,
@@ -104,27 +107,42 @@ let latestMetrics = {
   timestamp: new Date().toISOString(),
 };
 
-// Store current produce and thresholds
-let currentProduce = {
-  type: null, // null, 'apples', 'potatoes'
-  detectedAt: null,
-  manualOverride: false,
-  thresholds: {
-    temperature: { min: 0, max: 4 },
-    humidity: { min: 90, max: 95 },
-    voc: 30000,
-  },
-};
+const PRODUCE_CONFIDENCE_THRESHOLD = 0.5;
+const SUPPORTED_PRODUCE_TYPES = ["tomatoes", "potatoes", "mixed"];
+
+function buildProduceState(produceType, options = {}) {
+  const normalizedType = normalizeProduceType(produceType) || "mixed";
+  const settings =
+    getProduceSettings(normalizedType) || getProduceSettings("mixed");
+
+  return {
+    type: normalizedType,
+    detectedAt: options.detectedAt ?? null,
+    manualOverride: Boolean(options.manualOverride),
+    ...(Number.isFinite(options.confidence)
+      ? { confidence: options.confidence }
+      : {}),
+    thresholds: {
+      temperature: settings.temp,
+      humidity: settings.humidity,
+      voc: settings.voc,
+    },
+  };
+}
+
+// Store current produce and thresholds. Mixed storage is the safe default
+// until AI detection or manual selection narrows the stored products.
+let currentProduce = buildProduceState("mixed");
 
 // Latest AI quality alerts derived from camera detections.
 // Alerts are informational only and auto-clear when spoilage is no longer detected.
 let latestAIQualityAlerts = [];
 
 let latestCameraInventorySummary = {
-  totalApples: 0,
+  totalTomatoes: 0,
   totalPotatoes: 0,
-  applesGood: 0,
-  applesBad: 0,
+  tomatoesGood: 0,
+  tomatoesBad: 0,
   potatoesGood: 0,
   potatoesBad: 0,
   analyzedAt: null,
@@ -239,7 +257,7 @@ function normalizeUploadSource(source) {
 
 function getProduceTypeFromLabel(label) {
   const normalized = normalizeDetectionLabel(label);
-  if (normalized.includes("apple")) return "apples";
+  if (normalized.includes("tomato")) return "tomatoes";
   if (normalized.includes("potato")) return "potatoes";
   return null;
 }
@@ -356,6 +374,39 @@ function pickTopProduceDetection(detections = []) {
   return { detected, confidence };
 }
 
+function resolveProduceProfileFromDetections(
+  detectedLabel,
+  detectedConfidence,
+  detections = [],
+) {
+  const produceTypes = new Set();
+  let confidence = Number(detectedConfidence || 0);
+
+  (Array.isArray(detections) ? detections : []).forEach((d) => {
+    const produceType = getProduceTypeFromLabel(d.primary_type || d.type);
+    const itemConfidence = Number(d.confidence || 0);
+    if (produceType && itemConfidence > PRODUCE_CONFIDENCE_THRESHOLD) {
+      produceTypes.add(produceType);
+      confidence = Math.max(confidence, itemConfidence);
+    }
+  });
+
+  if (produceTypes.has("tomatoes") && produceTypes.has("potatoes")) {
+    return { type: "mixed", confidence };
+  }
+
+  if (produceTypes.size === 1) {
+    return { type: [...produceTypes][0], confidence };
+  }
+
+  const fallbackType = getProduceTypeFromLabel(detectedLabel);
+  if (fallbackType && confidence > PRODUCE_CONFIDENCE_THRESHOLD) {
+    return { type: fallbackType, confidence };
+  }
+
+  return { type: null, confidence: 0 };
+}
+
 async function runLocalInference(imagePath) {
   const formData = new FormData();
   formData.append("image", fs.createReadStream(imagePath));
@@ -447,13 +498,13 @@ function buildCameraInventorySummaryFromDetections(detections = []) {
   const counts = detections.reduce(
     (acc, d) => {
       const produceType = getProduceTypeFromLabel(d.type);
-      const isApple = produceType === "apples";
+      const isTomato = produceType === "tomatoes";
       const isPotato = produceType === "potatoes";
       const isSpoiled = isBadQualityLabel(d.type);
 
-      if (isApple) {
-        acc.totalApples += 1;
-        if (isSpoiled) acc.applesBad += 1;
+      if (isTomato) {
+        acc.totalTomatoes += 1;
+        if (isSpoiled) acc.tomatoesBad += 1;
       }
       if (isPotato) {
         acc.totalPotatoes += 1;
@@ -462,14 +513,14 @@ function buildCameraInventorySummaryFromDetections(detections = []) {
 
       return acc;
     },
-    { totalApples: 0, totalPotatoes: 0, applesBad: 0, potatoesBad: 0 },
+    { totalTomatoes: 0, totalPotatoes: 0, tomatoesBad: 0, potatoesBad: 0 },
   );
 
   return {
-    totalApples: counts.totalApples,
+    totalTomatoes: counts.totalTomatoes,
     totalPotatoes: counts.totalPotatoes,
-    applesBad: counts.applesBad,
-    applesGood: Math.max(0, counts.totalApples - counts.applesBad),
+    tomatoesBad: counts.tomatoesBad,
+    tomatoesGood: Math.max(0, counts.totalTomatoes - counts.tomatoesBad),
     potatoesBad: counts.potatoesBad,
     potatoesGood: Math.max(0, counts.totalPotatoes - counts.potatoesBad),
     analyzedAt: new Date().toISOString(),
@@ -504,6 +555,11 @@ async function getLatestSnapshotDetections() {
         const latestPath = path.join(snapshotsDir, latest.name);
         const inference = await runInference(latestPath);
         const { detected, confidence, all_detections, provider } = inference;
+        const resolvedProduce = resolveProduceProfileFromDetections(
+          detected,
+          confidence,
+          all_detections || [],
+        );
 
         const normalizedDetections = Array.isArray(all_detections)
           ? all_detections.map((d) => ({
@@ -525,10 +581,9 @@ async function getLatestSnapshotDetections() {
           ...priorMeta,
           source: priorMeta.source || "camera",
           provider: provider || priorMeta.provider || INFERENCE_PROVIDER,
-          detected:
-            getProduceTypeFromLabel(detected) || priorMeta.detected || null,
+          detected: resolvedProduce.type || priorMeta.detected || null,
           rawDetectedLabel: detected || priorMeta.rawDetectedLabel || null,
-          confidence: Number(confidence || 0),
+          confidence: Number(resolvedProduce.confidence || confidence || 0),
           detections: normalizedDetections,
           capturedAt:
             priorMeta.capturedAt || new Date(latest.timestamp).toISOString(),
@@ -597,8 +652,8 @@ app.get("/api/history", (req, res) => {
   const effectiveRows = hasRangeData ? rows : getAllHistoryRows();
   const sampled = downsampleRows(effectiveRows, 240);
 
-  // Support both legacy raw VOC values (~30000) and ppm values (~30).
-  const toPpm = (voc) => {
+  // Support both legacy raw VOC values (~30000) and IAQ index values (~30).
+  const toIaq = (voc) => {
     const numeric = Number(voc || 0);
     return numeric > 1000 ? numeric / 1000 : numeric;
   };
@@ -613,7 +668,7 @@ app.get("/api/history", (req, res) => {
       timestamp: row.timestamp,
       temperature: row.temperature,
       humidity: row.humidity,
-      ethylene: toPpm(row.voc),
+      ethylene: toIaq(row.voc),
       voc: row.voc,
     })),
   });
@@ -630,7 +685,7 @@ app.get("/api/exports/logs.csv", (req, res) => {
     "temperature_status",
     "humidity_percent",
     "humidity_status",
-    "voc_ppm",
+    "voc_iaq",
     "voc_status",
   ];
 
@@ -760,7 +815,7 @@ app.get("/api/exports/summary.pdf", (req, res) => {
   }
   if (vocStats.max > thresholds.voc) {
     anomalies.push(
-      `VOC reached ${vocStats.max.toFixed(0)} ppm (limit ${thresholds.voc} ppm).`,
+      `VOC reached ${vocStats.max.toFixed(0)} IAQ (limit ${thresholds.voc} IAQ).`,
     );
   }
 
@@ -796,7 +851,7 @@ app.get("/api/exports/summary.pdf", (req, res) => {
     `Humidity: current ${humidityStats.current.toFixed(1)}% | min ${humidityStats.min.toFixed(1)} | avg ${humidityStats.avg.toFixed(1)} | max ${humidityStats.max.toFixed(1)} | trend ${humidityStats.trend}`,
   );
   doc.text(
-    `VOC: current ${vocStats.current.toFixed(0)} ppm | min ${vocStats.min.toFixed(0)} | avg ${vocStats.avg.toFixed(0)} | max ${vocStats.max.toFixed(0)} | trend ${vocStats.trend}`,
+    `VOC: current ${vocStats.current.toFixed(0)} IAQ | min ${vocStats.min.toFixed(0)} | avg ${vocStats.avg.toFixed(0)} | max ${vocStats.max.toFixed(0)} | trend ${vocStats.trend}`,
   );
 
   doc.moveDown();
@@ -819,7 +874,7 @@ app.get("/api/exports/summary.pdf", (req, res) => {
     .text(
       `Humidity: ${thresholds.humidity.min}% to ${thresholds.humidity.max}%`,
     )
-    .text(`VOC limit: ${thresholds.voc} ppm`);
+    .text(`VOC limit: ${thresholds.voc} IAQ`);
 
   doc.moveDown();
   doc.fillColor("#111827").fontSize(13).text("Alert Summary");
@@ -848,7 +903,7 @@ app.get("/api/exports/summary.pdf", (req, res) => {
     doc
       .fontSize(10)
       .fillColor("#111827")
-      .text("Timestamp | Temp (C) | Humidity (%) | VOC (ppm) | Status", {
+      .text("Timestamp | Temp (C) | Humidity (%) | VOC (IAQ) | Status", {
         underline: true,
       });
 
@@ -894,15 +949,19 @@ app.get("/api/produce", (req, res) => {
 // API endpoint to manually set produce type
 app.post("/api/produce/set", (req, res) => {
   const { produceType } = req.body;
+  const normalizedProduceType = normalizeProduceType(produceType);
 
-  if (!produceType || !["apples", "potatoes"].includes(produceType)) {
+  if (
+    !normalizedProduceType ||
+    !SUPPORTED_PRODUCE_TYPES.includes(normalizedProduceType)
+  ) {
     return res.status(400).json({
       success: false,
-      error: "Invalid produce type. Must be 'apples' or 'potatoes'",
+      error: "Invalid produce type. Must be 'tomatoes', 'potatoes', or 'mixed'",
     });
   }
 
-  const settings = getProduceSettings(produceType);
+  const settings = getProduceSettings(normalizedProduceType);
   if (!settings) {
     return res.status(404).json({
       success: false,
@@ -911,7 +970,7 @@ app.post("/api/produce/set", (req, res) => {
   }
 
   currentProduce = {
-    type: produceType,
+    type: normalizedProduceType,
     detectedAt: new Date().toISOString(),
     manualOverride: true,
     thresholds: {
@@ -921,7 +980,7 @@ app.post("/api/produce/set", (req, res) => {
     },
   };
 
-  console.log(`🍎 Produce manually set to: ${produceType}`);
+  console.log(`Produce manually set to: ${normalizedProduceType}`);
   console.log(`📊 New thresholds:`, currentProduce.thresholds);
 
   res.json({
@@ -1098,7 +1157,13 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
     try {
       const inference = await runInference(savedImagePath);
       const { detected, confidence, all_detections, provider } = inference;
-      const normalizedDetectedProduce = getProduceTypeFromLabel(detected);
+      const resolvedProduce = resolveProduceProfileFromDetections(
+        detected,
+        confidence,
+        all_detections || [],
+      );
+      const normalizedDetectedProduce = resolvedProduce.type;
+      const produceConfidence = resolvedProduce.confidence;
       await annotateSnapshotImage(
         savedImagePath,
         all_detections || [],
@@ -1112,7 +1177,7 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
         provider: provider || INFERENCE_PROVIDER,
         detected: normalizedDetectedProduce,
         rawDetectedLabel: detected,
-        confidence: Number(confidence || 0),
+        confidence: Number(produceConfidence || 0),
         detections: Array.isArray(all_detections)
           ? all_detections.map((d) => ({
               type: normalizeDetectionLabel(d.type),
@@ -1145,13 +1210,13 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
           detected || "nothing"
         } -> ${
           normalizedDetectedProduce || "unmapped"
-        } (confidence: ${(confidence * 100).toFixed(1)}%)`,
+        } (confidence: ${(produceConfidence * 100).toFixed(1)}%)`,
       );
 
       // Only update if produce was detected with good confidence and no manual override
       if (
         normalizedDetectedProduce &&
-        confidence > 0.5 &&
+        produceConfidence > PRODUCE_CONFIDENCE_THRESHOLD &&
         !currentProduce.manualOverride
       ) {
         const settings = getProduceSettings(normalizedDetectedProduce);
@@ -1160,7 +1225,7 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
             type: normalizedDetectedProduce,
             detectedAt: new Date().toISOString(),
             manualOverride: false,
-            confidence: confidence,
+            confidence: produceConfidence,
             thresholds: {
               temperature: settings.temp,
               humidity: settings.humidity,
@@ -1181,7 +1246,7 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
         provider: provider || INFERENCE_PROVIDER,
         detected: normalizedDetectedProduce,
         rawDetectedLabel: detected,
-        confidence: confidence,
+        confidence: produceConfidence,
         aiAlerts: latestAIQualityAlerts,
         inventorySummary: latestCameraInventorySummary,
         produce: currentProduce,

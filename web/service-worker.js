@@ -1,7 +1,7 @@
 // Service Worker for Cold Storage PWA
 // Enables offline functionality and caching
 
-const CACHE_NAME = "cold-storage-v3";
+const CACHE_NAME = "cold-storage-v4";
 const OFFLINE_URL = "/offline.html";
 
 // Files to cache for offline use

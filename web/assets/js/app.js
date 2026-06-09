@@ -35,7 +35,7 @@
     times: [],
   };
   const targets = {
-    temp: { min: 10, max: 13 },
+    temp: { min: 9, max: 11 },
     humidity: { min: 85, max: 95 },
     ethylene: { max: 50 }, // VOCs threshold: 50 IAQ
   };
@@ -180,15 +180,7 @@
       const data = await res.json();
 
       if (data.produce) {
-        if (data.produce.manualOverride) {
-          updateProduceDisplay(data.produce);
-        } else {
-          currentProduceContext = {
-            ...currentProduceContext,
-            thresholds: data.produce?.thresholds || null,
-            manualOverride: false,
-          };
-        }
+        updateProduceDisplay(data.produce);
       }
 
       return {
@@ -461,7 +453,7 @@
   }
 
   function renderRecommendations() {
-    const applesEl = el("forecast-apples");
+    const tomatoesEl = el("forecast-tomatoes");
     const potatoesEl = el("forecast-potatoes");
     const summaryEl = el("forecast-summary");
     const scoreEl = el("environment-score");
@@ -478,7 +470,7 @@
       !Number.isFinite(latestHumidity) ||
       !Number.isFinite(latestEthylene)
     ) {
-      if (applesEl) applesEl.textContent = "-- days";
+      if (tomatoesEl) tomatoesEl.textContent = "-- days";
       if (potatoesEl) potatoesEl.textContent = "-- days";
       if (summaryEl) {
         summaryEl.textContent =
@@ -526,7 +518,7 @@
     const ethyleneTrendPenalty =
       ethyleneSlope === "rising" ? 0.8 : ethyleneSlope === "falling" ? -0.2 : 0;
 
-    const applesShelfLife = computeShelfLife(
+    const tomatoesShelfLife = computeShelfLife(
       8.5,
       tempDeviation * 1.2 +
         humidityDeviation * 1.1 +
@@ -534,7 +526,7 @@
         tempTrendPenalty +
         humidityTrendPenalty +
         ethyleneTrendPenalty,
-      cameraInventorySummary.applesBad,
+      cameraInventorySummary.tomatoesBad,
     );
     const potatoesShelfLife = computeShelfLife(
       21,
@@ -547,7 +539,8 @@
       cameraInventorySummary.potatoesBad,
     );
 
-    if (applesEl) applesEl.textContent = `${applesShelfLife.toFixed(1)} days`;
+    if (tomatoesEl)
+      tomatoesEl.textContent = `${tomatoesShelfLife.toFixed(1)} days`;
     if (potatoesEl)
       potatoesEl.textContent = `${potatoesShelfLife.toFixed(1)} days`;
 
@@ -560,7 +553,7 @@
             tempDeviation * 12 -
             humidityDeviation * 8 -
             ethyleneDeviation * 10 -
-            Math.max(0, cameraInventorySummary.applesBad || 0) * 4 -
+            Math.max(0, cameraInventorySummary.tomatoesBad || 0) * 4 -
             Math.max(0, cameraInventorySummary.potatoesBad || 0) * 3,
         ),
       ),
@@ -607,7 +600,7 @@
     if (envSummaryEl) envSummaryEl.textContent = envMessages.join(" ");
     if (summaryEl) {
       summaryEl.textContent =
-        applesShelfLife < potatoesShelfLife
+        tomatoesShelfLife < potatoesShelfLife
           ? "Tomatoes are under more pressure right now, so they should be inspected first."
           : "Potatoes are currently the longer-lived batch, while tomatoes need closer attention.";
     }
@@ -631,7 +624,7 @@
       );
     }
     if (
-      cameraInventorySummary.applesBad > 0 ||
+      cameraInventorySummary.tomatoesBad > 0 ||
       cameraInventorySummary.potatoesBad > 0
     ) {
       actions.push(
@@ -653,8 +646,9 @@
 
     const priorities = [
       {
-        label: `Tomatoes - ${applesShelfLife.toFixed(1)} days estimated`,
-        score: applesShelfLife - (cameraInventorySummary.applesBad || 0) * 0.5,
+        label: `Tomatoes - ${tomatoesShelfLife.toFixed(1)} days estimated`,
+        score:
+          tomatoesShelfLife - (cameraInventorySummary.tomatoesBad || 0) * 0.5,
       },
       {
         label: `Potatoes - ${potatoesShelfLife.toFixed(1)} days estimated`,
@@ -1791,7 +1785,7 @@
   // Inventory sample data and rendering
   const inventory = [
     {
-      item: "Apples",
+      item: "Tomatoes",
       qty: 24,
       unit: "units",
       shelf: 3,
@@ -1810,10 +1804,10 @@
 
   // AI alerts are fetched from backend camera analysis and auto-clear when resolved.
   const DUMMY_CAMERA_INVENTORY_SUMMARY = {
-    totalApples: 5,
+    totalTomatoes: 5,
     totalPotatoes: 4,
-    applesGood: 2,
-    applesBad: 3,
+    tomatoesGood: 2,
+    tomatoesBad: 3,
     potatoesGood: 3,
     potatoesBad: 1,
     analyzedAt: null,
@@ -1837,16 +1831,16 @@
   ];
 
   const DUMMY_INVENTORY_ITEMS = [
-    { id: "demo-a", type: "apples", quantity: 5, daysLeft: 3 },
+    { id: "demo-a", type: "tomatoes", quantity: 5, daysLeft: 3 },
     { id: "demo-p", type: "potatoes", quantity: 4, daysLeft: 21 },
   ];
 
   let aiAlerts = [];
   let cameraInventorySummary = {
-    totalApples: 0,
+    totalTomatoes: 0,
     totalPotatoes: 0,
-    applesGood: 0,
-    applesBad: 0,
+    tomatoesGood: 0,
+    tomatoesBad: 0,
     potatoesGood: 0,
     potatoesBad: 0,
   };
@@ -1924,11 +1918,11 @@
   }
 
   function renderCameraInventorySummary() {
-    const applesTotalEl = el("camera-apples-total");
-    const applesGoodEl = el("camera-apples-good");
-    const applesBadEl = el("camera-apples-bad");
-    const applesStatusEl = el("camera-apples-status");
-    const applesNoteEl = el("camera-apples-note");
+    const tomatoesTotalEl = el("camera-tomatoes-total");
+    const tomatoesGoodEl = el("camera-tomatoes-good");
+    const tomatoesBadEl = el("camera-tomatoes-bad");
+    const tomatoesStatusEl = el("camera-tomatoes-status");
+    const tomatoesNoteEl = el("camera-tomatoes-note");
     const potatoesTotalEl = el("camera-potatoes-total");
     const potatoesGoodEl = el("camera-potatoes-good");
     const potatoesBadEl = el("camera-potatoes-bad");
@@ -1966,15 +1960,15 @@
     };
 
     setRow(
-      applesTotalEl,
-      applesGoodEl,
-      applesBadEl,
-      applesStatusEl,
-      applesNoteEl,
+      tomatoesTotalEl,
+      tomatoesGoodEl,
+      tomatoesBadEl,
+      tomatoesStatusEl,
+      tomatoesNoteEl,
       "Tomatoes",
-      cameraInventorySummary.totalApples,
-      cameraInventorySummary.applesGood,
-      cameraInventorySummary.applesBad,
+      cameraInventorySummary.totalTomatoes,
+      cameraInventorySummary.tomatoesGood,
+      cameraInventorySummary.tomatoesBad,
     );
     setRow(
       potatoesTotalEl,
@@ -1990,7 +1984,7 @@
   }
 
   function renderRecommendations() {
-    const applesForecastEl = el("forecast-apples");
+    const tomatoesForecastEl = el("forecast-tomatoes");
     const potatoesForecastEl = el("forecast-potatoes");
     const forecastSummaryEl = el("forecast-summary");
     const environmentScoreEl = el("environment-score");
@@ -1998,7 +1992,8 @@
     const recommendationListEl = el("recommendation-list");
     const priorityListEl = el("priority-list");
 
-    if (!applesForecastEl || !potatoesForecastEl || !forecastSummaryEl) return;
+    if (!tomatoesForecastEl || !potatoesForecastEl || !forecastSummaryEl)
+      return;
 
     const latestTemp = series.temp[series.temp.length - 1];
     const latestHumidity = series.humidity[series.humidity.length - 1];
@@ -2083,10 +2078,10 @@
       return "Likely to decrease";
     };
 
-    const applesOutlook = shelfLifeOutlook("apples");
+    const tomatoesOutlook = shelfLifeOutlook("tomatoes");
     const potatoesOutlook = shelfLifeOutlook("potatoes");
 
-    applesForecastEl.textContent = applesOutlook;
+    tomatoesForecastEl.textContent = tomatoesOutlook;
     potatoesForecastEl.textContent = potatoesOutlook;
 
     const trendSummaryParts = [];
@@ -2124,16 +2119,16 @@
     if (hasLiveMetrics) {
       if (latestTemp > tempMax + 0.2 || tempTrend === "rising") {
         recommendations.push(
-          `Lower temperature to ${tempMin}-${tempMax}\u00B0C.`,
+          `Lower temperature to ${fmtWhole(tempMin)}-${fmtWhole(tempMax)}\u00B0C.`,
         );
       }
       if (latestHumidity < humidityMin - 1) {
         recommendations.push(
-          `Raise humidity to ${humidityMin}-${humidityMax}%.`,
+          `Raise humidity to ${fmtWhole(humidityMin)}-${fmtWhole(humidityMax)}%.`,
         );
       } else if (latestHumidity > humidityMax + 1) {
         recommendations.push(
-          `Lower humidity to ${humidityMin}-${humidityMax}%.`,
+          `Lower humidity to ${fmtWhole(humidityMin)}-${fmtWhole(humidityMax)}%.`,
         );
       }
       if (latestEthylene > normalizedVocMax || ethyleneTrend === "rising") {
@@ -2162,10 +2157,10 @@
     const priorityItems = [
       {
         name: "Tomatoes",
-        score: priorityScore("apples"),
+        score: priorityScore("tomatoes"),
         reason:
-          cameraInventorySummary.applesBad > 0
-            ? `${cameraInventorySummary.applesBad} bad detections`
+          cameraInventorySummary.tomatoesBad > 0
+            ? `${cameraInventorySummary.tomatoesBad} bad detections`
             : "No current spoilage spike",
       },
       {
@@ -2293,27 +2288,27 @@
 
   // Threshold profiles and dynamic mode selection based on AI camera detections.
   const thresholdProfiles = {
-    custom: {
-      temperature: { min: 4, max: 7 },
+    mixed: {
+      temperature: { min: 9, max: 11 },
       humidity: { min: 85, max: 95 },
-      voc: 30000,
+      voc: 28000,
     },
-    apples: {
-      temperature: { min: 1, max: 4 },
-      humidity: { min: 85, max: 95 },
-      voc: 30000,
+    tomatoes: {
+      temperature: { min: 10, max: 13 },
+      humidity: { min: 90, max: 95 },
+      voc: 50000,
     },
     potatoes: {
       temperature: { min: 7, max: 10 },
-      humidity: { min: 85, max: 95 },
-      voc: 30000,
+      humidity: { min: 85, max: 90 },
+      voc: 50000,
     },
   };
 
-  let customThresholdRanges = JSON.parse(
-    JSON.stringify(thresholdProfiles.custom),
+  let mixedThresholdRanges = JSON.parse(
+    JSON.stringify(thresholdProfiles.mixed),
   );
-  let activeThresholdMode = "custom";
+  let activeThresholdMode = "mixed";
 
   function clampRange(minVal, maxVal, minLimit, maxLimit) {
     let min = Number(minVal);
@@ -2331,32 +2326,33 @@
   }
 
   function getDetectedThresholdMode() {
-    const applesDetected =
-      Number(cameraInventorySummary.totalApples || 0) > 0 ||
-      Number(cameraInventorySummary.applesGood || 0) > 0 ||
-      Number(cameraInventorySummary.applesBad || 0) > 0;
+    const tomatoesDetected =
+      Number(cameraInventorySummary.totalTomatoes || 0) > 0 ||
+      Number(cameraInventorySummary.tomatoesGood || 0) > 0 ||
+      Number(cameraInventorySummary.tomatoesBad || 0) > 0;
     const potatoesDetected =
       Number(cameraInventorySummary.totalPotatoes || 0) > 0 ||
       Number(cameraInventorySummary.potatoesGood || 0) > 0 ||
       Number(cameraInventorySummary.potatoesBad || 0) > 0;
 
-    if (applesDetected && potatoesDetected) return "custom";
-    if (applesDetected) return "apples";
+    if (tomatoesDetected && potatoesDetected) return "mixed";
+    if (tomatoesDetected) return "tomatoes";
     if (potatoesDetected) return "potatoes";
 
-    if (currentProduceContext?.type === "apples") return "apples";
+    if (currentProduceContext?.type === "mixed") return "mixed";
+    if (currentProduceContext?.type === "tomatoes") return "tomatoes";
     if (currentProduceContext?.type === "potatoes") return "potatoes";
 
-    return "custom";
+    return "mixed";
   }
 
   function getProfileByMode(mode) {
-    if (mode === "custom") return customThresholdRanges;
-    return thresholdProfiles[mode] || customThresholdRanges;
+    if (mode === "mixed") return mixedThresholdRanges;
+    return thresholdProfiles[mode] || mixedThresholdRanges;
   }
 
   function applyThresholdProfile(mode) {
-    const normalizedMode = mode || "custom";
+    const normalizedMode = mode || "mixed";
     const profile = getProfileByMode(normalizedMode);
     activeThresholdMode = normalizedMode;
 
@@ -2400,10 +2396,10 @@
 
     const modeNote = el("threshold-mode-note");
     if (modeNote) {
-      if (normalizedMode === "custom") {
+      if (normalizedMode === "mixed") {
         modeNote.textContent =
-          "Mixed produce detected (or unknown). Using Custom range thresholds.";
-      } else if (normalizedMode === "apples") {
+          "Mixed storage detected (or unknown). Using 9-11°C mixed-storage thresholds.";
+      } else if (normalizedMode === "tomatoes") {
         modeNote.textContent =
           "AI camera detects tomatoes only. Tomatoes thresholds are applied automatically.";
       } else {
@@ -2431,7 +2427,7 @@
     // Handle Save button click
     saveBtn.addEventListener("click", () => {
       // Collect values from each profile row
-      const profiles = ["custom", "apples", "potatoes"];
+      const profiles = ["mixed", "tomatoes", "potatoes"];
 
       profiles.forEach((profileName) => {
         const tempMin = document.querySelector(
@@ -2480,9 +2476,9 @@
         }
       });
 
-      // Save custom ranges and reapply active threshold
-      customThresholdRanges = JSON.parse(
-        JSON.stringify(thresholdProfiles.custom),
+      // Save mixed ranges and reapply active threshold
+      mixedThresholdRanges = JSON.parse(
+        JSON.stringify(thresholdProfiles.mixed),
       );
 
       // Re-apply the current active threshold mode to update displays
@@ -2607,8 +2603,9 @@
 
   // Produce management functions
   const produceNames = {
-    apples: "Tomatoes",
+    tomatoes: "Tomatoes",
     potatoes: "Potatoes",
+    mixed: "Mixed Storage",
     null: "Not detected",
   };
 
@@ -2654,9 +2651,9 @@
   function syncStorageInfoFromCameraSummary(summary) {
     if (!summary || currentProduceContext.manualOverride) return;
 
-    const apples = Number(summary.totalApples || 0);
+    const tomatoes = Number(summary.totalTomatoes || 0);
     const potatoes = Number(summary.totalPotatoes || 0);
-    const total = apples + potatoes;
+    const total = tomatoes + potatoes;
 
     const name = el("current-produce-name");
     const method = el("current-produce-method");
@@ -2670,12 +2667,12 @@
       return;
     }
 
-    if (apples > 0 && potatoes > 0) {
+    if (tomatoes > 0 && potatoes > 0) {
       if (name) name.textContent = "Tomatoes + Potatoes";
-      currentProduceContext.type = null;
-    } else if (apples > 0) {
-      if (name) name.textContent = produceNames.apples;
-      currentProduceContext.type = "apples";
+      currentProduceContext.type = "mixed";
+    } else if (tomatoes > 0) {
+      if (name) name.textContent = produceNames.tomatoes;
+      currentProduceContext.type = "tomatoes";
     } else if (potatoes > 0) {
       if (name) name.textContent = produceNames.potatoes;
       currentProduceContext.type = "potatoes";

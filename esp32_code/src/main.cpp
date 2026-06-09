@@ -7,7 +7,8 @@
  * - DHT22 Temperature & Humidity Sensor
  * - SGP41 VOC Sensor (I2C)
  * - SSD1306 OLED Display 128x64 (I2C)
- * - Relay for scrubbing system control
+ * - 4-Channel Relay Module (5V coil, 10A per channel)
+ * - Single-Channel Relay Module (5V coil, 10A)
  * - Connecting wires
  *
  * DHT22 Wiring:
@@ -28,12 +29,15 @@
  * - SCL -> GPIO 22 (ESP32 default I2C SCL)
  * - SDA -> GPIO 21 (ESP32 default I2C SDA)
  *
- * 5-Relay Control (active-LOW relay module):
- * - IN1 (GPIO23): Humidifier
- * - IN2 (GPIO19): Peltier Module 1
- * - IN3 (GPIO18): Peltier Module 2
- * - IN4 (GPIO17): Scrubber
- * - Extra Relay (GPIO16): Auxiliary cooling load (fans/pump)
+ * Relay Control (active-LOW relay modules):
+ * 4-Channel Relay Module:
+ * - IN1 (GPIO23): Peltier 1 + cooling fans (air pushed through passive KMnO4 filter)
+ * - IN2 (GPIO19): Peltier 2 + pump
+ * - IN3 (GPIO18): Humidifier
+ * - IN4 (GPIO17): Peltier 3 + radiator fan
+ *
+ * Single-Channel Relay Module:
+ * - IN (GPIO16): Peltier 4
  */
 
 #include <WiFi.h>
@@ -67,19 +71,23 @@ const char *thresholdsUrl = "http://192.168.137.1:3000/api/thresholds";
 #define DHT_TYPE DHT22 // DHT22 sensor type
 #define NUM_READINGS 3 // Number of readings to average
 
-// Relay control polarity (most 5-relay modules are active-LOW)
+// Relay control polarity (most relay modules are active-LOW)
 #define RELAY_ACTIVE LOW
 #define RELAY_INACTIVE HIGH
-#define RELAY_HUMIDIFIER_PIN 23
-#define RELAY_PELTIER1_PIN 19
-#define RELAY_PELTIER2_PIN 18
-#define RELAY_SCRUBBER_PIN 17
-#define RELAY_AUX_COOLING_PIN 16
+
+// 4-Channel Relay Module - GPIO Assignments
+#define RELAY_PELTIER1_PIN 23   // IN1: Peltier 1 + cooling fans (air pushed through passive KMnO4 filter)
+#define RELAY_PELTIER2_PIN 19   // IN2: Peltier 2 + pump
+#define RELAY_HUMIDIFIER_PIN 18 // IN3: Humidifier
+#define RELAY_PELTIER3_PIN 17   // IN4: Peltier 3 + radiator fan
+
+// Single-Channel Relay Module
+#define RELAY_PELTIER4_PIN 16 // Peltier 4
 
 // Default control thresholds (will be updated from server)
-float VOC_THRESHOLD = 30.0; // VOC threshold in ppm
-float TEMP_MIN = 2.0;       // Target minimum temperature (°C)
-float TEMP_MAX = 4.0;       // Target maximum temperature (°C)
+float VOC_THRESHOLD = 50.0; // VOC threshold in IAQ index
+float TEMP_MIN = 9.0;       // Mixed tomato + potato fallback minimum temperature (°C)
+float TEMP_MAX = 11.0;      // Mixed tomato + potato fallback maximum temperature (°C)
 float HUMIDITY_MIN = 85.0;  // Target minimum humidity (%)
 float HUMIDITY_MAX = 95.0;  // Target maximum humidity (%)
 
@@ -106,6 +114,14 @@ DHT dht(DHT_PIN, DHT_TYPE);
 // VOC sensor variables
 uint16_t vocRaw = 0;
 
+// VOC monitoring (keep readings for scrubber effectiveness checks)
+float lastVoc = NAN;
+unsigned long lastVocTrendMs = 0;
+const unsigned long VOC_TREND_INTERVAL_MS = 300000; // 5 minutes between trend checks
+const float VOC_TREND_PCT_THRESHOLD = 5.0f;         // percent change threshold to flag
+float lastVocChangePct = 0.0f;
+bool scrubberActive = false;
+
 // Variables to store sensor readings
 float temperature = 0.0;
 float humidity = 0.0;
@@ -117,9 +133,9 @@ bool sgpReady = false;
 bool coolingActive = false;
 bool peltier1Active = false;
 bool peltier2Active = false;
-bool auxCoolingActive = false;
+bool peltier3Active = false;
+bool peltier4Active = false;
 bool humidifierActive = false;
-bool scrubberActive = false;
 float coolingDemandPct = 0.0;
 
 float pidIntegral = 0.0;
@@ -148,34 +164,34 @@ void runActuatorSelfTest()
   Serial.println("\n=== STARTUP ACTUATOR SELF-TEST ===");
   Serial.println("WARNING: Loads will turn ON one-by-one briefly.");
 
-  Serial.println("[1/5] Humidifier relay ON");
-  setRelay(RELAY_HUMIDIFIER_PIN, true);
-  delay(SELF_TEST_ON_MS);
-  setRelay(RELAY_HUMIDIFIER_PIN, false);
-  delay(SELF_TEST_GAP_MS);
-
-  Serial.println("[2/5] Peltier 1 relay ON");
+  Serial.println("[1/5] Peltier 1 (+ cooling fans) relay ON");
   setRelay(RELAY_PELTIER1_PIN, true);
   delay(SELF_TEST_ON_MS);
   setRelay(RELAY_PELTIER1_PIN, false);
   delay(SELF_TEST_GAP_MS);
 
-  Serial.println("[3/5] Peltier 2 relay ON");
+  Serial.println("[2/5] Peltier 2 (+ pump) relay ON");
   setRelay(RELAY_PELTIER2_PIN, true);
   delay(SELF_TEST_ON_MS);
   setRelay(RELAY_PELTIER2_PIN, false);
   delay(SELF_TEST_GAP_MS);
 
-  Serial.println("[4/5] Auxiliary cooling relay ON");
-  setRelay(RELAY_AUX_COOLING_PIN, true);
+  Serial.println("[3/5] Humidifier relay ON");
+  setRelay(RELAY_HUMIDIFIER_PIN, true);
   delay(SELF_TEST_ON_MS);
-  setRelay(RELAY_AUX_COOLING_PIN, false);
+  setRelay(RELAY_HUMIDIFIER_PIN, false);
   delay(SELF_TEST_GAP_MS);
 
-  Serial.println("[5/5] Scrubber relay ON");
-  setRelay(RELAY_SCRUBBER_PIN, true);
+  Serial.println("[4/5] Peltier 3 (+ radiator fan) relay ON");
+  setRelay(RELAY_PELTIER3_PIN, true);
   delay(SELF_TEST_ON_MS);
-  setRelay(RELAY_SCRUBBER_PIN, false);
+  setRelay(RELAY_PELTIER3_PIN, false);
+  delay(SELF_TEST_GAP_MS);
+
+  Serial.println("[5/5] Peltier 4 relay ON");
+  setRelay(RELAY_PELTIER4_PIN, true);
+  delay(SELF_TEST_ON_MS);
+  setRelay(RELAY_PELTIER4_PIN, false);
 
   Serial.println("Self-test complete. All actuators set to OFF.");
   Serial.println("==================================\n");
@@ -313,7 +329,7 @@ void updateDisplay()
   if (!isnan(vocIndex))
   {
     display.print(vocIndex, 1);
-    display.print("ppm");
+    display.print(" IAQ");
     if (vocIndex > VOC_THRESHOLD)
     {
       display.print("!");
@@ -321,7 +337,7 @@ void updateDisplay()
   }
   else
   {
-    display.print("---ppm");
+    display.print("---IAQ");
   }
 
   // System Status
@@ -335,24 +351,28 @@ void updateDisplay()
     display.print("2");
   else
     display.print("-");
-  if (auxCoolingActive)
-    display.print("A");
+  if (peltier3Active)
+    display.print("3");
   else
     display.print("-");
-  if (humidifierActive)
-    display.print("H");
+  if (peltier4Active)
+    display.print("4");
   else
     display.print("-");
   if (scrubberActive)
     display.print("S");
   else
     display.print("-");
+  if (humidifierActive)
+    display.print("H");
+  else
+    display.print("-");
 
   display.display();
 }
 
-// Relay-safe PID-like cooling control.
-// Two Peltier relays plus one auxiliary cooling relay switch as one group.
+// Relay-safe PID-like cooling control for all 4 Peltiers.
+// Peltiers 1, 2, 3 on 4-channel relay; Peltier 4 on single-channel relay.
 // - temp > TEMP_MAX forces ON
 // - temp < TEMP_MIN forces OFF
 // - in-range uses PID demand mapped to a long time-proportioning relay window
@@ -412,26 +432,31 @@ void controlCooling(float temp)
   {
     setRelay(RELAY_PELTIER1_PIN, shouldCool);
     setRelay(RELAY_PELTIER2_PIN, shouldCool);
-    setRelay(RELAY_AUX_COOLING_PIN, shouldCool);
+    setRelay(RELAY_PELTIER3_PIN, shouldCool);
+    setRelay(RELAY_PELTIER4_PIN, shouldCool);
 
     peltier1Active = shouldCool;
     peltier2Active = shouldCool;
-    auxCoolingActive = shouldCool;
+    peltier3Active = shouldCool;
+    peltier4Active = shouldCool;
+    scrubberActive = shouldCool; // passive scrubber is active whenever cooling airflow runs
     coolingActive = shouldCool;
     coolingLastToggleMs = now;
 
     Serial.printf("Cooling relays %s (Demand %.1f%%)\n", shouldCool ? "ON" : "OFF", coolingDemandPct);
     if (shouldCool)
     {
-      Serial.println("   → Peltier 1 ON");
-      Serial.println("   → Peltier 2 ON");
-      Serial.println("   → Auxiliary cooling ON");
+      Serial.println("   → Peltier 1 (+ cooling fans) ON");
+      Serial.println("   → Peltier 2 (+ pump) ON");
+      Serial.println("   → Peltier 3 (+ radiator fan) ON");
+      Serial.println("   → Peltier 4 ON");
     }
     else
     {
       Serial.println("   → Peltier 1 OFF");
       Serial.println("   → Peltier 2 OFF");
-      Serial.println("   → Auxiliary cooling OFF");
+      Serial.println("   → Peltier 3 OFF");
+      Serial.println("   → Peltier 4 OFF");
     }
   }
 }
@@ -459,37 +484,44 @@ void controlHumidifier(float hum)
   }
 }
 
-// Function to control scrubber relay by VOC threshold in ppm.
-void controlScrubber(float vocLevel)
+// Monitor VOC trend to infer scrubber/filter effectiveness
+void monitorScrubbing(float voc)
 {
-  if (isnan(vocLevel))
+  if (isnan(voc))
+    return;
+
+  const unsigned long now = millis();
+
+  // Initialize timer and baseline
+  if (lastVocTrendMs == 0)
   {
-    if (scrubberActive)
-    {
-      setRelay(RELAY_SCRUBBER_PIN, false);
-      scrubberActive = false;
-      Serial.println("⚠ VOC reading invalid. Scrubber DEACTIVATED");
-    }
+    lastVoc = voc;
+    lastVocTrendMs = now;
     return;
   }
 
-  if (vocLevel > VOC_THRESHOLD)
+  if (now - lastVocTrendMs >= VOC_TREND_INTERVAL_MS)
   {
-    if (!scrubberActive)
+    float change = lastVoc - voc; // positive if VOC decreased
+    float pct = (lastVoc > 0.0f) ? ((change / lastVoc) * 100.0f) : 0.0f;
+    lastVocChangePct = pct;
+
+    if (pct > VOC_TREND_PCT_THRESHOLD)
     {
-      setRelay(RELAY_SCRUBBER_PIN, true);
-      scrubberActive = true;
-      Serial.printf("⚠️ VOC > %.1f ppm. Scrubber ACTIVATED\n", VOC_THRESHOLD);
+      Serial.printf("✓ VOC down %.1f%% over last %lus — scrubber/filter appears effective\n", pct, (now - lastVocTrendMs) / 1000);
     }
-  }
-  else
-  {
-    if (scrubberActive)
+    else if (pct < -VOC_TREND_PCT_THRESHOLD)
     {
-      setRelay(RELAY_SCRUBBER_PIN, false);
-      scrubberActive = false;
-      Serial.printf("✓ VOC <= %.1f ppm. Scrubber DEACTIVATED\n", VOC_THRESHOLD);
+      Serial.printf("⚠ VOC up %.1f%% over last %lus — check filter airflow or source VOCs\n", -pct, (now - lastVocTrendMs) / 1000);
     }
+    else
+    {
+      Serial.printf("VOC change %.1f%% over last %lus\n", pct, (now - lastVocTrendMs) / 1000);
+    }
+
+    // slide window
+    lastVoc = voc;
+    lastVocTrendMs = now;
   }
 }
 
@@ -506,7 +538,9 @@ void sendDataToServer(float temp, float hum, float voc)
     StaticJsonDocument<200> doc;
     doc["temperature"]["value"] = temp;
     doc["humidity"]["value"] = hum;
-    doc["vocs"]["value"] = voc; // VOC index value (also used for ethylene monitoring)
+    doc["vocs"]["value"] = voc;                  // VOC index value (also used for ethylene monitoring)
+    doc["vocs"]["trend_pct"] = lastVocChangePct; // percent change over trend window
+    doc["scrubber_active"] = scrubberActive;     // passive filter active when cooling airflow runs
     doc["timestamp"] = millis();
 
     String jsonString;
@@ -571,14 +605,14 @@ void updateThresholds()
         if (doc.containsKey("voc"))
         {
           float incomingVoc = doc["voc"].as<float>();
-          // Backward compatibility: convert old raw-style threshold (e.g. 30000) to ppm.
+          // Backward compatibility: convert old raw-style threshold (e.g. 30000) to IAQ index.
           VOC_THRESHOLD = incomingVoc > 1000.0f ? incomingVoc / 1000.0f : incomingVoc;
         }
 
         Serial.println("✓ Thresholds updated from server:");
         Serial.printf("  Temperature: %.1f–%.1f°C\n", TEMP_MIN, TEMP_MAX);
         Serial.printf("  Humidity: %.1f–%.1f%%\n", HUMIDITY_MIN, HUMIDITY_MAX);
-        Serial.printf("  VOC: %.1f ppm\n", VOC_THRESHOLD);
+        Serial.printf("  VOC: %.1f IAQ\n", VOC_THRESHOLD);
       }
       else
       {
@@ -637,28 +671,29 @@ void setup()
   }
 
   // Initialize relay control pins
-  pinMode(RELAY_HUMIDIFIER_PIN, OUTPUT);
   pinMode(RELAY_PELTIER1_PIN, OUTPUT);
   pinMode(RELAY_PELTIER2_PIN, OUTPUT);
-  pinMode(RELAY_SCRUBBER_PIN, OUTPUT);
-  pinMode(RELAY_AUX_COOLING_PIN, OUTPUT);
+  pinMode(RELAY_HUMIDIFIER_PIN, OUTPUT);
+  pinMode(RELAY_PELTIER3_PIN, OUTPUT);
+  pinMode(RELAY_PELTIER4_PIN, OUTPUT);
 
   // Start OFF (active-LOW logic)
-  setRelay(RELAY_HUMIDIFIER_PIN, false);
   setRelay(RELAY_PELTIER1_PIN, false);
   setRelay(RELAY_PELTIER2_PIN, false);
-  setRelay(RELAY_SCRUBBER_PIN, false);
-  setRelay(RELAY_AUX_COOLING_PIN, false);
+  setRelay(RELAY_HUMIDIFIER_PIN, false);
+  setRelay(RELAY_PELTIER3_PIN, false);
+  setRelay(RELAY_PELTIER4_PIN, false);
 
   runActuatorSelfTest();
 
   Serial.println("\n=== ACTUATOR CONFIGURATION ===");
-  Serial.println("5-Relay Layout (active-LOW):");
-  Serial.println("  • CH1 GPIO23: Humidifier");
-  Serial.println("  • CH2 GPIO19: Peltier 1");
-  Serial.println("  • CH3 GPIO18: Peltier 2");
-  Serial.println("  • CH4 GPIO17: Scrubber (VOC control)");
-  Serial.println("  • CH5 GPIO16: Auxiliary cooling (fans/pump)");
+  Serial.println("4-Channel Relay Layout (active-LOW):");
+  Serial.println("  • IN1 GPIO23: Peltier 1 (+ cooling fans)");
+  Serial.println("  • IN2 GPIO19: Peltier 2 (+ pump)");
+  Serial.println("  • IN3 GPIO18: Humidifier");
+  Serial.println("  • IN4 GPIO17: Peltier 3 (+ radiator fan)");
+  Serial.println("Single-Channel Relay Layout (active-LOW):");
+  Serial.println("  • IN GPIO16: Peltier 4");
   Serial.println("==============================\n");
 
   // Initialize I2C for SGP41
@@ -766,7 +801,7 @@ void loop()
 
       if (vocRaw > 0)
       {
-        // Convert SGP41 raw signal to ppm-style value used by UI and relay thresholding.
+        // Convert SGP41 raw signal to IAQ-style index value used by UI and relay thresholding.
         vocIndex = (float)vocRaw / 1000.0f;
       }
       else
@@ -779,7 +814,8 @@ void loop()
     // Control systems
     controlCooling(temperature);
     controlHumidifier(humidity);
-    controlScrubber(vocIndex);
+    // Monitor VOC trend to track passive scrubber/filter effectiveness
+    monitorScrubbing(vocIndex);
 
     // Display readings on Serial Monitor
     Serial.println("--- Sensor Readings ---");
@@ -795,9 +831,9 @@ void loop()
     {
       Serial.print("VOC: ");
       Serial.print(vocIndex, 1);
-      Serial.print(" ppm (Threshold: ");
+      Serial.print(" IAQ (Threshold: ");
       Serial.print(VOC_THRESHOLD, 1);
-      Serial.println(" ppm)");
+      Serial.println(" IAQ)");
     }
     else if (!sgpReady)
     {
@@ -814,12 +850,14 @@ void loop()
     Serial.print(peltier1Active ? "ON" : "OFF");
     Serial.print(" | Peltier2=");
     Serial.print(peltier2Active ? "ON" : "OFF");
-    Serial.print(" | AuxCooling=");
-    Serial.print(auxCoolingActive ? "ON" : "OFF");
-    Serial.print(" | Humidifier=");
-    Serial.print(humidifierActive ? "ON" : "OFF");
+    Serial.print(" | Peltier3=");
+    Serial.print(peltier3Active ? "ON" : "OFF");
+    Serial.print(" | Peltier4=");
+    Serial.print(peltier4Active ? "ON" : "OFF");
     Serial.print(" | Scrubber=");
-    Serial.println(scrubberActive ? "ON" : "OFF");
+    Serial.print(scrubberActive ? "ON" : "OFF");
+    Serial.print(" | Humidifier=");
+    Serial.println(humidifierActive ? "ON" : "OFF");
 
     // Check if temperature is in target range
     if (temperature >= TEMP_MIN && temperature <= TEMP_MAX)
