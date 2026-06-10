@@ -284,13 +284,13 @@
                     <div class="threshold-item">
                       <span class="threshold-label">Temperature</span>
                       <span id="threshold-temp" class="threshold-value"
-                        >9-11&deg;C</span
+                        >10-13&deg;C</span
                       >
                     </div>
                     <div class="threshold-item">
                       <span class="threshold-label">Humidity</span>
                       <span id="threshold-humidity" class="threshold-value"
-                        >90-95%</span
+                        >80-90%</span
                       >
                     </div>
                     <div class="threshold-item">
@@ -300,6 +300,33 @@
                       >
                     </div>
                   </div>
+                </div>
+              </div>
+              <div class="storage-control-row">
+                <label for="manual-produce-select" class="control-label">
+                  <span id="storage-mode-label">Manual storage mode</span>
+                </label>
+                <div class="control-group" id="manual-controls-group">
+                  <select
+                    id="manual-produce-select"
+                    class="settings-select"
+                  ></select>
+                  <button
+                    id="set-produce-btn"
+                    type="button"
+                    class="btn btn-primary"
+                    title="Apply manual storage mode"
+                  >
+                    Apply mode
+                  </button>
+                  <button
+                    id="clear-manual-mode-btn"
+                    type="button"
+                    class="btn btn-secondary"
+                    hidden
+                  >
+                    Switch to automatic
+                  </button>
                 </div>
               </div>
             </div>
@@ -610,7 +637,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>Tomatoes</td>
+                  <td>Total Tomatoes Stored</td>
                   <td id="camera-tomatoes-total">0</td>
                   <td id="camera-tomatoes-good">0</td>
                   <td id="camera-tomatoes-bad">0</td>
@@ -620,12 +647,42 @@
                   </td>
                 </tr>
                 <tr>
-                  <td>Potatoes</td>
-                  <td id="camera-potatoes-total">0</td>
-                  <td id="camera-potatoes-good">0</td>
-                  <td id="camera-potatoes-bad">0</td>
-                  <td id="camera-potatoes-status">OK</td>
-                  <td id="camera-potatoes-note">
+                  <td>Mature Green Tomatoes</td>
+                  <td id="camera-mature_green-total">0</td>
+                  <td id="camera-mature_green-good">0</td>
+                  <td id="camera-mature_green-bad">0</td>
+                  <td id="camera-mature_green-status">OK</td>
+                  <td id="camera-mature_green-note">
+                    No spoilage detected in latest camera run.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Half Ripe Tomatoes</td>
+                  <td id="camera-half_ripe-total">0</td>
+                  <td id="camera-half_ripe-good">0</td>
+                  <td id="camera-half_ripe-bad">0</td>
+                  <td id="camera-half_ripe-status">OK</td>
+                  <td id="camera-half_ripe-note">
+                    No spoilage detected in latest camera run.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Fully Ripe Tomatoes</td>
+                  <td id="camera-fully_ripe-total">0</td>
+                  <td id="camera-fully_ripe-good">0</td>
+                  <td id="camera-fully_ripe-bad">0</td>
+                  <td id="camera-fully_ripe-status">OK</td>
+                  <td id="camera-fully_ripe-note">
+                    No spoilage detected in latest camera run.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Rotten Tomatoes</td>
+                  <td id="camera-rotten-total">0</td>
+                  <td id="camera-rotten-good">0</td>
+                  <td id="camera-rotten-bad">0</td>
+                  <td id="camera-rotten-status">OK</td>
+                  <td id="camera-rotten-note">
                     No spoilage detected in latest camera run.
                   </td>
                 </tr>
@@ -708,10 +765,6 @@
                   <span>Tomatoes</span>
                   <strong id="forecast-tomatoes">Analyzing...</strong>
                 </div>
-                <div class="forecast-row">
-                  <span>Potatoes</span>
-                  <strong id="forecast-potatoes">Analyzing...</strong>
-                </div>
                 <div class="forecast-note" id="forecast-summary">
                   Waiting for live data.
                 </div>
@@ -793,7 +846,7 @@
                         min="-5"
                         max="15"
                         step="0.1"
-                        value="9"
+                        value="10"
                         title="Temperature minimum for mixed storage profile"
                       />
                     </td>
@@ -806,7 +859,7 @@
                         min="-5"
                         max="15"
                         step="0.1"
-                        value="11"
+                        value="13"
                         title="Temperature maximum for mixed storage profile"
                       />
                     </td>
@@ -819,7 +872,7 @@
                         min="50"
                         max="100"
                         step="1"
-                        value="85"
+                        value="80"
                         title="Humidity minimum for mixed storage profile"
                       />
                     </td>
@@ -832,7 +885,7 @@
                         min="50"
                         max="100"
                         step="1"
-                        value="95"
+                        value="90"
                         title="Humidity maximum for mixed storage profile"
                       />
                     </td>
@@ -843,148 +896,214 @@
                         data-profile="mixed"
                         data-field="voc"
                         min="0"
-                        max="50000"
+                        max="100"
                         step="1"
-                        value="50000"
+                        value="50"
                         title="Ethylene threshold for mixed storage profile"
                       />
                     </td>
                   </tr>
-                  <!-- Tomatoes -->
-                  <tr data-profile="tomatoes">
-                    <td class="profile-name">Tomatoes</td>
+                  <tr data-profile="mature_green">
+                    <td class="profile-name">Mature Green Tomatoes</td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="tomatoes"
+                        data-profile="mature_green"
+                        data-field="temp-min"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="13"
+                        title="Temperature minimum for mature green profile"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="mature_green"
+                        data-field="temp-max"
+                        min="-5"
+                        max="15"
+                        step="0.1"
+                        value="15"
+                        title="Temperature maximum for mature green profile"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="mature_green"
+                        data-field="humidity-min"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="80"
+                        title="Humidity minimum for mature green profile"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="mature_green"
+                        data-field="humidity-max"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="90"
+                        title="Humidity maximum for mature green profile"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="mature_green"
+                        data-field="voc"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value="50"
+                        title="Ethylene threshold for mature green profile"
+                      />
+                    </td>
+                  </tr>
+                  <tr data-profile="half_ripe">
+                    <td class="profile-name">Half Ripe Tomatoes</td>
+                    <td>
+                      <input
+                        type="number"
+                        class="threshold-input"
+                        data-profile="half_ripe"
                         data-field="temp-min"
                         min="-5"
                         max="15"
                         step="0.1"
                         value="10"
-                        title="Temperature minimum for tomatoes profile"
+                        title="Temperature minimum for half ripe profile"
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="tomatoes"
+                        data-profile="half_ripe"
                         data-field="temp-max"
                         min="-5"
                         max="15"
                         step="0.1"
                         value="13"
-                        title="Temperature maximum for tomatoes profile"
+                        title="Temperature maximum for half ripe profile"
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="tomatoes"
+                        data-profile="half_ripe"
                         data-field="humidity-min"
                         min="50"
                         max="100"
                         step="1"
-                        value="90"
-                        title="Humidity minimum for tomatoes profile"
+                        value="80"
+                        title="Humidity minimum for half ripe profile"
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="tomatoes"
+                        data-profile="half_ripe"
                         data-field="humidity-max"
                         min="50"
                         max="100"
                         step="1"
-                        value="95"
-                        title="Humidity maximum for tomatoes profile"
+                        value="90"
+                        title="Humidity maximum for half ripe profile"
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="tomatoes"
+                        data-profile="half_ripe"
                         data-field="voc"
                         min="0"
-                        max="50000"
+                        max="100"
                         step="1"
-                        value="50000"
-                        title="Ethylene threshold for tomatoes profile"
+                        value="50"
+                        title="Ethylene threshold for half ripe profile"
                       />
                     </td>
                   </tr>
-                  <!-- Potatoes -->
-                  <tr data-profile="potatoes">
-                    <td class="profile-name">Potatoes</td>
+                  <tr data-profile="fully_ripe">
+                    <td class="profile-name">Fully Ripe Tomatoes</td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="potatoes"
+                        data-profile="fully_ripe"
                         data-field="temp-min"
                         min="-5"
                         max="15"
                         step="0.1"
-                        value="7"
-                        title="Temperature minimum for potatoes profile"
+                        value="9"
+                        title="Temperature minimum for fully ripe profile"
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="potatoes"
+                        data-profile="fully_ripe"
                         data-field="temp-max"
                         min="-5"
                         max="15"
                         step="0.1"
                         value="10"
-                        title="Temperature maximum for potatoes profile"
+                        title="Temperature maximum for fully ripe profile"
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="potatoes"
+                        data-profile="fully_ripe"
                         data-field="humidity-min"
                         min="50"
                         max="100"
                         step="1"
-                        value="85"
-                        title="Humidity minimum for potatoes profile"
+                        value="80"
+                        title="Humidity minimum for fully ripe profile"
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="potatoes"
+                        data-profile="fully_ripe"
                         data-field="humidity-max"
                         min="50"
                         max="100"
                         step="1"
                         value="90"
-                        title="Humidity maximum for potatoes profile"
+                        title="Humidity maximum for fully ripe profile"
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         class="threshold-input"
-                        data-profile="potatoes"
+                        data-profile="fully_ripe"
                         data-field="voc"
                         min="0"
-                        max="50000"
+                        max="100"
                         step="1"
-                        value="50000"
-                        title="Ethylene threshold for potatoes profile"
+                        value="50"
+                        title="Ethylene threshold for fully ripe profile"
                       />
                     </td>
                   </tr>
@@ -993,8 +1112,10 @@
             </div>
             <div class="settings-actions">
               <p class="muted settings-info">
-                Edit threshold values for each profile. Active thresholds will
-                automatically update when saved based on detected produce type.
+                Edit threshold values for each profile. Mixed storage is used
+                when two or more different tomato ripeness stages are stored
+                together; active thresholds update based on detected produce
+                type.
               </p>
               <button
                 type="button"
@@ -1326,7 +1447,6 @@
             <select id="item-produce-type" required class="modal-form-select">
               <option value="">Select produce...</option>
               <option value="tomatoes">Tomatoes</option>
-              <option value="potatoes">Potatoes</option>
             </select>
           </div>
           <div>

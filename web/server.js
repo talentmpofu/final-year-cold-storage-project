@@ -108,12 +108,19 @@ let latestMetrics = {
 };
 
 const PRODUCE_CONFIDENCE_THRESHOLD = 0.5;
-const SUPPORTED_PRODUCE_TYPES = ["tomatoes", "potatoes", "mixed"];
+const SUPPORTED_PRODUCE_TYPES = [
+  "mixed",
+  "tomatoes",
+  "mature_green",
+  "half_ripe",
+  "fully_ripe",
+  "rotten",
+];
 
 function buildProduceState(produceType, options = {}) {
-  const normalizedType = normalizeProduceType(produceType) || "mixed";
+  const normalizedType = normalizeProduceType(produceType) || "tomatoes";
   const settings =
-    getProduceSettings(normalizedType) || getProduceSettings("mixed");
+    getProduceSettings(normalizedType) || getProduceSettings("tomatoes");
 
   return {
     type: normalizedType,
@@ -130,9 +137,9 @@ function buildProduceState(produceType, options = {}) {
   };
 }
 
-// Store current produce and thresholds. Mixed storage is the safe default
-// until AI detection or manual selection narrows the stored products.
-let currentProduce = buildProduceState("mixed");
+// Store current produce and thresholds. Generic tomato storage is the default
+// until AI detection or manual selection narrows the ripeness stage.
+let currentProduce = buildProduceState("tomatoes");
 
 // Latest AI quality alerts derived from camera detections.
 // Alerts are informational only and auto-clear when spoilage is no longer detected.
@@ -140,11 +147,8 @@ let latestAIQualityAlerts = [];
 
 let latestCameraInventorySummary = {
   totalTomatoes: 0,
-  totalPotatoes: 0,
   tomatoesGood: 0,
   tomatoesBad: 0,
-  potatoesGood: 0,
-  potatoesBad: 0,
   analyzedAt: null,
 };
 
@@ -257,8 +261,34 @@ function normalizeUploadSource(source) {
 
 function getProduceTypeFromLabel(label) {
   const normalized = normalizeDetectionLabel(label);
+  if (
+    normalized.includes("mature") &&
+    normalized.includes("green") &&
+    normalized.includes("tomato")
+  ) {
+    return "mature_green";
+  }
+  if (
+    normalized.includes("half") &&
+    normalized.includes("ripe") &&
+    normalized.includes("tomato")
+  ) {
+    return "half_ripe";
+  }
+  if (
+    (normalized.includes("fully") || normalized.includes("full")) &&
+    normalized.includes("ripe") &&
+    normalized.includes("tomato")
+  ) {
+    return "fully_ripe";
+  }
+  if (
+    (normalized.includes("rotten") || normalized.includes("rot")) &&
+    normalized.includes("tomato")
+  ) {
+    return "rotten";
+  }
   if (normalized.includes("tomato")) return "tomatoes";
-  if (normalized.includes("potato")) return "potatoes";
   return null;
 }
 
@@ -391,12 +421,15 @@ function resolveProduceProfileFromDetections(
     }
   });
 
-  if (produceTypes.has("tomatoes") && produceTypes.has("potatoes")) {
-    return { type: "mixed", confidence };
-  }
+  const isTomatoType = (type) =>
+    typeof type === "string" && /(tomato|tomatoes)$/.test(type);
 
   if (produceTypes.size === 1) {
     return { type: [...produceTypes][0], confidence };
+  }
+
+  if ([...produceTypes].every(isTomatoType)) {
+    return { type: "tomatoes", confidence };
   }
 
   const fallbackType = getProduceTypeFromLabel(detectedLabel);
@@ -495,34 +528,43 @@ function buildAIQualityAlertsFromDetections(detections = []) {
 }
 
 function buildCameraInventorySummaryFromDetections(detections = []) {
+  const stageCounts = {
+    tomatoes: { total: 0, good: 0, bad: 0 },
+    mature_green: { total: 0, good: 0, bad: 0 },
+    half_ripe: { total: 0, good: 0, bad: 0 },
+    fully_ripe: { total: 0, good: 0, bad: 0 },
+    rotten: { total: 0, good: 0, bad: 0 },
+  };
+
   const counts = detections.reduce(
     (acc, d) => {
-      const produceType = getProduceTypeFromLabel(d.type);
-      const isTomato = produceType === "tomatoes";
-      const isPotato = produceType === "potatoes";
+      const produceType = getProduceTypeFromLabel(d.type) || "tomatoes";
+      const isTomato = /(tomato|tomatoes)$/.test(produceType);
       const isSpoiled = isBadQualityLabel(d.type);
+
+      if (!stageCounts[produceType]) {
+        stageCounts.tomatoes.total += 0;
+      }
 
       if (isTomato) {
         acc.totalTomatoes += 1;
+        const stageKey = stageCounts[produceType] ? produceType : "tomatoes";
+        stageCounts[stageKey].total += 1;
+        stageCounts[stageKey].bad += isSpoiled ? 1 : 0;
+        stageCounts[stageKey].good += isSpoiled ? 0 : 1;
         if (isSpoiled) acc.tomatoesBad += 1;
-      }
-      if (isPotato) {
-        acc.totalPotatoes += 1;
-        if (isSpoiled) acc.potatoesBad += 1;
       }
 
       return acc;
     },
-    { totalTomatoes: 0, totalPotatoes: 0, tomatoesBad: 0, potatoesBad: 0 },
+    { totalTomatoes: 0, tomatoesBad: 0 },
   );
 
   return {
     totalTomatoes: counts.totalTomatoes,
-    totalPotatoes: counts.totalPotatoes,
     tomatoesBad: counts.tomatoesBad,
     tomatoesGood: Math.max(0, counts.totalTomatoes - counts.tomatoesBad),
-    potatoesBad: counts.potatoesBad,
-    potatoesGood: Math.max(0, counts.totalPotatoes - counts.potatoesBad),
+    stageCounts,
     analyzedAt: new Date().toISOString(),
   };
 }
@@ -949,6 +991,26 @@ app.get("/api/produce", (req, res) => {
 // API endpoint to manually set produce type
 app.post("/api/produce/set", (req, res) => {
   const { produceType } = req.body;
+  if (!produceType || produceType === "automatic" || produceType === "auto") {
+    const settings = getProduceSettings("tomatoes");
+    currentProduce = {
+      type: null,
+      detectedAt: null,
+      manualOverride: false,
+      thresholds: {
+        temperature: settings.temp,
+        humidity: settings.humidity,
+        voc: settings.voc,
+      },
+    };
+
+    console.log("Produce mode reset to automatic detection");
+    return res.json({
+      success: true,
+      produce: currentProduce,
+    });
+  }
+
   const normalizedProduceType = normalizeProduceType(produceType);
 
   if (
@@ -957,7 +1019,8 @@ app.post("/api/produce/set", (req, res) => {
   ) {
     return res.status(400).json({
       success: false,
-      error: "Invalid produce type. Must be 'tomatoes', 'potatoes', or 'mixed'",
+      error:
+        "Invalid produce type. Must be one of 'tomatoes', 'mature_green', 'half_ripe', 'fully_ripe', 'rotten', or 'automatic'",
     });
   }
 
@@ -1361,8 +1424,8 @@ app.post("/api/test-alert", async (req, res) => {
       produceType: currentProduce.type || "Test",
     },
     voc: {
-      current: 50000,
-      max: 30000,
+      current: 50,
+      max: 50,
       produceType: currentProduce.type || "Test",
     },
   };

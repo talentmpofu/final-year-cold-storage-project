@@ -2,6 +2,27 @@
 // Optimal temperature, humidity, and VOC thresholds for different produce types
 
 const produceDatabase = {
+  mixed: {
+    name: "Mixed Storage",
+    temperature: {
+      min: 10,
+      max: 13,
+      optimal: 11.5,
+    },
+    humidity: {
+      min: 80,
+      max: 90,
+      optimal: 85,
+    },
+    vocs: {
+      threshold: 50,
+      sensitivity: "medium",
+    },
+    description:
+      "Mixed tomato storage settings for two or more ripeness stages stored together.",
+    storageLife: "1-2 weeks depending on the ripeness mix",
+    icon: "",
+  },
   tomatoes: {
     name: "Tomatoes",
     temperature: {
@@ -10,59 +31,105 @@ const produceDatabase = {
       optimal: 11.5,
     },
     humidity: {
-      min: 90,
-      max: 95,
-      optimal: 92,
+      min: 80,
+      max: 90,
+      optimal: 85,
     },
     vocs: {
-      threshold: 50000,
+      threshold: 50,
       sensitivity: "medium",
     },
-    description: "Tomatoes require warmer cold storage than potatoes",
+    description:
+      "Generic tomato storage settings when ripeness stage is unknown.",
     storageLife: "1-3 weeks at optimal conditions",
     icon: "",
   },
 
-  potatoes: {
-    name: "Potatoes",
+  mature_green: {
+    name: "Mature Green Tomatoes",
     temperature: {
-      min: 7,
-      max: 10,
-      optimal: 8,
+      min: 13,
+      max: 15,
+      optimal: 14,
     },
     humidity: {
-      min: 85,
+      min: 80,
       max: 90,
-      optimal: 87,
+      optimal: 85,
     },
     vocs: {
-      threshold: 50000, // Moderately sensitive to ethylene
-      sensitivity: "medium",
-    },
-    description: "Potatoes require cool, dark storage with good ventilation",
-    storageLife: "5-8 months at optimal conditions",
-    icon: "",
-  },
-
-  mixed: {
-    name: "Mixed Tomatoes + Potatoes",
-    temperature: {
-      min: 9,
-      max: 11,
-      optimal: 10,
-    },
-    humidity: {
-      min: 85,
-      max: 95,
-      optimal: 90,
-    },
-    vocs: {
-      threshold: 28000,
+      threshold: 50,
       sensitivity: "medium",
     },
     description:
-      "Balanced settings when tomatoes and potatoes are stored together",
-    storageLife: "Varies by item",
+      "Mature green tomatoes are best stored slightly warmer than ripe fruit.",
+    storageLife: "2-3 weeks when stored at the correct temperature.",
+    icon: "",
+  },
+
+  half_ripe: {
+    name: "Half Ripe Tomatoes",
+    temperature: {
+      min: 10,
+      max: 13,
+      optimal: 11.5,
+    },
+    humidity: {
+      min: 80,
+      max: 90,
+      optimal: 85,
+    },
+    vocs: {
+      threshold: 50,
+      sensitivity: "medium",
+    },
+    description:
+      "Half ripe tomatoes should be held in cooler conditions to slow ripening.",
+    storageLife: "1-2 weeks when held at stable, high humidity.",
+    icon: "",
+  },
+
+  fully_ripe: {
+    name: "Fully Ripe Tomatoes",
+    temperature: {
+      min: 9,
+      max: 10,
+      optimal: 9.5,
+    },
+    humidity: {
+      min: 80,
+      max: 90,
+      optimal: 85,
+    },
+    vocs: {
+      threshold: 50,
+      sensitivity: "medium",
+    },
+    description:
+      "Fully ripe tomatoes need cooler storage to preserve shelf life.",
+    storageLife:
+      "Up to 1 week when temperatures are kept low and humidity steady.",
+    icon: "",
+  },
+
+  rotten: {
+    name: "Rotten Tomatoes",
+    temperature: {
+      min: 8,
+      max: 10,
+      optimal: 9,
+    },
+    humidity: {
+      min: 80,
+      max: 90,
+      optimal: 85,
+    },
+    vocs: {
+      threshold: 50,
+      sensitivity: "high",
+    },
+    description: "Rotten tomatoes should be removed from storage immediately.",
+    storageLife: "Not suitable for storage.",
     icon: "",
   },
 };
@@ -81,7 +148,7 @@ function getProduceSettings(produceType) {
       min: Number(item.humidity?.min ?? 0),
       max: Number(item.humidity?.max ?? 0),
     },
-    voc: Number(item.vocs?.threshold ?? 50000),
+    voc: Number(item.vocs?.threshold ?? 50),
   };
 }
 
@@ -89,9 +156,36 @@ function normalizeProduceType(produceType) {
   const key = String(produceType || "")
     .toLowerCase()
     .trim();
-  if (key === "tomato" || key === "tomatoes") return "tomatoes";
-  if (key === "potato" || key === "potatoes") return "potatoes";
-  if (key === "mixed" || key === "custom") return "mixed";
+
+  if (
+    key.includes("mature") &&
+    key.includes("green") &&
+    key.includes("tomato")
+  ) {
+    return "mature_green";
+  }
+  if (key.includes("half") && key.includes("ripe") && key.includes("tomato")) {
+    return "half_ripe";
+  }
+  if (
+    (key.includes("fully") || key.includes("full")) &&
+    key.includes("ripe") &&
+    key.includes("tomato")
+  ) {
+    return "fully_ripe";
+  }
+  if (
+    (key.includes("rotten") || key.includes("rot")) &&
+    key.includes("tomato")
+  ) {
+    return "rotten";
+  }
+  if (key.includes("mixed")) {
+    return "mixed";
+  }
+  if (key.includes("tomato") || key.includes("tomatoes")) return "tomatoes";
+  if (key.includes("automatic") || key.includes("auto")) return "automatic";
+
   return key;
 }
 

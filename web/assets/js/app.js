@@ -35,8 +35,8 @@
     times: [],
   };
   const targets = {
-    temp: { min: 9, max: 11 },
-    humidity: { min: 85, max: 95 },
+    temp: { min: 10, max: 13 },
+    humidity: { min: 80, max: 90 },
     ethylene: { max: 50 }, // VOCs threshold: 50 IAQ
   };
   const MAX_POINTS = 50;
@@ -452,219 +452,8 @@
     return Math.max(0.5, estimate);
   }
 
-  function renderRecommendations() {
-    const tomatoesEl = el("forecast-tomatoes");
-    const potatoesEl = el("forecast-potatoes");
-    const summaryEl = el("forecast-summary");
-    const scoreEl = el("environment-score");
-    const envSummaryEl = el("environment-summary");
-    const recommendationList = el("recommendation-list");
-    const priorityList = el("priority-list");
-
-    const latestTemp = series.temp[series.temp.length - 1];
-    const latestHumidity = series.humidity[series.humidity.length - 1];
-    const latestEthylene = series.ethylene[series.ethylene.length - 1];
-
-    if (
-      !Number.isFinite(latestTemp) ||
-      !Number.isFinite(latestHumidity) ||
-      !Number.isFinite(latestEthylene)
-    ) {
-      if (tomatoesEl) tomatoesEl.textContent = "-- days";
-      if (potatoesEl) potatoesEl.textContent = "-- days";
-      if (summaryEl) {
-        summaryEl.textContent =
-          "Waiting for live conditions to calculate shelf-life outlook.";
-      }
-      if (scoreEl) scoreEl.textContent = "--";
-      if (envSummaryEl) {
-        envSummaryEl.textContent =
-          "Temperature, humidity, and ethylene trend analysis will appear here.";
-      }
-      return;
-    }
-
-    const { tempRange, humidityRange, vocLimit } = getCurrentThresholds();
-    const tempMid = (tempRange.min + tempRange.max) / 2;
-    const humidityMid = (humidityRange.min + humidityRange.max) / 2;
-
-    const tempSlope = getTrendDirection(series.temp, 0.05);
-    const humiditySlope = getTrendDirection(series.humidity, 0.4);
-    const ethyleneSlope = getTrendDirection(series.ethylene, 0.01);
-
-    const tempDeviation =
-      latestTemp > tempRange.max
-        ? latestTemp - tempRange.max
-        : latestTemp < tempRange.min
-          ? tempRange.min - latestTemp
-          : Math.abs(latestTemp - tempMid) * 0.12;
-    const humidityDeviation =
-      latestHumidity > humidityRange.max
-        ? (latestHumidity - humidityRange.max) * 0.2
-        : latestHumidity < humidityRange.min
-          ? (humidityRange.min - latestHumidity) * 0.2
-          : Math.abs(latestHumidity - humidityMid) * 0.05;
-    const ethyleneDeviation =
-      latestEthylene > vocLimit ? (latestEthylene - vocLimit) * 5 : 0;
-
-    const tempTrendPenalty =
-      tempSlope === "rising" ? 0.6 : tempSlope === "falling" ? -0.15 : 0;
-    const humidityTrendPenalty =
-      humiditySlope === "falling"
-        ? 0.35
-        : humiditySlope === "rising"
-          ? -0.1
-          : 0;
-    const ethyleneTrendPenalty =
-      ethyleneSlope === "rising" ? 0.8 : ethyleneSlope === "falling" ? -0.2 : 0;
-
-    const tomatoesShelfLife = computeShelfLife(
-      8.5,
-      tempDeviation * 1.2 +
-        humidityDeviation * 1.1 +
-        ethyleneDeviation * 1.4 +
-        tempTrendPenalty +
-        humidityTrendPenalty +
-        ethyleneTrendPenalty,
-      cameraInventorySummary.tomatoesBad,
-    );
-    const potatoesShelfLife = computeShelfLife(
-      21,
-      tempDeviation * 0.9 +
-        humidityDeviation * 0.8 +
-        ethyleneDeviation * 0.9 +
-        tempTrendPenalty * 0.7 +
-        humidityTrendPenalty * 0.5 +
-        ethyleneTrendPenalty,
-      cameraInventorySummary.potatoesBad,
-    );
-
-    if (tomatoesEl)
-      tomatoesEl.textContent = `${tomatoesShelfLife.toFixed(1)} days`;
-    if (potatoesEl)
-      potatoesEl.textContent = `${potatoesShelfLife.toFixed(1)} days`;
-
-    const riskScore = Math.max(
-      0,
-      Math.min(
-        100,
-        Math.round(
-          100 -
-            tempDeviation * 12 -
-            humidityDeviation * 8 -
-            ethyleneDeviation * 10 -
-            Math.max(0, cameraInventorySummary.tomatoesBad || 0) * 4 -
-            Math.max(0, cameraInventorySummary.potatoesBad || 0) * 3,
-        ),
-      ),
-    );
-    const riskLabel =
-      riskScore >= 80 ? "Stable" : riskScore >= 60 ? "Watch" : "At risk";
-
-    if (scoreEl) scoreEl.textContent = `${riskScore}/100 ${riskLabel}`;
-
-    const envMessages = [];
-    if (tempSlope === "rising") {
-      envMessages.push(
-        "Temperature is trending upward, so cooling should be checked first.",
-      );
-    } else if (tempSlope === "falling") {
-      envMessages.push(
-        "Temperature is trending down, which supports longer storage life.",
-      );
-    }
-    if (humiditySlope === "falling") {
-      envMessages.push(
-        "Humidity is easing downward, so hold the humidifier closer to target.",
-      );
-    } else if (humiditySlope === "rising") {
-      envMessages.push(
-        "Humidity is climbing, so watch for condensation and excess moisture.",
-      );
-    }
-    if (ethyleneSlope === "rising") {
-      envMessages.push(
-        "Ethylene/VOCs are rising, which usually shortens shelf life fastest.",
-      );
-    } else if (ethyleneSlope === "falling") {
-      envMessages.push(
-        "Ethylene/VOCs are easing, which improves produce stability.",
-      );
-    }
-    if (envMessages.length === 0) {
-      envMessages.push(
-        "Conditions are steady across temperature, humidity, and ethylene/VOCs.",
-      );
-    }
-
-    if (envSummaryEl) envSummaryEl.textContent = envMessages.join(" ");
-    if (summaryEl) {
-      summaryEl.textContent =
-        tomatoesShelfLife < potatoesShelfLife
-          ? "Tomatoes are under more pressure right now, so they should be inspected first."
-          : "Potatoes are currently the longer-lived batch, while tomatoes need closer attention.";
-    }
-
-    const actions = [];
-    if (latestTemp > tempRange.max + 0.2 || tempSlope === "rising") {
-      actions.push(
-        "Reduce temperature slightly and check the cooling cycle for drift.",
-      );
-    }
-    if (latestHumidity < humidityRange.min - 1) {
-      actions.push("Increase humidity to keep stored produce from drying out.");
-    } else if (latestHumidity > humidityRange.max + 1) {
-      actions.push(
-        "Lower humidity or improve ventilation to prevent condensation.",
-      );
-    }
-    if (latestEthylene > vocLimit || ethyleneSlope === "rising") {
-      actions.push(
-        "Keep the scrubber active and remove bruised items that can accelerate spoilage.",
-      );
-    }
-    if (
-      cameraInventorySummary.tomatoesBad > 0 ||
-      cameraInventorySummary.potatoesBad > 0
-    ) {
-      actions.push(
-        "Physically inspect the affected produce and remove damaged items first.",
-      );
-    }
-    if (actions.length === 0) {
-      actions.push(
-        "Conditions are within target, so maintain the current setpoints and keep monitoring.",
-      );
-    }
-
-    if (recommendationList) {
-      recommendationList.innerHTML = actions
-        .slice(0, 4)
-        .map((action) => `<li>${action}</li>`)
-        .join("");
-    }
-
-    const priorities = [
-      {
-        label: `Tomatoes - ${tomatoesShelfLife.toFixed(1)} days estimated`,
-        score:
-          tomatoesShelfLife - (cameraInventorySummary.tomatoesBad || 0) * 0.5,
-      },
-      {
-        label: `Potatoes - ${potatoesShelfLife.toFixed(1)} days estimated`,
-        score:
-          potatoesShelfLife - (cameraInventorySummary.potatoesBad || 0) * 0.5,
-      },
-    ]
-      .sort((a, b) => a.score - b.score)
-      .map((item) => item.label);
-
-    if (priorityList) {
-      priorityList.innerHTML = priorities
-        .map((item) => `<li>${item}</li>`)
-        .join("");
-    }
-  }
+  // Old duplicate renderRecommendations implementation removed.
+  // The active tomato-only recommendations block is defined later in the file.
 
   // Tooltip on hover for environmental trends
   function bindEnvTrendTooltip() {
@@ -1792,25 +1581,21 @@
       status: "critical",
       snapshot: "assets/img/icon-512.svg",
     },
-    {
-      item: "Potatoes",
-      qty: 45,
-      unit: "units",
-      shelf: 21,
-      status: "good",
-      snapshot: "assets/img/icon-512.svg",
-    },
   ];
 
   // AI alerts are fetched from backend camera analysis and auto-clear when resolved.
-  const DUMMY_CAMERA_INVENTORY_SUMMARY = {
-    totalTomatoes: 5,
-    totalPotatoes: 4,
-    tomatoesGood: 2,
-    tomatoesBad: 3,
-    potatoesGood: 3,
-    potatoesBad: 1,
+  const EMPTY_CAMERA_INVENTORY_SUMMARY = {
+    totalTomatoes: 0,
+    tomatoesGood: 0,
+    tomatoesBad: 0,
     analyzedAt: null,
+    stageCounts: {
+      tomatoes: { total: 0, good: 0, bad: 0 },
+      mature_green: { total: 0, good: 0, bad: 0 },
+      half_ripe: { total: 0, good: 0, bad: 0 },
+      fully_ripe: { total: 0, good: 0, bad: 0 },
+      rotten: { total: 0, good: 0, bad: 0 },
+    },
   };
 
   const DUMMY_AI_ALERTS = [
@@ -1821,28 +1606,24 @@
       message:
         "AI detected overripening in 3 tomatoes. Please inspect latest images and remove affected tomatoes physically.",
     },
-    {
-      id: "dummy-potato-alert",
-      title: "Potatoes",
-      severity: "medium",
-      message:
-        "AI detected quality drop in 1 potato. Please inspect latest images and remove affected potatoes physically.",
-    },
   ];
 
   const DUMMY_INVENTORY_ITEMS = [
     { id: "demo-a", type: "tomatoes", quantity: 5, daysLeft: 3 },
-    { id: "demo-p", type: "potatoes", quantity: 4, daysLeft: 21 },
   ];
 
   let aiAlerts = [];
   let cameraInventorySummary = {
     totalTomatoes: 0,
-    totalPotatoes: 0,
     tomatoesGood: 0,
     tomatoesBad: 0,
-    potatoesGood: 0,
-    potatoesBad: 0,
+    stageCounts: {
+      tomatoes: { total: 0, good: 0, bad: 0 },
+      mature_green: { total: 0, good: 0, bad: 0 },
+      half_ripe: { total: 0, good: 0, bad: 0 },
+      fully_ripe: { total: 0, good: 0, bad: 0 },
+      rotten: { total: 0, good: 0, bad: 0 },
+    },
   };
 
   function renderSpoilageBanner(alerts = [], meta = {}) {
@@ -1902,14 +1683,14 @@
       const hasLiveSummary = Boolean(summary.analyzedAt);
       cameraInventorySummary = hasLiveSummary
         ? summary
-        : DUMMY_CAMERA_INVENTORY_SUMMARY;
+        : EMPTY_CAMERA_INVENTORY_SUMMARY;
       renderCameraInventorySummary();
       syncStorageInfoFromCameraSummary(cameraInventorySummary);
       applyAutoThresholdMode();
       renderRecommendations();
     } catch (error) {
       console.error("Error loading camera inventory summary:", error);
-      cameraInventorySummary = DUMMY_CAMERA_INVENTORY_SUMMARY;
+      cameraInventorySummary = EMPTY_CAMERA_INVENTORY_SUMMARY;
       renderCameraInventorySummary();
       syncStorageInfoFromCameraSummary(cameraInventorySummary);
       applyAutoThresholdMode();
@@ -1918,16 +1699,13 @@
   }
 
   function renderCameraInventorySummary() {
-    const tomatoesTotalEl = el("camera-tomatoes-total");
-    const tomatoesGoodEl = el("camera-tomatoes-good");
-    const tomatoesBadEl = el("camera-tomatoes-bad");
-    const tomatoesStatusEl = el("camera-tomatoes-status");
-    const tomatoesNoteEl = el("camera-tomatoes-note");
-    const potatoesTotalEl = el("camera-potatoes-total");
-    const potatoesGoodEl = el("camera-potatoes-good");
-    const potatoesBadEl = el("camera-potatoes-bad");
-    const potatoesStatusEl = el("camera-potatoes-status");
-    const potatoesNoteEl = el("camera-potatoes-note");
+    const stageIds = [
+      "tomatoes",
+      "mature_green",
+      "half_ripe",
+      "fully_ripe",
+      "rotten",
+    ];
 
     const setRow = (
       totalEl,
@@ -1939,61 +1717,89 @@
       total,
       good,
       bad,
+      options = {},
     ) => {
       if (totalEl) totalEl.textContent = String(total || 0);
-      if (goodEl) goodEl.textContent = String(good || 0);
+      if (goodEl)
+        goodEl.textContent = options.hideGood ? "N/A" : String(good || 0);
       if (badEl) badEl.textContent = String(bad || 0);
       if (statusEl) {
         const badgeText = bad >= 1 ? "HIGH ALERT" : "OK";
         const badgeClass = bad >= 1 ? "camera-status-high" : "camera-status-ok";
-        // Render badge inside the table cell so the STATUS column alignment stays centered.
         statusEl.innerHTML = `<span class="${badgeClass}">${badgeText}</span>`;
-        statusEl.classList.remove("camera-status-high", "camera-status-ok");
       }
       if (noteEl) {
-        const actionText =
-          bad > 0
-            ? `High alert: check the latest camera images immediately, then remove affected ${itemName.toLowerCase()} from the storage unit.`
-            : `No spoilage detected for ${itemName.toLowerCase()} in the latest camera run.`;
+        let actionText;
+        if (options.rowType === "rotten") {
+          actionText =
+            bad > 0
+              ? `High alert: ${bad} rotten tomato${bad === 1 ? "" : "es"} detected. Remove affected items immediately.`
+              : `No rotten tomatoes detected in the latest camera run.`;
+        } else if (options.rowType === "total") {
+          actionText = `Total tomatoes detected across all ripeness stages. ${bad > 0 ? `${bad} item${bad === 1 ? "" : "s"} may be spoiled.` : "No spoilage detected in the latest camera run."}`;
+        } else {
+          actionText =
+            bad > 0
+              ? `High alert: check the latest camera images immediately, then remove affected ${itemName.toLowerCase()} from the storage unit.`
+              : `No spoilage detected for ${itemName.toLowerCase()} in the latest camera run.`;
+        }
         noteEl.textContent = actionText;
       }
     };
 
-    setRow(
-      tomatoesTotalEl,
-      tomatoesGoodEl,
-      tomatoesBadEl,
-      tomatoesStatusEl,
-      tomatoesNoteEl,
-      "Tomatoes",
-      cameraInventorySummary.totalTomatoes,
-      cameraInventorySummary.tomatoesGood,
-      cameraInventorySummary.tomatoesBad,
-    );
-    setRow(
-      potatoesTotalEl,
-      potatoesGoodEl,
-      potatoesBadEl,
-      potatoesStatusEl,
-      potatoesNoteEl,
-      "Potatoes",
-      cameraInventorySummary.totalPotatoes,
-      cameraInventorySummary.potatoesGood,
-      cameraInventorySummary.potatoesBad,
-    );
+    const summary = cameraInventorySummary || {};
+    const stageCounts = summary.stageCounts || {};
+
+    stageIds.forEach((stageKey) => {
+      const itemName = {
+        tomatoes: "Total Tomatoes Stored",
+        mature_green: "Mature Green Tomatoes",
+        half_ripe: "Half Ripe Tomatoes",
+        fully_ripe: "Fully Ripe Tomatoes",
+        rotten: "Rotten Tomatoes",
+      }[stageKey];
+
+      const totalEl = el(`camera-${stageKey}-total`);
+      const goodEl = el(`camera-${stageKey}-good`);
+      const badEl = el(`camera-${stageKey}-bad`);
+      const statusEl = el(`camera-${stageKey}-status`);
+      const noteEl = el(`camera-${stageKey}-note`);
+      const counts =
+        stageKey === "tomatoes"
+          ? {
+              total: summary.totalTomatoes || 0,
+              good: summary.tomatoesGood || 0,
+              bad: summary.tomatoesBad || 0,
+            }
+          : stageCounts[stageKey] || { total: 0, good: 0, bad: 0 };
+
+      setRow(
+        totalEl,
+        goodEl,
+        badEl,
+        statusEl,
+        noteEl,
+        itemName,
+        counts.total,
+        counts.good,
+        counts.bad,
+        {
+          hideGood: stageKey === "rotten",
+          rowType: stageKey === "tomatoes" ? "total" : stageKey,
+        },
+      );
+    });
   }
 
   function renderRecommendations() {
     const tomatoesForecastEl = el("forecast-tomatoes");
-    const potatoesForecastEl = el("forecast-potatoes");
     const forecastSummaryEl = el("forecast-summary");
     const environmentScoreEl = el("environment-score");
     const environmentSummaryEl = el("environment-summary");
     const recommendationListEl = el("recommendation-list");
     const priorityListEl = el("priority-list");
 
-    if (!tomatoesForecastEl || !potatoesForecastEl || !forecastSummaryEl)
-      return;
+    if (!tomatoesForecastEl || !forecastSummaryEl) return;
 
     const latestTemp = series.temp[series.temp.length - 1];
     const latestHumidity = series.humidity[series.humidity.length - 1];
@@ -2066,10 +1872,9 @@
           ? "Watch"
           : "At risk";
 
-    const shelfLifeOutlook = (produceType) => {
-      const badCount = cameraInventorySummary[`${produceType}Bad`] || 0;
-      const pressure =
-        riskScore * (produceType === "potatoes" ? 0.8 : 1.1) + badCount * 0.9;
+    const shelfLifeOutlook = () => {
+      const badCount = cameraInventorySummary.tomatoesBad || 0;
+      const pressure = riskScore * 1.1 + badCount * 0.9;
 
       if (!hasLiveMetrics) return "Assessing...";
       if (pressure <= 1.8) return "Expected to increase";
@@ -2078,11 +1883,8 @@
       return "Likely to decrease";
     };
 
-    const tomatoesOutlook = shelfLifeOutlook("tomatoes");
-    const potatoesOutlook = shelfLifeOutlook("potatoes");
-
+    const tomatoesOutlook = shelfLifeOutlook();
     tomatoesForecastEl.textContent = tomatoesOutlook;
-    potatoesForecastEl.textContent = potatoesOutlook;
 
     const trendSummaryParts = [];
     if (hasLiveMetrics) {
@@ -2117,6 +1919,11 @@
 
     const recommendations = [];
     if (hasLiveMetrics) {
+      if (currentProduceContext.type === "rotten") {
+        recommendations.push(
+          "Remove rotten tomatoes immediately. Do not keep rotten produce in storage.",
+        );
+      }
       if (latestTemp > tempMax + 0.2 || tempTrend === "rising") {
         recommendations.push(
           `Lower temperature to ${fmtWhole(tempMin)}-${fmtWhole(tempMax)}\u00B0C.`,
@@ -2137,7 +1944,7 @@
       if (recommendations.length === 0) {
         recommendations.push("Conditions are good. Keep current settings.");
       }
-      recommendations.push("Check tomatoes first.");
+      recommendations.push("Prioritize removing any damaged tomatoes first.");
     } else {
       recommendations.push("Waiting for live data.");
     }
@@ -2149,29 +1956,21 @@
         .join("");
     }
 
-    const priorityScore = (produceType) => {
-      const badCount = cameraInventorySummary[`${produceType}Bad`] || 0;
-      return riskScore * (produceType === "potatoes" ? 0.8 : 1.1) + badCount;
+    const priorityScore = () => {
+      const badCount = cameraInventorySummary.tomatoesBad || 0;
+      return riskScore * 1.1 + badCount;
     };
 
     const priorityItems = [
       {
         name: "Tomatoes",
-        score: priorityScore("tomatoes"),
+        score: priorityScore(),
         reason:
           cameraInventorySummary.tomatoesBad > 0
             ? `${cameraInventorySummary.tomatoesBad} bad detections`
             : "No current spoilage spike",
       },
-      {
-        name: "Potatoes",
-        score: priorityScore("potatoes"),
-        reason:
-          cameraInventorySummary.potatoesBad > 0
-            ? `${cameraInventorySummary.potatoesBad} bad detections`
-            : "No current spoilage spike",
-      },
-    ].sort((a, b) => b.score - a.score);
+    ];
 
     if (priorityListEl) {
       priorityListEl.innerHTML = priorityItems
@@ -2286,33 +2085,154 @@
     // Keeping empty stub to avoid errors from init() call
   }
 
-  // Threshold profiles and dynamic mode selection based on AI camera detections.
+  // Threshold profiles and dynamic mode selection for tomato ripeness stages.
   const thresholdProfiles = {
     mixed: {
-      temperature: { min: 9, max: 11 },
-      humidity: { min: 85, max: 95 },
-      voc: 28000,
+      temperature: { min: 10, max: 13 },
+      humidity: { min: 80, max: 90 },
+      voc: 50,
     },
     tomatoes: {
       temperature: { min: 10, max: 13 },
-      humidity: { min: 90, max: 95 },
-      voc: 50000,
+      humidity: { min: 80, max: 90 },
+      voc: 50,
     },
-    potatoes: {
-      temperature: { min: 7, max: 10 },
-      humidity: { min: 85, max: 90 },
-      voc: 50000,
+    mature_green: {
+      temperature: { min: 13, max: 15 },
+      humidity: { min: 80, max: 90 },
+      voc: 50,
+    },
+    half_ripe: {
+      temperature: { min: 10, max: 13 },
+      humidity: { min: 80, max: 90 },
+      voc: 50,
+    },
+    fully_ripe: {
+      temperature: { min: 9, max: 10 },
+      humidity: { min: 80, max: 90 },
+      voc: 50,
+    },
+    rotten: {
+      temperature: { min: 8, max: 10 },
+      humidity: { min: 80, max: 90 },
+      voc: 50,
     },
   };
 
-  let mixedThresholdRanges = JSON.parse(
-    JSON.stringify(thresholdProfiles.mixed),
+  const MANUAL_PRODUCE_OPTIONS = [
+    "mixed",
+    "mature_green",
+    "half_ripe",
+    "fully_ripe",
+  ];
+
+  function populateManualProduceOptions() {
+    const select = el("manual-produce-select");
+    if (!select) return;
+
+    select.innerHTML = MANUAL_PRODUCE_OPTIONS.map((profileName) => {
+      const label = produceNames[profileName] || profileName;
+      return `<option value="${profileName}">${label}</option>`;
+    }).join("");
+  }
+
+  let tomatoesThresholdRanges = JSON.parse(
+    JSON.stringify(thresholdProfiles.tomatoes),
   );
-  let activeThresholdMode = "mixed";
+  let activeThresholdMode = "tomatoes";
+
+  function isValidThresholdProfile(profile) {
+    return (
+      profile &&
+      typeof profile === "object" &&
+      profile.temperature &&
+      typeof profile.temperature.min === "number" &&
+      typeof profile.temperature.max === "number" &&
+      profile.humidity &&
+      typeof profile.humidity.min === "number" &&
+      typeof profile.humidity.max === "number" &&
+      typeof profile.voc === "number"
+    );
+  }
+
+  function loadSavedThresholdProfiles() {
+    try {
+      const saved = localStorage.getItem("csu_threshold_profiles");
+      if (!saved) return;
+      const parsed = JSON.parse(saved);
+      if (!parsed || typeof parsed !== "object") return;
+
+      Object.keys(parsed).forEach((profileName) => {
+        const profile = parsed[profileName];
+        if (
+          thresholdProfiles[profileName] &&
+          isValidThresholdProfile(profile)
+        ) {
+          thresholdProfiles[profileName].temperature = {
+            min: profile.temperature.min,
+            max: profile.temperature.max,
+          };
+          thresholdProfiles[profileName].humidity = {
+            min: profile.humidity.min,
+            max: profile.humidity.max,
+          };
+          thresholdProfiles[profileName].voc = profile.voc;
+        }
+      });
+
+      tomatoesThresholdRanges = JSON.parse(
+        JSON.stringify(thresholdProfiles.tomatoes),
+      );
+    } catch (error) {
+      console.warn("Failed to load saved threshold profiles:", error);
+    }
+  }
+
+  function persistThresholdProfiles() {
+    try {
+      localStorage.setItem(
+        "csu_threshold_profiles",
+        JSON.stringify(thresholdProfiles),
+      );
+    } catch (error) {
+      console.warn("Failed to persist threshold profiles:", error);
+    }
+  }
+
+  function updateSettingsInputsFromProfiles() {
+    Object.keys(thresholdProfiles).forEach((profileName) => {
+      const profile = thresholdProfiles[profileName];
+      if (!profile) return;
+
+      const tempMin = document.querySelector(
+        `.threshold-input[data-profile="${profileName}"][data-field="temp-min"]`,
+      );
+      const tempMax = document.querySelector(
+        `.threshold-input[data-profile="${profileName}"][data-field="temp-max"]`,
+      );
+      const humidityMin = document.querySelector(
+        `.threshold-input[data-profile="${profileName}"][data-field="humidity-min"]`,
+      );
+      const humidityMax = document.querySelector(
+        `.threshold-input[data-profile="${profileName}"][data-field="humidity-max"]`,
+      );
+      const voc = document.querySelector(
+        `.threshold-input[data-profile="${profileName}"][data-field="voc"]`,
+      );
+
+      if (tempMin) tempMin.value = profile.temperature.min;
+      if (tempMax) tempMax.value = profile.temperature.max;
+      if (humidityMin) humidityMin.value = profile.humidity.min;
+      if (humidityMax) humidityMax.value = profile.humidity.max;
+      if (voc) voc.value = profile.voc;
+    });
+  }
 
   function clampRange(minVal, maxVal, minLimit, maxLimit) {
     let min = Number(minVal);
     let max = Number(maxVal);
+    if (!Number.isFinite(min)) min = minLimit;
+    if (!Number.isFinite(max)) max = maxLimit;
     if (!Number.isFinite(min)) min = minLimit;
     if (!Number.isFinite(max)) max = maxLimit;
     min = Math.max(minLimit, Math.min(maxLimit, min));
@@ -2330,29 +2250,21 @@
       Number(cameraInventorySummary.totalTomatoes || 0) > 0 ||
       Number(cameraInventorySummary.tomatoesGood || 0) > 0 ||
       Number(cameraInventorySummary.tomatoesBad || 0) > 0;
-    const potatoesDetected =
-      Number(cameraInventorySummary.totalPotatoes || 0) > 0 ||
-      Number(cameraInventorySummary.potatoesGood || 0) > 0 ||
-      Number(cameraInventorySummary.potatoesBad || 0) > 0;
 
-    if (tomatoesDetected && potatoesDetected) return "mixed";
-    if (tomatoesDetected) return "tomatoes";
-    if (potatoesDetected) return "potatoes";
+    if (tomatoesDetected) return currentProduceContext?.type || "tomatoes";
 
-    if (currentProduceContext?.type === "mixed") return "mixed";
-    if (currentProduceContext?.type === "tomatoes") return "tomatoes";
-    if (currentProduceContext?.type === "potatoes") return "potatoes";
+    if (currentProduceContext?.type) return currentProduceContext.type;
 
-    return "mixed";
+    return "tomatoes";
   }
 
   function getProfileByMode(mode) {
-    if (mode === "mixed") return mixedThresholdRanges;
-    return thresholdProfiles[mode] || mixedThresholdRanges;
+    if (mode === "tomatoes") return tomatoesThresholdRanges;
+    return thresholdProfiles[mode] || tomatoesThresholdRanges;
   }
 
   function applyThresholdProfile(mode) {
-    const normalizedMode = mode || "mixed";
+    const normalizedMode = mode || "tomatoes";
     const profile = getProfileByMode(normalizedMode);
     activeThresholdMode = normalizedMode;
 
@@ -2396,15 +2308,26 @@
 
     const modeNote = el("threshold-mode-note");
     if (modeNote) {
-      if (normalizedMode === "mixed") {
+      if (normalizedMode === "tomatoes") {
         modeNote.textContent =
-          "Mixed storage detected (or unknown). Using 9-11°C mixed-storage thresholds.";
-      } else if (normalizedMode === "tomatoes") {
+          "Generic tomato storage thresholds are active (10-13°C, 80-90% humidity). Use the ripeness stage selector for more precise control.";
+      } else if (normalizedMode === "mature_green") {
         modeNote.textContent =
-          "AI camera detects tomatoes only. Tomatoes thresholds are applied automatically.";
+          "Mature green tomatoes are detected or selected. Using 13-15°C, 80-90% humidity.";
+      } else if (normalizedMode === "half_ripe") {
+        modeNote.textContent =
+          "Half ripe tomatoes are detected or selected. Using 10-13°C, 80-90% humidity.";
+      } else if (normalizedMode === "fully_ripe") {
+        modeNote.textContent =
+          "Fully ripe tomatoes are detected or selected. Using 9-10°C, 80-90% humidity.";
+      } else if (normalizedMode === "rotten") {
+        modeNote.textContent =
+          "Rotten tomatoes are selected. Remove affected items immediately; using 8-10°C, 80-90% humidity for reference.";
+      } else if (normalizedMode === "mixed") {
+        modeNote.textContent =
+          "Mixed storage is selected. Using 10-13°C, 80-90% humidity for combined inventory.";
       } else {
-        modeNote.textContent =
-          "AI camera detects potatoes only. Potatoes thresholds are applied automatically.";
+        modeNote.textContent = "Tomato storage settings are active.";
       }
     }
 
@@ -2427,7 +2350,14 @@
     // Handle Save button click
     saveBtn.addEventListener("click", () => {
       // Collect values from each profile row
-      const profiles = ["mixed", "tomatoes", "potatoes"];
+      const profiles = [
+        "mixed",
+        "tomatoes",
+        "mature_green",
+        "half_ripe",
+        "fully_ripe",
+        "rotten",
+      ];
 
       profiles.forEach((profileName) => {
         const tempMin = document.querySelector(
@@ -2460,7 +2390,7 @@
             50,
             100,
           );
-          const vocValue = Math.max(0, Math.min(50000, Number(voc.value)));
+          const vocValue = Math.max(0, Math.min(100, Number(voc.value)));
 
           // Update thresholdProfiles
           thresholdProfiles[profileName].temperature = temperature;
@@ -2476,16 +2406,24 @@
         }
       });
 
-      // Save mixed ranges and reapply active threshold
-      mixedThresholdRanges = JSON.parse(
-        JSON.stringify(thresholdProfiles.mixed),
+      // Save generic tomato ranges and reapply active threshold
+      tomatoesThresholdRanges = JSON.parse(
+        JSON.stringify(thresholdProfiles.tomatoes),
       );
+      persistThresholdProfiles();
 
       // Re-apply the current active threshold mode to update displays
       applyAutoThresholdMode();
 
       // Show confirmation
       saveBtn.textContent = "Saved!";
+      const toast = el("settings-save-toast");
+      if (toast) {
+        toast.hidden = false;
+        setTimeout(() => {
+          toast.hidden = true;
+        }, 2000);
+      }
       setTimeout(() => {
         saveBtn.textContent = "Save Settings";
       }, 1500);
@@ -2603,9 +2541,12 @@
 
   // Produce management functions
   const produceNames = {
-    tomatoes: "Tomatoes",
-    potatoes: "Potatoes",
     mixed: "Mixed Storage",
+    tomatoes: "Tomatoes",
+    mature_green: "Mature Green Tomatoes",
+    half_ripe: "Half Ripe Tomatoes",
+    fully_ripe: "Fully Ripe Tomatoes",
+    rotten: "Rotten Tomatoes",
     null: "Not detected",
   };
 
@@ -2619,17 +2560,72 @@
     const name = el("current-produce-name");
     const method = el("current-produce-method");
     const confidence = el("current-produce-confidence");
+    const manualSelect = el("manual-produce-select");
+    const setProduceBtn = el("set-produce-btn");
+    const clearManualModeBtn = el("clear-manual-mode-btn");
+    const modeLabel = el("storage-mode-label");
+    const manualControlsGroup = el("manual-controls-group");
+
+    const isManualMode = produce?.manualOverride;
+
+    if (modeLabel) {
+      modeLabel.textContent = isManualMode
+        ? "Manual storage mode"
+        : "Automatic detection mode";
+    }
+
+    if (manualSelect) {
+      manualSelect.hidden = !isManualMode;
+    }
+
+    if (setProduceBtn) {
+      setProduceBtn.hidden = !isManualMode;
+    }
+
+    if (clearManualModeBtn) {
+      clearManualModeBtn.hidden = false; // Always visible
+      if (isManualMode) {
+        clearManualModeBtn.textContent = "Switch to automatic";
+        clearManualModeBtn.title = "Return to automatic detection";
+      } else {
+        clearManualModeBtn.textContent = "Configure manual mode";
+        clearManualModeBtn.title = "Switch to manual control";
+      }
+    }
+
+    if (manualControlsGroup) {
+      manualControlsGroup.classList.toggle("automatic-mode", !isManualMode);
+      manualControlsGroup.classList.toggle("manual-mode", isManualMode);
+    }
+
+    if (manualSelect && isManualMode) {
+      if (
+        produce?.type &&
+        Array.from(manualSelect.options).some(
+          (option) => option.value === produce.type,
+        )
+      ) {
+        manualSelect.value = produce.type;
+      } else if (manualSelect.options.length) {
+        manualSelect.selectedIndex = 0;
+      }
+    }
 
     if (name)
-      name.textContent = produceNames[produce.type] || produceNames.null;
+      name.textContent =
+        produce?.type && produceNames[produce.type]
+          ? produceNames[produce.type]
+          : produceNames.null;
 
     if (method) {
-      if (produce.type) {
+      if (produce?.type && produceNames[produce.type]) {
         method.textContent = produce.manualOverride
           ? "Manually selected"
           : "AI detected";
       } else {
-        method.textContent = "Waiting for detection...";
+        method.textContent = produce.manualOverride
+          ? "Manually selected"
+          : "Automatic detection";
       }
     }
 
@@ -2652,55 +2648,63 @@
     if (!summary || currentProduceContext.manualOverride) return;
 
     const tomatoes = Number(summary.totalTomatoes || 0);
-    const potatoes = Number(summary.totalPotatoes || 0);
-    const total = tomatoes + potatoes;
-
     const name = el("current-produce-name");
     const method = el("current-produce-method");
     const confidence = el("current-produce-confidence");
 
-    if (total <= 0) {
+    if (tomatoes <= 0) {
       if (name) name.textContent = produceNames.null;
-      if (method) method.textContent = "No camera detections yet";
+      if (method) method.textContent = "Waiting for camera detections...";
       if (confidence) confidence.textContent = "";
       currentProduceContext.type = null;
       return;
     }
 
-    if (tomatoes > 0 && potatoes > 0) {
-      if (name) name.textContent = "Tomatoes + Potatoes";
-      currentProduceContext.type = "mixed";
-    } else if (tomatoes > 0) {
-      if (name) name.textContent = produceNames.tomatoes;
-      currentProduceContext.type = "tomatoes";
-    } else if (potatoes > 0) {
-      if (name) name.textContent = produceNames.potatoes;
-      currentProduceContext.type = "potatoes";
-    }
-
+    if (name) name.textContent = produceNames.tomatoes;
+    currentProduceContext.type = "tomatoes";
     if (method) method.textContent = "AI camera summary";
     if (confidence) {
-      confidence.textContent = `${total} item${total === 1 ? "" : "s"} detected`;
+      confidence.textContent = `${tomatoes} item${tomatoes === 1 ? "" : "s"} detected`;
     }
   }
 
   async function setProduceType(produceType) {
     try {
+      const selectedValue = String(produceType || "").trim();
+      const requestedType =
+        selectedValue === "" || selectedValue.toLowerCase() === "automatic"
+          ? "automatic"
+          : selectedValue;
       const res = await fetch("/api/produce/set", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ produceType }),
+        body: JSON.stringify({ produceType: requestedType }),
       });
 
-      if (!res.ok) throw new Error("Failed to set produce type");
+      if (!res.ok) {
+        const errorPayload = await res.json().catch(() => ({}));
+        throw new Error(errorPayload.error || "Failed to set produce type");
+      }
 
       const data = await res.json();
       if (data.success) {
         updateProduceDisplay(data.produce);
-        showAlert(
-          `Produce set to ${produceNames[produceType]}. Thresholds updated.`,
-          "success",
-        );
+        const isAutomatic = requestedType === "automatic";
+
+        if (!isAutomatic) {
+          showAlert(
+            `Produce set to ${produceNames[produceType] || produceType}. Thresholds updated.`,
+            "success",
+          );
+        } else {
+          if (data.produce?.type) {
+            showAlert(
+              `Automatic detection enabled. Current produce: ${produceNames[data.produce.type] || data.produce.type}.`,
+              "success",
+            );
+          }
+          loadCameraInventorySummary();
+        }
       }
     } catch (e) {
       showAlert(`Failed to set produce type: ${e.message}`, "error");
@@ -2710,14 +2714,30 @@
   function bindProduceControls() {
     const setBtn = el("set-produce-btn");
     const select = el("manual-produce-select");
+    const clearManualModeBtn = el("clear-manual-mode-btn");
 
     if (setBtn && select) {
       setBtn.addEventListener("click", () => {
-        const selectedProduce = select.value;
-        if (selectedProduce) {
-          setProduceType(selectedProduce);
+        let selectedProduce = select.value;
+        if (!selectedProduce) {
+          selectedProduce = select.options[select.selectedIndex]?.value || "";
+        }
+        setProduceType(selectedProduce);
+      });
+    }
+
+    if (clearManualModeBtn) {
+      clearManualModeBtn.addEventListener("click", () => {
+        const isManual = currentProduceContext.manualOverride;
+        if (isManual) {
+          // In manual mode: switch to automatic
+          setProduceType("automatic");
         } else {
-          showAlert("Please select a produce type", "warning");
+          // In automatic mode: switch to manual with first available profile
+          const firstProfile = MANUAL_PRODUCE_OPTIONS[0];
+          if (firstProfile) {
+            setProduceType(firstProfile);
+          }
         }
       });
     }
@@ -3117,6 +3137,9 @@
   }
 
   function init() {
+    loadSavedThresholdProfiles();
+    updateSettingsInputsFromProfiles();
+    populateManualProduceOptions();
     updateMetrics();
     updateSystemStatus();
     updateFilterHealth();
