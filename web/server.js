@@ -539,21 +539,15 @@ function buildCameraInventorySummaryFromDetections(detections = []) {
   const counts = detections.reduce(
     (acc, d) => {
       const produceType = getProduceTypeFromLabel(d.type) || "tomatoes";
-      const isTomato = /(tomato|tomatoes)$/.test(produceType);
       const isSpoiled = isBadQualityLabel(d.type);
+      const stageKey = stageCounts[produceType] ? produceType : "tomatoes";
 
-      if (!stageCounts[produceType]) {
-        stageCounts.tomatoes.total += 0;
-      }
-
-      if (isTomato) {
-        acc.totalTomatoes += 1;
-        const stageKey = stageCounts[produceType] ? produceType : "tomatoes";
-        stageCounts[stageKey].total += 1;
-        stageCounts[stageKey].bad += isSpoiled ? 1 : 0;
-        stageCounts[stageKey].good += isSpoiled ? 0 : 1;
-        if (isSpoiled) acc.tomatoesBad += 1;
-      }
+      // Treat all recognized tomato stage labels as tomatoes for the summary counts.
+      acc.totalTomatoes += 1;
+      stageCounts[stageKey].total += 1;
+      stageCounts[stageKey].bad += isSpoiled ? 1 : 0;
+      stageCounts[stageKey].good += isSpoiled ? 0 : 1;
+      if (isSpoiled) acc.tomatoesBad += 1;
 
       return acc;
     },
