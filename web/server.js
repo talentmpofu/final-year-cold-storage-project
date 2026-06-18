@@ -16,6 +16,7 @@ const {
   checkAndAlert,
   verifyEmailConfig,
   sendTestEmail,
+  sendAlert,
 } = require("./emailConfig");
 const {
   addMetricToHistory,
@@ -1289,6 +1290,24 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
               voc: settings.voc,
             },
           };
+
+          // If rotten produce is detected, preserve thresholds (so the system
+          // continues to maintain setpoints for the remaining fruit) but send
+          // an immediate spoilage alert to prompt inspection/removal.
+          if (normalizedDetectedProduce === "rotten") {
+            try {
+              await sendAlert("voc", {
+                current: latestMetrics?.vocs?.value || 0,
+                max: settings.voc,
+                produceType: "rotten",
+              });
+            } catch (alertErr) {
+              console.error(
+                "⚠️  Failed to send spoilage alert:",
+                alertErr.message,
+              );
+            }
+          }
 
           console.log(
             `📊 Auto-adjusted thresholds for ${normalizedDetectedProduce}:`,

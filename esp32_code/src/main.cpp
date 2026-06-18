@@ -74,6 +74,10 @@ const char *thresholdsUrl = "http://192.168.137.1:3000/api/thresholds";
 // Relay control polarity (most relay modules are active-LOW)
 #define RELAY_ACTIVE LOW
 #define RELAY_INACTIVE HIGH
+// NOTE: The single-channel relay on `RELAY_PELTIER4_PIN` is wired as active-HIGH
+// (coil powered / LED lights when IN is driven HIGH). We handle that pin
+// specially in `setRelay()` so the rest of the code can continue to use
+// logical `true` = ON semantics.
 
 // 4-Channel Relay Module - GPIO Assignments
 #define RELAY_PELTIER1_PIN 23   // IN1: Peltier 1 + cooling fans (air pushed through passive KMnO4 filter)
@@ -86,10 +90,10 @@ const char *thresholdsUrl = "http://192.168.137.1:3000/api/thresholds";
 
 // Default control thresholds (will be updated from server)
 float VOC_THRESHOLD = 50.0; // VOC threshold in IAQ index
-float TEMP_MIN = 9.0;       // Mixed tomato + potato fallback minimum temperature (°C)
+float TEMP_MIN = 9.0;       // Mixed tomato + fallback minimum temperature (°C)
 float TEMP_MAX = 11.0;      // Mixed tomato + potato fallback maximum temperature (°C)
-float HUMIDITY_MIN = 85.0;  // Target minimum humidity (%)
-float HUMIDITY_MAX = 95.0;  // Target maximum humidity (%)
+float HUMIDITY_MIN = 80.0;  // Target minimum humidity (%)
+float HUMIDITY_MAX = 90.0;  // Target maximum humidity (%)
 
 // Relay-safe PID-like cooling control tuning
 const float PID_KP = 40.0;
@@ -148,9 +152,23 @@ const bool RUN_ACTUATOR_SELF_TEST = true;
 const unsigned long SELF_TEST_ON_MS = 1500;
 const unsigned long SELF_TEST_GAP_MS = 500;
 
+bool relayIsActiveHigh(uint8_t relayPin)
+{
+  return relayPin == RELAY_PELTIER4_PIN;
+}
+
 void setRelay(uint8_t relayPin, bool enabled)
 {
-  digitalWrite(relayPin, enabled ? RELAY_ACTIVE : RELAY_INACTIVE);
+  if (relayIsActiveHigh(relayPin))
+  {
+    // For active-HIGH relays we drive HIGH to enable
+    digitalWrite(relayPin, enabled ? HIGH : LOW);
+  }
+  else
+  {
+    // Default behaviour: most relays are active-LOW
+    digitalWrite(relayPin, enabled ? RELAY_ACTIVE : RELAY_INACTIVE);
+  }
 }
 
 void runActuatorSelfTest()
@@ -439,7 +457,7 @@ void controlCooling(float temp)
     peltier2Active = shouldCool;
     peltier3Active = shouldCool;
     peltier4Active = shouldCool;
-    scrubberActive = shouldCool; // passive scrubber is active whenever cooling airflow runs
+    scrubberActive = shouldCool; // passive KMnO4 filter is active whenever cooling airflow runs
     coolingActive = shouldCool;
     coolingLastToggleMs = now;
 
@@ -540,7 +558,7 @@ void sendDataToServer(float temp, float hum, float voc)
     doc["humidity"]["value"] = hum;
     doc["vocs"]["value"] = voc;                  // VOC index value (also used for ethylene monitoring)
     doc["vocs"]["trend_pct"] = lastVocChangePct; // percent change over trend window
-    doc["scrubber_active"] = scrubberActive;     // passive filter active when cooling airflow runs
+    doc["scrubber_active"] = scrubberActive;     // passive KMnO4 filter active when cooling airflow runs
     doc["timestamp"] = millis();
 
     String jsonString;
