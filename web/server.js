@@ -425,12 +425,14 @@ function resolveProduceProfileFromDetections(
   const isTomatoType = (type) =>
     typeof type === "string" && /(tomato|tomatoes)$/.test(type);
 
+  // If only one specific type detected, use it
   if (produceTypes.size === 1) {
     return { type: [...produceTypes][0], confidence };
   }
 
-  if ([...produceTypes].every(isTomatoType)) {
-    return { type: "tomatoes", confidence };
+  // If multiple tomato types detected (e.g., half_ripe + fully_ripe), return "mixed"
+  if (produceTypes.size > 1 && [...produceTypes].every(isTomatoType)) {
+    return { type: "mixed", confidence };
   }
 
   const fallbackType = getProduceTypeFromLabel(detectedLabel);

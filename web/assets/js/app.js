@@ -2541,12 +2541,12 @@
 
   // Produce management functions
   const produceNames = {
-    mixed: "Mixed Storage",
+    mixed: "Mixed tomatoes",
     tomatoes: "Tomatoes",
-    mature_green: "Mature Green Tomatoes",
-    half_ripe: "Half Ripe Tomatoes",
-    fully_ripe: "Fully Ripe Tomatoes",
-    rotten: "Rotten Tomatoes",
+    mature_green: "Mature green tomatoes",
+    half_ripe: "Half ripe tomatoes",
+    fully_ripe: "Fully ripe tomatoes",
+    rotten: "Rotten tomatoes",
     null: "Not detected",
   };
 
@@ -3172,7 +3172,7 @@
       loadCameraInventorySummary();
       updateInferenceHealthStatus();
       loadHistoricalTrend(currentTimeRange);
-    }, 30000);
+    }, 5000);
     // Header nav removed; scrolling handled by section anchor links in-page.
     if (!location.hash) {
       location.hash = "#dashboard";
