@@ -95,12 +95,7 @@ float TEMP_MAX = 11.0;      // Mixed tomato + potato fallback maximum temperatur
 float HUMIDITY_MIN = 80.0;  // Target minimum humidity (%)
 float HUMIDITY_MAX = 90.0;  // Target maximum humidity (%)
 
-// Relay-safe PID-like cooling control tuning
-const float PID_KP = 40.0;
-const float PID_KI = 0.10;
-const float PID_KD = 5.0;
-const float PID_INTEGRAL_MIN = -250.0;
-const float PID_INTEGRAL_MAX = 250.0;
+// Proportional control for temperature and humidity
 const unsigned long RELAY_PWM_WINDOW_MS = 120000; // 2-minute time-proportioning window
 const unsigned long RELAY_MIN_TOGGLE_MS = 20000;  // Minimum 20s between relay state changes
 
@@ -142,11 +137,13 @@ bool peltier4Active = false;
 bool humidifierActive = false;
 float coolingDemandPct = 0.0;
 
-float pidIntegral = 0.0;
-float pidPrevError = 0.0;
-unsigned long pidPrevMs = 0;
 unsigned long relayWindowStartMs = 0;
 unsigned long coolingLastToggleMs = 0;
+
+// Humidity PWM control (proportional to maintain 85% target)
+float humidifierDemandPct = 0.0;
+unsigned long humidifierWindowStartMs = 0;
+unsigned long humidifierLastToggleMs = 0;
 
 const bool RUN_ACTUATOR_SELF_TEST = true;
 const unsigned long SELF_TEST_ON_MS = 1500;
@@ -389,63 +386,54 @@ void updateDisplay()
   display.display();
 }
 
-// Relay-safe PID-like cooling control for all 4 Peltiers.
+// Relay-safe proportional cooling control for all 4 Peltiers.
 // Peltiers 1, 2, 3 on 4-channel relay; Peltier 4 on single-channel relay.
+// - Targets midpoint of TEMP_MIN–TEMP_MAX range
 // - temp > TEMP_MAX forces ON
 // - temp < TEMP_MIN forces OFF
-// - in-range uses PID demand mapped to a long time-proportioning relay window
+// - in-range uses proportional demand mapped to a long time-proportioning relay window
 void controlCooling(float temp)
 {
   const unsigned long now = millis();
 
-  if (pidPrevMs == 0)
+  if (relayWindowStartMs == 0)
   {
-    pidPrevMs = now;
     relayWindowStartMs = now;
     coolingLastToggleMs = now;
   }
 
-  const float dt = max(0.001f, (now - pidPrevMs) / 1000.0f);
-  pidPrevMs = now;
-
+  // Target setpoint: midpoint of temperature band
+  // E.g., for tomatoes (10-13°C) → setpoint = 11.5°C
   const float tempSetpoint = (TEMP_MIN + TEMP_MAX) * 0.5f;
   const float error = temp - tempSetpoint;
 
-  if (temp <= TEMP_MIN)
+  // Proportional control: error per degree away from setpoint
+  // At TEMP_MIN (e.g., 10°C) 3.5° below setpoint: 0% demand (fully off)
+  // At TEMP_MAX (e.g., 13°C) 1.5° above setpoint: 100% demand (fully on)
+  // Setpoint (11.5°C): 50% demand (cycle 50% on/off)
+  const float tempGain = 20.0f; // 20% demand per 1°C error above setpoint
+  coolingDemandPct = constrain(50.0f + (error * tempGain), 0.0f, 100.0f);
+
+  // Hard limits override proportional control
+  if (temp >= TEMP_MAX)
   {
-    // Hard floor protection
-    pidIntegral = 0.0;
-    pidPrevError = error;
-    coolingDemandPct = 0.0;
+    coolingDemandPct = 100.0f; // Force full cooling above TEMP_MAX
   }
-  else
+  else if (temp <= TEMP_MIN)
   {
-    pidIntegral += error * dt;
-    pidIntegral = constrain(pidIntegral, PID_INTEGRAL_MIN, PID_INTEGRAL_MAX);
-
-    const float derivative = (error - pidPrevError) / dt;
-    pidPrevError = error;
-
-    const float pidOutput = (PID_KP * error) + (PID_KI * pidIntegral) + (PID_KD * derivative);
-    coolingDemandPct = constrain(pidOutput, 0.0f, 100.0f);
+    coolingDemandPct = 0.0f; // Force off below TEMP_MIN
   }
 
+  // Reset PWM window every 2 minutes
   if ((now - relayWindowStartMs) >= RELAY_PWM_WINDOW_MS)
   {
     relayWindowStartMs = now;
   }
 
-  const bool forceCoolingOn = temp > TEMP_MAX;
-  const bool forceCoolingOff = temp < TEMP_MIN;
-
   const unsigned long relayOnMs = (unsigned long)(RELAY_PWM_WINDOW_MS * (coolingDemandPct / 100.0f));
   bool shouldCool = (coolingDemandPct > 0.1f) && ((now - relayWindowStartMs) < relayOnMs);
-  if (forceCoolingOn)
-    shouldCool = true;
-  else if (forceCoolingOff)
-    shouldCool = false;
 
-  const bool canToggle = forceCoolingOn || forceCoolingOff || ((now - coolingLastToggleMs) >= RELAY_MIN_TOGGLE_MS);
+  const bool canToggle = temp >= TEMP_MAX || temp <= TEMP_MIN || ((now - coolingLastToggleMs) >= RELAY_MIN_TOGGLE_MS);
   if (shouldCool != coolingActive && canToggle)
   {
     setRelay(RELAY_PELTIER1_PIN, shouldCool);
@@ -461,9 +449,9 @@ void controlCooling(float temp)
     coolingActive = shouldCool;
     coolingLastToggleMs = now;
 
-    Serial.printf("Cooling relays %s (Demand %.1f%%)\n", shouldCool ? "ON" : "OFF", coolingDemandPct);
     if (shouldCool)
     {
+      Serial.printf("❄️ Temperature %.1f°C → Cooling ON (Demand %.1f%%, Setpoint %.1f°C)\n", temp, coolingDemandPct, tempSetpoint);
       Serial.println("   → Peltier 1 (+ cooling fans) ON");
       Serial.println("   → Peltier 2 (+ pump) ON");
       Serial.println("   → Peltier 3 (+ radiator fan) ON");
@@ -471,6 +459,7 @@ void controlCooling(float temp)
     }
     else
     {
+      Serial.printf("✓ Temperature %.1f°C → Cooling OFF (Demand %.1f%%, Setpoint %.1f°C)\n", temp, coolingDemandPct, tempSetpoint);
       Serial.println("   → Peltier 1 OFF");
       Serial.println("   → Peltier 2 OFF");
       Serial.println("   → Peltier 3 OFF");
@@ -479,25 +468,64 @@ void controlCooling(float temp)
   }
 }
 
-// Function to control humidifier relay independently
+// Function to control humidifier relay with proportional PWM (targets 85% humidity)
+// - 85% is setpoint (midpoint of 80-90% band)
+// - error maps proportionally to humidifier on-time within 2-minute window
+// - hard limits at 80% (force on) and 90% (force off) for safety
 void controlHumidifier(float hum)
 {
-  if (hum < HUMIDITY_MIN)
+  const unsigned long now = millis();
+
+  if (humidifierWindowStartMs == 0)
   {
-    if (!humidifierActive)
-    {
-      setRelay(RELAY_HUMIDIFIER_PIN, true);
-      humidifierActive = true;
-      Serial.println("💧 Humidity LOW! Humidifier ACTIVATED");
-    }
+    humidifierWindowStartMs = now;
+    humidifierLastToggleMs = now;
   }
-  else if (hum > HUMIDITY_MAX)
+
+  // Target setpoint: 85% (midpoint of 80-90%)
+  const float humiditySetpoint = 85.0f;
+  const float error = hum - humiditySetpoint;
+
+  // Proportional control: error per percent away from setpoint
+  // At 80% (5% below): 100% demand (humidifier fully on)
+  // At 85% (0% error): 50% demand (cycle 50% on/off)
+  // At 90% (5% above): 0% demand (humidifier fully off)
+  const float humidityGain = 10.0f; // 10% demand per 1% humidity error
+  humidifierDemandPct = constrain(50.0f - (error * humidityGain), 0.0f, 100.0f);
+
+  // Hard limits override proportional control
+  if (hum <= HUMIDITY_MIN)
   {
-    if (humidifierActive)
+    humidifierDemandPct = 100.0f; // Force full on below 80%
+  }
+  else if (hum >= HUMIDITY_MAX)
+  {
+    humidifierDemandPct = 0.0f; // Force off above 90%
+  }
+
+  // Reset PWM window every 2 minutes
+  if ((now - humidifierWindowStartMs) >= RELAY_PWM_WINDOW_MS)
+  {
+    humidifierWindowStartMs = now;
+  }
+
+  const unsigned long relayOnMs = (unsigned long)(RELAY_PWM_WINDOW_MS * (humidifierDemandPct / 100.0f));
+  bool shouldHumidify = (humidifierDemandPct > 0.1f) && ((now - humidifierWindowStartMs) < relayOnMs);
+
+  const bool canToggle = hum <= HUMIDITY_MIN || hum >= HUMIDITY_MAX || ((now - humidifierLastToggleMs) >= RELAY_MIN_TOGGLE_MS);
+  if (shouldHumidify != humidifierActive && canToggle)
+  {
+    setRelay(RELAY_HUMIDIFIER_PIN, shouldHumidify);
+    humidifierActive = shouldHumidify;
+    humidifierLastToggleMs = now;
+
+    if (shouldHumidify)
     {
-      setRelay(RELAY_HUMIDIFIER_PIN, false);
-      humidifierActive = false;
-      Serial.println("✓ Humidity in range. Humidifier DEACTIVATED");
+      Serial.printf("💧 Humidity %.1f%% → Humidifier ON (Demand %.1f%%)\n", hum, humidifierDemandPct);
+    }
+    else
+    {
+      Serial.printf("✓ Humidity %.1f%% → Humidifier OFF (Demand %.1f%%)\n", hum, humidifierDemandPct);
     }
   }
 }
