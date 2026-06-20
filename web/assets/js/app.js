@@ -515,9 +515,7 @@
   // Remove last-sync handling (element not present in DOM)
 
   async function updateMetrics() {
-    console.log("updateMetrics called");
     const fetched = await fetchMetrics();
-    console.log("Fetched result:", fetched);
     let temp, humidity, ethylene, tstamp;
     const isFresh =
       fetched &&
@@ -535,10 +533,7 @@
       humidity = fetched.humidity;
       ethylene = fetched.ethylene;
       tstamp = fetched.timestamp;
-      console.log("Using real data:", { temp, humidity, ethylene });
     } else {
-      console.log("No fresh sensor data available");
-
       const metricsNavBadge = document.getElementById("metrics-nav-badge");
       if (metricsNavBadge) {
         metricsNavBadge.textContent = "0";
@@ -579,7 +574,6 @@
       `Target ${fmtWhole(targets.humidity.min)}-${fmtWhole(targets.humidity.max)}%`;
     el("ethylene-value").textContent =
       `Limit ${fmtWhole(targets.ethylene.max)} IAQ`;
-    console.log("Updated DOM elements");
 
     // Update indicator rings using meaningful target-based ranges.
     const percentWithinRange = (value, minValue, maxValue) => {
@@ -1189,7 +1183,6 @@
     }
     if (galleryBtn) {
       galleryBtn.addEventListener("click", () => {
-        console.log("Gallery button clicked");
         openGalleryModal();
       });
     } else {
@@ -2821,12 +2814,8 @@
       const deleteBtn = row.querySelector(".delete-item-btn");
       if (deleteBtn) {
         deleteBtn.addEventListener("click", async () => {
-          console.log("Delete button clicked for item:", item.id);
           if (confirm(`Delete ${item.quantity} units of ${itemName}?`)) {
-            console.log("User confirmed deletion");
             await deleteInventoryItem(item.id);
-          } else {
-            console.log("User cancelled deletion");
           }
         });
       }
@@ -2911,15 +2900,12 @@
   }
 
   async function deleteInventoryItem(itemId) {
-    console.log("deleteInventoryItem called with ID:", itemId);
     try {
       const res = await fetch(`/api/inventory/delete/${itemId}`, {
         method: "DELETE",
       });
 
-      console.log("Delete response status:", res.status);
       const data = await res.json();
-      console.log("Delete response data:", data);
 
       if (data.success) {
         inventoryItems = data.inventory;
@@ -3272,7 +3258,6 @@
       if (headerStatusText) {
         headerStatusText.textContent = "Offline";
       }
-      console.log("Connection lost - offline mode");
     });
 
     window.addEventListener("online", () => {
@@ -3280,7 +3265,6 @@
       if (headerStatusText) {
         headerStatusText.textContent = "Connected";
       }
-      console.log("Connection restored - fetching fresh data");
 
       // Auto-refresh data when coming back online
       setTimeout(() => {
