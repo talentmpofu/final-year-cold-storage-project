@@ -150,10 +150,16 @@ float coolingDemandPct = 0.0;
 unsigned long relayWindowStartMs = 0;
 unsigned long coolingLastToggleMs = 0;
 
-// Humidity PWM control (proportional to maintain 85% target)
-float humidifierDemandPct = 0.0;
-unsigned long humidifierWindowStartMs = 0;
-unsigned long humidifierLastToggleMs = 0;
+// Humidity hysteresis control with 5-second pulse boost
+enum HumidifierState
+{
+  ABOVE_THRESHOLD, // Humidity >= 80%, relay OFF
+  BELOW_THRESHOLD, // Humidity < 80%, relay ON continuously
+  PULSE_MODE       // Just transitioned below 80%, relay ON for 5 seconds
+};
+
+HumidifierState humidifierState = ABOVE_THRESHOLD;
+unsigned long pulseStartMs = 0; // When pulse mode started
 
 // LED blink timer state (used for disconnected/critical blink patterns)
 unsigned long ledBlinkLastMs = 0;
@@ -461,12 +467,11 @@ void updateDisplay()
   display.display();
 }
 
-// Relay-safe proportional cooling control for all 4 Peltiers.
+// Relay-safe midpoint-target cooling control for all 4 Peltiers.
 // Peltiers 1, 2, 3 on 4-channel relay; Peltier 4 on single-channel relay.
-// - Targets midpoint of TEMP_MIN–TEMP_MAX range
-// - temp > TEMP_MAX forces ON
-// - temp < TEMP_MIN forces OFF
-// - in-range uses proportional demand mapped to a long time-proportioning relay window
+// - Target is midpoint of TEMP_MIN..TEMP_MAX.
+// - No cooling below midpoint deadband.
+// - Cooling demand increases linearly up to 100% at TEMP_MAX.
 void controlCooling(float temp)
 {
   const unsigned long now = millis();
@@ -477,38 +482,38 @@ void controlCooling(float temp)
     coolingLastToggleMs = now;
   }
 
-  // Target setpoint: midpoint of temperature band
-  // E.g., for tomatoes (10-13°C) → setpoint = 11.5°C
-  const float tempSetpoint = (TEMP_MIN + TEMP_MAX) * 0.5f;
-  const float error = temp - tempSetpoint;
+  // Normalize configured range so control behaves even if min/max are swapped.
+  const float tempLow = min(TEMP_MIN, TEMP_MAX);
+  const float tempHigh = max(TEMP_MIN, TEMP_MAX);
 
-  // Proportional control: error per degree away from setpoint
-  // At TEMP_MIN (e.g., 10°C) 3.5° below setpoint: 0% demand (fully off)
-  // At TEMP_MAX (e.g., 13°C) 1.5° above setpoint: 100% demand (fully on)
-  // Setpoint (11.5°C): 50% demand (cycle 50% on/off)
-  const float tempGain = 20.0f; // 20% demand per 1°C error above setpoint
-  coolingDemandPct = constrain(50.0f + (error * tempGain), 0.0f, 100.0f);
+  const float tempSetpoint = (tempLow + tempHigh) * 0.5f;
+  const float COOLING_DEADBAND_C = 0.5f;
+  const float coolingStart = tempSetpoint - COOLING_DEADBAND_C;
 
-  // Hard limits override proportional control
-  if (temp >= TEMP_MAX)
+  if (temp <= tempLow || temp <= coolingStart)
   {
-    coolingDemandPct = 100.0f; // Force full cooling above TEMP_MAX
+    coolingDemandPct = 0.0f;
   }
-  else if (temp <= TEMP_MIN)
+  else if (temp >= tempHigh)
   {
-    coolingDemandPct = 0.0f; // Force off below TEMP_MIN
+    coolingDemandPct = 100.0f;
+  }
+  else
+  {
+    const float span = max(0.1f, tempHigh - coolingStart);
+    coolingDemandPct = constrain(((temp - coolingStart) / span) * 100.0f, 0.0f, 100.0f);
   }
 
-  // Reset PWM window every 2 minutes
+  // Reset PWM window every 2 minutes.
   if ((now - relayWindowStartMs) >= RELAY_PWM_WINDOW_MS)
   {
     relayWindowStartMs = now;
   }
 
   const unsigned long relayOnMs = (unsigned long)(RELAY_PWM_WINDOW_MS * (coolingDemandPct / 100.0f));
-  bool shouldCool = (coolingDemandPct > 0.1f) && ((now - relayWindowStartMs) < relayOnMs);
+  const bool shouldCool = (coolingDemandPct > 0.1f) && ((now - relayWindowStartMs) < relayOnMs);
 
-  const bool canToggle = temp >= TEMP_MAX || temp <= TEMP_MIN || ((now - coolingLastToggleMs) >= RELAY_MIN_TOGGLE_MS);
+  const bool canToggle = temp >= tempHigh || temp <= tempLow || ((now - coolingLastToggleMs) >= RELAY_MIN_TOGGLE_MS);
   if (shouldCool != coolingActive && canToggle)
   {
     setRelay(RELAY_PELTIER1_PIN, shouldCool);
@@ -526,7 +531,7 @@ void controlCooling(float temp)
 
     if (shouldCool)
     {
-      Serial.printf("❄️ Temperature %.1f°C → Cooling ON (Demand %.1f%%, Setpoint %.1f°C)\n", temp, coolingDemandPct, tempSetpoint);
+      Serial.printf("❄️ Temperature %.1f°C → Cooling ON (Demand %.1f%%, Target %.1f°C)\n", temp, coolingDemandPct, tempSetpoint);
       Serial.println("   → Peltier 1 (+ cooling fans) ON");
       Serial.println("   → Peltier 2 (+ pump) ON");
       Serial.println("   → Peltier 3 (+ radiator fan) ON");
@@ -534,7 +539,7 @@ void controlCooling(float temp)
     }
     else
     {
-      Serial.printf("✓ Temperature %.1f°C → Cooling OFF (Demand %.1f%%, Setpoint %.1f°C)\n", temp, coolingDemandPct, tempSetpoint);
+      Serial.printf("✓ Temperature %.1f°C → Cooling OFF (Demand %.1f%%, Target %.1f°C)\n", temp, coolingDemandPct, tempSetpoint);
       Serial.println("   → Peltier 1 OFF");
       Serial.println("   → Peltier 2 OFF");
       Serial.println("   → Peltier 3 OFF");
@@ -543,65 +548,64 @@ void controlCooling(float temp)
   }
 }
 
-// Function to control humidifier relay with proportional PWM (targets 85% humidity)
-// - 85% is setpoint (midpoint of 80-90% band)
-// - error maps proportionally to humidifier on-time within 2-minute window
-// - hard limits at 80% (force on) and 90% (force off) for safety
+// Function to control humidifier with hysteresis + pulse boost
+// - OFF when humidity >= 80%
+// - ON when humidity < 80%
+// - Special: 5-second pulse boost when transitioning from >= 80% to < 80%
 void controlHumidifier(float hum)
 {
   const unsigned long now = millis();
 
-  if (humidifierWindowStartMs == 0)
+  switch (humidifierState)
   {
-    humidifierWindowStartMs = now;
-    humidifierLastToggleMs = now;
-  }
-
-  // Target setpoint: 85% (midpoint of 80-90%)
-  const float humiditySetpoint = 85.0f;
-  const float error = hum - humiditySetpoint;
-
-  // Proportional control: error per percent away from setpoint
-  // At 80% (5% below): 100% demand (humidifier fully on)
-  // At 85% (0% error): 50% demand (cycle 50% on/off)
-  // At 90% (5% above): 0% demand (humidifier fully off)
-  const float humidityGain = 10.0f; // 10% demand per 1% humidity error
-  humidifierDemandPct = constrain(50.0f - (error * humidityGain), 0.0f, 100.0f);
-
-  // Hard limits override proportional control
-  if (hum <= HUMIDITY_MIN)
-  {
-    humidifierDemandPct = 100.0f; // Force full on below 80%
-  }
-  else if (hum >= HUMIDITY_MAX)
-  {
-    humidifierDemandPct = 0.0f; // Force off above 90%
-  }
-
-  // Reset PWM window every 2 minutes
-  if ((now - humidifierWindowStartMs) >= RELAY_PWM_WINDOW_MS)
-  {
-    humidifierWindowStartMs = now;
-  }
-
-  const unsigned long relayOnMs = (unsigned long)(RELAY_PWM_WINDOW_MS * (humidifierDemandPct / 100.0f));
-  bool shouldHumidify = (humidifierDemandPct > 0.1f) && ((now - humidifierWindowStartMs) < relayOnMs);
-
-  const bool canToggle = hum <= HUMIDITY_MIN || hum >= HUMIDITY_MAX || ((now - humidifierLastToggleMs) >= RELAY_MIN_TOGGLE_MS);
-  if (shouldHumidify != humidifierActive && canToggle)
-  {
-    setRelay(RELAY_HUMIDIFIER_PIN, shouldHumidify);
-    humidifierActive = shouldHumidify;
-    humidifierLastToggleMs = now;
-
-    if (shouldHumidify)
+  case ABOVE_THRESHOLD:
+    // Humidity is at or above 80% - keep OFF
+    if (hum < 80.0f)
     {
-      Serial.printf("💧 Humidity %.1f%% → Humidifier ON (Demand %.1f%%)\n", hum, humidifierDemandPct);
+      // Crossing down from 80% to below: start 5-second pulse
+      humidifierState = PULSE_MODE;
+      pulseStartMs = now;
+      setRelay(RELAY_HUMIDIFIER_PIN, true);
+      humidifierActive = true;
+      Serial.printf("💧 Humidity %.1f%% → Pulse ON (5-second boost from 80%%)\n", hum);
     }
-    else
+    break;
+
+  case PULSE_MODE:
+    // In 5-second pulse mode
+    if ((now - pulseStartMs) >= 5000)
     {
-      Serial.printf("✓ Humidity %.1f%% → Humidifier OFF (Demand %.1f%%)\n", hum, humidifierDemandPct);
+      // Pulse complete - check where humidity is now
+      if (hum < 80.0f)
+      {
+        // Still below threshold - keep running continuously
+        humidifierState = BELOW_THRESHOLD;
+        setRelay(RELAY_HUMIDIFIER_PIN, true);
+        humidifierActive = true;
+        Serial.printf("💧 Humidity %.1f%% → Continuous ON (below 80%%)\n", hum);
+      }
+      else
+      {
+        // Risen above threshold - turn off
+        humidifierState = ABOVE_THRESHOLD;
+        setRelay(RELAY_HUMIDIFIER_PIN, false);
+        humidifierActive = false;
+        Serial.printf("✓ Humidity %.1f%% → OFF (reached 80%%)\n", hum);
+      }
     }
+    break;
+
+  case BELOW_THRESHOLD:
+    // Humidity is below 80% - keep running
+    if (hum >= 80.0f)
+    {
+      // Crossed above 80% - turn off
+      humidifierState = ABOVE_THRESHOLD;
+      setRelay(RELAY_HUMIDIFIER_PIN, false);
+      humidifierActive = false;
+      Serial.printf("✓ Humidity %.1f%% → OFF (reached 80%%)\n", hum);
+    }
+    break;
   }
 }
 
