@@ -38,6 +38,11 @@
  *
  * Single-Channel Relay Module:
  * - IN (GPIO16): Peltier 4
+ *
+ * Status LEDs (separate indicators):
+ * - Green  LED anode -> GPIO25 (through 220-330 ohm resistor), cathode -> GND
+ * - Yellow LED anode -> GPIO26 (through 220-330 ohm resistor), cathode -> GND
+ * - Red    LED anode -> GPIO27 (through 220-330 ohm resistor), cathode -> GND
  */
 
 #include <WiFi.h>
@@ -87,6 +92,11 @@ const char *thresholdsUrl = "http://192.168.137.1:3000/api/thresholds";
 
 // Single-Channel Relay Module
 #define RELAY_PELTIER4_PIN 16 // Peltier 4
+
+// Status LED GPIOs (separate LEDs)
+#define LED_GREEN_PIN 25
+#define LED_YELLOW_PIN 26
+#define LED_RED_PIN 27
 
 // Default control thresholds (will be updated from server)
 float VOC_THRESHOLD = 50.0; // VOC threshold in IAQ index
@@ -145,13 +155,78 @@ float humidifierDemandPct = 0.0;
 unsigned long humidifierWindowStartMs = 0;
 unsigned long humidifierLastToggleMs = 0;
 
+// LED blink timer state (used for disconnected/critical blink patterns)
+unsigned long ledBlinkLastMs = 0;
+bool ledBlinkOn = false;
+
 const bool RUN_ACTUATOR_SELF_TEST = true;
 const unsigned long SELF_TEST_ON_MS = 1500;
 const unsigned long SELF_TEST_GAP_MS = 500;
 
+// LED self-test and diagnostics removed — normal boot behavior restored
+
 bool relayIsActiveHigh(uint8_t relayPin)
 {
   return relayPin == RELAY_PELTIER4_PIN;
+}
+
+void setStatusLeds(bool greenOn, bool yellowOn, bool redOn)
+{
+  digitalWrite(LED_GREEN_PIN, greenOn ? HIGH : LOW);
+  digitalWrite(LED_YELLOW_PIN, yellowOn ? HIGH : LOW);
+  digitalWrite(LED_RED_PIN, redOn ? HIGH : LOW);
+}
+
+void updateStatusLeds(bool sensorReadOk)
+{
+  const bool wifiConnected = WiFi.status() == WL_CONNECTED;
+  const bool hasVocReading = sgpReady && !isnan(vocIndex);
+
+  // Warning thresholds: outside configured range.
+  const bool tempWarn = temperature < TEMP_MIN || temperature > TEMP_MAX;
+  const bool humWarn = humidity < HUMIDITY_MIN || humidity > HUMIDITY_MAX;
+  const bool vocWarn = hasVocReading && vocIndex > VOC_THRESHOLD;
+
+  // Critical thresholds: significantly outside range.
+  const bool tempCritical = temperature < (TEMP_MIN - 2.0f) || temperature > (TEMP_MAX + 2.0f);
+  const bool humCritical = humidity < (HUMIDITY_MIN - 8.0f) || humidity > (HUMIDITY_MAX + 8.0f);
+  const bool vocCritical = hasVocReading && vocIndex > (VOC_THRESHOLD * 1.5f);
+
+  const unsigned long now = millis();
+
+  // Disconnected state: blink RED quickly (1s ON / 1s OFF).
+  if (!wifiConnected)
+  {
+    if (now - ledBlinkLastMs >= 1000)
+    {
+      ledBlinkLastMs = now;
+      ledBlinkOn = !ledBlinkOn;
+    }
+    setStatusLeds(false, false, ledBlinkOn);
+    return;
+  }
+
+  // Sensor failure or critical state: blink RED slowly (15s ON / 15s OFF).
+  if (!sensorReadOk || failedReadings >= 3 || tempCritical || humCritical || vocCritical)
+  {
+    if (now - ledBlinkLastMs >= 15000)
+    {
+      ledBlinkLastMs = now;
+      ledBlinkOn = !ledBlinkOn;
+    }
+    setStatusLeds(false, false, ledBlinkOn);
+    return;
+  }
+
+  // Warning state: solid YELLOW.
+  if (tempWarn || humWarn || vocWarn)
+  {
+    setStatusLeds(false, true, false);
+    return;
+  }
+
+  // Normal state: solid GREEN.
+  setStatusLeds(true, false, false);
 }
 
 void setRelay(uint8_t relayPin, bool enabled)
@@ -723,6 +798,15 @@ void setup()
   pinMode(RELAY_PELTIER3_PIN, OUTPUT);
   pinMode(RELAY_PELTIER4_PIN, OUTPUT);
 
+  // Initialize status LEDs
+  pinMode(LED_GREEN_PIN, OUTPUT);
+  pinMode(LED_YELLOW_PIN, OUTPUT);
+  pinMode(LED_RED_PIN, OUTPUT);
+  setStatusLeds(false, false, false);
+
+  // Normal startup: ensure LEDs are off and continue
+  setStatusLeds(false, false, false);
+
   // Start OFF (active-LOW logic)
   setRelay(RELAY_PELTIER1_PIN, false);
   setRelay(RELAY_PELTIER2_PIN, false);
@@ -740,6 +824,10 @@ void setup()
   Serial.println("  • IN4 GPIO17: Peltier 3 (+ radiator fan)");
   Serial.println("Single-Channel Relay Layout (active-LOW):");
   Serial.println("  • IN GPIO16: Peltier 4");
+  Serial.println("Status LEDs:");
+  Serial.println("  • Green GPIO25: Normal");
+  Serial.println("  • Yellow GPIO26: Warning");
+  Serial.println("  • Red GPIO27: Critical / WiFi disconnected");
   Serial.println("==============================\n");
 
   // Initialize I2C for SGP41
@@ -922,6 +1010,9 @@ void loop()
     // Send data to web dashboard
     sendDataToServer(temperature, humidity, sgpReady ? vocIndex : 0.0);
 
+    // Update status LEDs after latest control + network update
+    updateStatusLeds(true);
+
     // Update OLED display
     updateDisplay();
 
@@ -951,6 +1042,9 @@ void loop()
     display.print("Attempts: ");
     display.println(failedReadings);
     display.display();
+
+    // Sensor errors are treated as critical for LED status
+    updateStatusLeds(false);
   }
 
   // Wait before next reading cycle

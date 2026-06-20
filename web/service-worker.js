@@ -1,8 +1,10 @@
 // Service Worker for Cold Storage PWA
 // Enables offline functionality and caching
 
-const CACHE_NAME = "cold-storage-v4";
+const CACHE_NAME = "cold-storage-v6";
 const OFFLINE_URL = "/offline.html";
+
+const NETWORK_FIRST_PATHS = ["/", "/index.html", "/assets/js/app.js"];
 
 // Files to cache for offline use
 const STATIC_CACHE_URLS = [
@@ -78,6 +80,33 @@ self.addEventListener("fetch", (event) => {
           },
         );
       }),
+    );
+    return;
+  }
+
+  const requestUrl = new URL(request.url);
+  const requestPath = requestUrl.pathname;
+  const isNetworkFirst = NETWORK_FIRST_PATHS.includes(requestPath);
+
+  if (isNetworkFirst) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (
+            response &&
+            response.status === 200 &&
+            response.type !== "error"
+          ) {
+            const responseClone = response.clone();
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(request, responseClone));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(request).then((cachedResponse) => cachedResponse),
+        ),
     );
     return;
   }

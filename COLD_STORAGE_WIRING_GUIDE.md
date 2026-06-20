@@ -7,8 +7,9 @@ This guide matches the current firmware behavior and pin mapping in `esp32_code/
 1. The scrubbing system is powered together with Peltier 1 (co-located on IN1). There is no independent VOC-driven scrubber relay in the firmware — the scrubber runs when the cooling group is active.
 2. All four Peltier modules are controlled as a single cooling group: Peltiers 1, 2, 3 (on the 4-channel module) and Peltier 4 (on the single relay).
 3. Cooling group is forced ON above `TEMP_MAX` and forced OFF below `TEMP_MIN`.
-4. When temperature is in-range, the PID-like controller maps demand to a long time-proportioning relay window to avoid frequent toggles.
-5. Humidifier relay is controlled independently by humidity thresholds (`HUMIDITY_MIN` / `HUMIDITY_MAX`).
+4. When temperature is in-range, a proportional controller maps demand to a long time-proportioning relay window to avoid frequent toggles.
+5. Humidifier relay is controlled independently by proportional time-window control around an 85% humidity setpoint, with hard limits at `HUMIDITY_MIN` / `HUMIDITY_MAX`.
+6. Three separate status LEDs are used: Green (normal), Yellow (warning), Red (critical/disconnected).
 
 ## 2) Final Pin Map
 
@@ -16,13 +17,19 @@ This guide matches the current firmware behavior and pin mapping in `esp32_code/
 - I2C SDA (SGP41 + OLED): GPIO21
 - I2C SCL (SGP41 + OLED): GPIO22
 
-Relay inputs (firmware uses active-LOW logic):
+Status LEDs:
+
+- Green LED anode -> GPIO25 (via 220-330 ohm resistor), cathode -> GND
+- Yellow LED anode -> GPIO26 (via 220-330 ohm resistor), cathode -> GND
+- Red LED anode -> GPIO27 (via 220-330 ohm resistor), cathode -> GND
+
+Relay inputs:
 
 - IN1 -> GPIO23 : Peltier 1 + cooling fans (air pushed through passive KMnO4 scrubber/filter)
 - IN2 -> GPIO19 : Peltier 2 + pump
 - IN3 -> GPIO18 : Humidifier
 - IN4 -> GPIO17 : Peltier 3 + radiator fan
-- Single-channel relay IN -> GPIO16 : Peltier 4
+- Single-channel relay IN -> GPIO16 : Peltier 4 (active-HIGH in firmware)
 
 ## 3) Quick Bench Pinout Table
 
@@ -40,7 +47,10 @@ Relay inputs (firmware uses active-LOW logic):
 | Relay IN2 | Relay IN2 | ESP32 GPIO19 | Peltier 2 + pump |
 | Relay IN3 | Relay IN3 | ESP32 GPIO18 | Humidifier |
 | Relay IN4 | Relay IN4 | ESP32 GPIO17 | Peltier 3 + radiator fan |
-| Single relay IN | Single relay IN | ESP32 GPIO16 | Peltier 4 (single-channel relay) |
+| Single relay IN | Single relay IN | ESP32 GPIO16 | Peltier 4 (single-channel relay, active-HIGH logic) |
+| Green status LED | LED anode | ESP32 GPIO25 through 220-330 ohm | Solid ON = normal state |
+| Yellow status LED | LED anode | ESP32 GPIO26 through 220-330 ohm | Solid ON = warning/out-of-range |
+| Red status LED | LED anode | ESP32 GPIO27 through 220-330 ohm | Blink = critical or Wi-Fi disconnected |
 | Peltier 1 power path | PSU+ -> COM1 -> NO1 -> Peltier1+ | Peltier1- -> PSU- | Use COM & NO for normal-OFF behavior |
 | Peltier 2 power path | PSU+ -> COM2 -> NO2 -> Peltier2+ | Peltier2- -> PSU- | Dedicated relay channel |
 | Peltier 3 power path | PSU+ -> COM3 -> NO3 -> Peltier3+ | Peltier3- -> PSU- | Dedicated relay channel |
@@ -93,41 +103,57 @@ Connections:
 Notes:
 
 - Keep JD-VCC jumper installed for simple mode.
-- Firmware is configured for active-LOW relay control (`LOW = ON`, `HIGH = OFF`).
+- Firmware uses mixed relay polarity:
+	- GPIO23/GPIO19/GPIO18/GPIO17 relays are active-LOW (`LOW = ON`, `HIGH = OFF`).
+	- GPIO16 single-channel relay is active-HIGH (`HIGH = ON`, `LOW = OFF`).
 
 ## 6) 12V Load Wiring (relay contact side)
 
 Use COM and NO for normal OFF behavior.
 
-### CH1 (Humidifier)
+### CH1 (Peltier Module 1 + cooling fans)
 
 - PSU +12V -> COM1
-- NO1 -> Humidifier +
-- Humidifier - -> PSU -
-
-### CH4 (Scrubber)
-
-- PSU +12V -> COM4
-- NO4 -> Scrubber +
-- Scrubber - -> PSU -
-
-### CH2 (Peltier Module 1)
-
-- PSU +12V -> COM2
-- NO2 -> Peltier 1 +
+- NO1 -> Peltier 1 +
 - Peltier 1 - -> PSU -
 
-### CH3 (Peltier Module 2)
+### CH2 (Peltier Module 2 + pump)
 
-- PSU +12V -> COM3
-- NO3 -> Peltier 2 +
+- PSU +12V -> COM2
+- NO2 -> Peltier 2 +
 - Peltier 2 - -> PSU -
 
-### CH5 (Auxiliary cooling, extra relay on GPIO16)
+### CH3 (Humidifier)
+
+- PSU +12V -> COM3
+- NO3 -> Humidifier +
+- Humidifier - -> PSU -
+
+### CH4 (Peltier Module 3 + radiator fan)
+
+- PSU +12V -> COM4
+- NO4 -> Peltier 3 +
+- Peltier 3 - -> PSU -
+
+### CH5 (Peltier Module 4)
 
 - PSU +12V -> COM5
-- NO5 -> Fan/Pump +
-- Fan/Pump - -> PSU -
+- NO5 -> Peltier 4 +
+- Peltier 4 - -> PSU -
+
+### Scrubber
+
+- Passive KMnO4 filter placed in the airflow path; no relay or power required.
+- The cooling fans on CH1 push air through the filter when the cooling group is active.
+
+## 7) Status LED Behavior
+
+LED behavior in current firmware:
+
+- Green solid: Wi-Fi connected and sensor values within configured ranges.
+- Yellow solid: warning (temperature, humidity, or VOC above/below configured target range).
+- Red fast blink: Wi-Fi disconnected.
+- Red slow blink: critical condition or repeated sensor read failure.
 
 ## 8) Grounding (critical)
 
@@ -137,6 +163,7 @@ All grounds must be common:
 - ESP32 GND
 - Relay board GND
 - Extra relay GND
+- Status LED cathodes (or LED return grounds)
 
 ## 9) Protection and Good Practice
 
@@ -152,11 +179,11 @@ Recommended:
 
 On boot, firmware pulses outputs briefly in sequence:
 
-1. Humidifier relay
-2. Peltier 1 relay
-3. Peltier 2 relay
-4. Auxiliary cooling relay (GPIO16)
-5. Scrubber relay
+1. Peltier 1 relay
+2. Peltier 2 relay
+3. Humidifier relay
+4. Peltier 3 relay
+5. Peltier 4 relay (GPIO16)
 
 Default timings:
 
@@ -170,20 +197,22 @@ Set `RUN_ACTUATOR_SELF_TEST = false` in code to skip startup test.
 Temperature control:
 
 - Setpoint is midpoint of TEMP_MIN and TEMP_MAX.
-- PID-like demand is converted to a 2-minute relay time-proportioning window.
+- Proportional demand is converted to a 2-minute relay time-proportioning window.
 - If temperature > TEMP_MAX: cooling relays are forced ON.
 - If temperature < TEMP_MIN: cooling relays are forced OFF.
-- In range, duty follows PID demand with a minimum 20-second relay toggle interval to reduce chatter.
+- In range, duty follows proportional demand with a minimum 20-second relay toggle interval to reduce chatter.
 
 Humidity control:
 
-- If humidity < HUMIDITY_MIN: Humidifier relay ON
-- If humidity > HUMIDITY_MAX: Humidifier relay OFF
+- Target is 85% RH (midpoint behavior).
+- Proportional demand is converted to a 2-minute relay time-proportioning window.
+- If humidity < HUMIDITY_MIN: Humidifier relay forced ON.
+- If humidity > HUMIDITY_MAX: Humidifier relay forced OFF.
 
-VOC control:
+VOC behavior:
 
-- If VOC > 30.0 ppm: Scrubber relay ON
-- If VOC <= 30.0 ppm: Scrubber relay OFF
+- VOC value is monitored and sent to dashboard.
+- There is no separate powered scrubber relay; passive KMnO4 filtration is active when cooling airflow is active.
 
 ## 12) Safe Commissioning Checklist
 
@@ -191,7 +220,10 @@ VOC control:
 2. Power ESP32 and relay logic first (no 12V loads connected).
 3. Confirm relay LEDs and startup self-test sequence.
 4. Connect humidifier and verify humidity trigger.
-5. Connect scrubber and verify VOC trigger.
+5. Verify status LEDs:
+	- Green for normal range
+	- Yellow for warning/out-of-range
+	- Red blink for disconnected/critical
 6. Connect Peltiers last and verify relay channels switch cleanly under load.
 7. Re-tighten terminals after first thermal cycle.
 

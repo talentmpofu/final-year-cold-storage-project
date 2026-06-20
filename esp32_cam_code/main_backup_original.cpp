@@ -39,7 +39,7 @@ const char *serverUrl = "http://192.168.137.1:3000/api/upload-image";
 
 // Timing
 unsigned long lastCaptureTime = 0;
-const unsigned long captureInterval = 30000; // Capture every 30 seconds
+const unsigned long captureInterval = 300000; // Capture every 5 minutes
 
 // Function declarations
 void connectWiFi();
