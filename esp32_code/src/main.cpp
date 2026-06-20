@@ -549,9 +549,9 @@ void controlCooling(float temp)
 }
 
 // Function to control humidifier with hysteresis + pulse boost
-// - OFF when humidity >= 80%
-// - ON when humidity < 80%
-// - Special: 5-second pulse boost when transitioning from >= 80% to < 80%
+// - OFF when humidity >= 83%
+// - ON when humidity < 83%
+// - Special: 5-second pulse boost when transitioning from >= 83% to < 83%
 void controlHumidifier(float hum)
 {
   const unsigned long now = millis();
@@ -559,15 +559,15 @@ void controlHumidifier(float hum)
   switch (humidifierState)
   {
   case ABOVE_THRESHOLD:
-    // Humidity is at or above 80% - keep OFF
-    if (hum < 80.0f)
+    // Humidity is at or above 83% - keep OFF
+    if (hum < 83.0f)
     {
-      // Crossing down from 80% to below: start 5-second pulse
+      // Crossing down from 83% to below: start 5-second pulse
       humidifierState = PULSE_MODE;
       pulseStartMs = now;
       setRelay(RELAY_HUMIDIFIER_PIN, true);
       humidifierActive = true;
-      Serial.printf("💧 Humidity %.1f%% → Pulse ON (5-second boost from 80%%)\n", hum);
+      Serial.printf("💧 Humidity %.1f%% → Pulse ON (5-second boost from 83%%)\n", hum);
     }
     break;
 
@@ -576,13 +576,13 @@ void controlHumidifier(float hum)
     if ((now - pulseStartMs) >= 5000)
     {
       // Pulse complete - check where humidity is now
-      if (hum < 80.0f)
+      if (hum < 83.0f)
       {
         // Still below threshold - keep running continuously
         humidifierState = BELOW_THRESHOLD;
         setRelay(RELAY_HUMIDIFIER_PIN, true);
         humidifierActive = true;
-        Serial.printf("💧 Humidity %.1f%% → Continuous ON (below 80%%)\n", hum);
+        Serial.printf("💧 Humidity %.1f%% → Continuous ON (below 83%%)\n", hum);
       }
       else
       {
@@ -590,20 +590,20 @@ void controlHumidifier(float hum)
         humidifierState = ABOVE_THRESHOLD;
         setRelay(RELAY_HUMIDIFIER_PIN, false);
         humidifierActive = false;
-        Serial.printf("✓ Humidity %.1f%% → OFF (reached 80%%)\n", hum);
+        Serial.printf("✓ Humidity %.1f%% → OFF (reached 83%%)\n", hum);
       }
     }
     break;
 
   case BELOW_THRESHOLD:
-    // Humidity is below 80% - keep running
-    if (hum >= 80.0f)
+    // Humidity is below 83% - keep running
+    if (hum >= 83.0f)
     {
-      // Crossed above 80% - turn off
+      // Crossed above 83% - turn off
       humidifierState = ABOVE_THRESHOLD;
       setRelay(RELAY_HUMIDIFIER_PIN, false);
       humidifierActive = false;
-      Serial.printf("✓ Humidity %.1f%% → OFF (reached 80%%)\n", hum);
+      Serial.printf("✓ Humidity %.1f%% → OFF (reached 83%%)\n", hum);
     }
     break;
   }
