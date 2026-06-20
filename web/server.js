@@ -49,7 +49,7 @@ const ROBOFLOW_API_BASE =
 const ROBOFLOW_API_KEY = process.env.ROBOFLOW_API_KEY || "";
 const ROBOFLOW_PROJECT = process.env.ROBOFLOW_PROJECT || "";
 const ROBOFLOW_VERSION = process.env.ROBOFLOW_VERSION || "";
-const ROBOFLOW_CONFIDENCE = Number(process.env.ROBOFLOW_CONFIDENCE || 50);
+const ROBOFLOW_CONFIDENCE = Number(process.env.ROBOFLOW_CONFIDENCE || 0.75); // 0-1 scale (75% = 0.75)
 const ROBOFLOW_OVERLAP = Number(process.env.ROBOFLOW_OVERLAP || 50);
 const NORMALIZED_IMAGE_SIZE = 640;
 
@@ -109,6 +109,7 @@ let latestMetrics = {
 };
 
 const PRODUCE_CONFIDENCE_THRESHOLD = 0.5;
+const ANNOTATION_CONFIDENCE_THRESHOLD = 0.75; // Only annotate detections >= 75%
 const SUPPORTED_PRODUCE_TYPES = [
   "mixed",
   "tomatoes",
@@ -423,7 +424,10 @@ function resolveProduceProfileFromDetections(
   });
 
   const isTomatoType = (type) =>
-    typeof type === "string" && /(tomato|tomatoes)$/.test(type);
+    typeof type === "string" &&
+    ["fully_ripe", "half_ripe", "mature_green", "rotten", "tomatoes"].includes(
+      type,
+    );
 
   // If only one specific type detected, use it
   if (produceTypes.size === 1) {
@@ -483,14 +487,22 @@ async function runRoboflowInference(imagePath) {
     ? response.data.predictions
     : [];
 
-  const detections = mapRoboflowPredictionsToDetections(predictions);
-  const top = pickTopProduceDetection(detections);
+  const allDetections = mapRoboflowPredictionsToDetections(predictions);
+
+  // Filter to only high-confidence detections (>= 75%)
+  const detections = allDetections.filter(
+    (d) => Number(d.confidence || 0) >= ANNOTATION_CONFIDENCE_THRESHOLD,
+  );
+
+  const top = pickTopProduceDetection(
+    detections.length > 0 ? detections : allDetections,
+  );
 
   return {
     provider: "roboflow",
     detected: top.detected,
     confidence: top.confidence,
-    all_detections: detections,
+    all_detections: detections.length > 0 ? detections : allDetections,
   };
 }
 
@@ -1224,12 +1236,25 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
       );
       const normalizedDetectedProduce = resolvedProduce.type;
       const produceConfidence = resolvedProduce.confidence;
-      await annotateSnapshotImage(
-        savedImagePath,
-        all_detections || [],
-        NORMALIZED_IMAGE_SIZE,
-        NORMALIZED_IMAGE_SIZE,
-      );
+
+      // Only annotate detections with confidence >= 75%
+      const highConfidenceDetections = Array.isArray(all_detections)
+        ? all_detections.filter(
+            (d) => Number(d.confidence || 0) >= ANNOTATION_CONFIDENCE_THRESHOLD,
+          )
+        : [];
+
+      let isAnnotated = false;
+      if (highConfidenceDetections.length > 0) {
+        await annotateSnapshotImage(
+          savedImagePath,
+          highConfidenceDetections,
+          NORMALIZED_IMAGE_SIZE,
+          NORMALIZED_IMAGE_SIZE,
+        );
+        isAnnotated = true;
+      }
+
       const snapshotName = path.basename(savedImagePath);
       const snapshotsMeta = loadSnapshotsMeta();
       snapshotsMeta[snapshotName] = {
@@ -1251,7 +1276,7 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
           width: NORMALIZED_IMAGE_SIZE,
           height: NORMALIZED_IMAGE_SIZE,
         },
-        annotated: true,
+        annotated: isAnnotated,
         capturedAt: new Date().toISOString(),
       };
       saveSnapshotsMeta(snapshotsMeta);
@@ -1279,42 +1304,45 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
         produceConfidence > PRODUCE_CONFIDENCE_THRESHOLD &&
         !currentProduce.manualOverride
       ) {
-        const settings = getProduceSettings(normalizedDetectedProduce);
-        if (settings) {
-          currentProduce = {
-            type: normalizedDetectedProduce,
-            detectedAt: new Date().toISOString(),
-            manualOverride: false,
-            confidence: produceConfidence,
-            thresholds: {
-              temperature: settings.temp,
-              humidity: settings.humidity,
-              voc: settings.voc,
-            },
-          };
-
-          // If rotten produce is detected, preserve thresholds (so the system
-          // continues to maintain setpoints for the remaining fruit) but send
-          // an immediate spoilage alert to prompt inspection/removal.
-          if (normalizedDetectedProduce === "rotten") {
-            try {
-              await sendAlert("voc", {
-                current: latestMetrics?.vocs?.value || 0,
-                max: settings.voc,
-                produceType: "rotten",
-              });
-            } catch (alertErr) {
-              console.error(
-                "⚠️  Failed to send spoilage alert:",
-                alertErr.message,
-              );
-            }
-          }
-
+        // If rotten produce is detected, send an alert but DON'T update thresholds
+        // (preserve current settings for good produce that's still in storage)
+        if (normalizedDetectedProduce === "rotten") {
           console.log(
-            `📊 Auto-adjusted thresholds for ${normalizedDetectedProduce}:`,
-            currentProduce.thresholds,
+            "🚨 Rotten produce detected - sending alert but preserving current thresholds",
           );
+          try {
+            await sendAlert("voc", {
+              current: latestMetrics?.vocs?.value || 0,
+              max: 50,
+              produceType: "rotten",
+            });
+          } catch (alertErr) {
+            console.error(
+              "⚠️  Failed to send spoilage alert:",
+              alertErr.message,
+            );
+          }
+        } else {
+          // For non-rotten produce, update thresholds normally
+          const settings = getProduceSettings(normalizedDetectedProduce);
+          if (settings) {
+            currentProduce = {
+              type: normalizedDetectedProduce,
+              detectedAt: new Date().toISOString(),
+              manualOverride: false,
+              confidence: produceConfidence,
+              thresholds: {
+                temperature: settings.temp,
+                humidity: settings.humidity,
+                voc: settings.voc,
+              },
+            };
+
+            console.log(
+              `📊 Auto-adjusted thresholds for ${normalizedDetectedProduce}:`,
+              currentProduce.thresholds,
+            );
+          }
         }
       }
 

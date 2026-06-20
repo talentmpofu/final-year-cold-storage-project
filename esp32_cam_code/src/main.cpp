@@ -11,7 +11,7 @@
 
 // WiFi hotspot credentials (only network to use)
 const char *ssid = "Talent";
-const char *password = "talent401";
+const char *password = "talent401!";
 
 // Server endpoint
 const char *serverUrl = "http://192.168.137.1:3000/api/upload-image";

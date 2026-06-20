@@ -2541,7 +2541,7 @@
 
   // Produce management functions
   const produceNames = {
-    mixed: "Mixed tomatoes",
+    mixed: "Mixed storage",
     tomatoes: "Tomatoes",
     mature_green: "Mature green tomatoes",
     half_ripe: "Half ripe tomatoes",
@@ -2660,9 +2660,12 @@
       return;
     }
 
-    if (name) name.textContent = produceNames.tomatoes;
-    currentProduceContext.type = "tomatoes";
-    if (method) method.textContent = "AI camera summary";
+    // Use the actual detected produce type, not generic "tomatoes"
+    const detectedType = currentProduceContext.type || "tomatoes";
+    if (name)
+      name.textContent = produceNames[detectedType] || produceNames.tomatoes;
+    currentProduceContext.type = detectedType;
+    if (method) method.textContent = "AI camera detection";
     if (confidence) {
       confidence.textContent = `${tomatoes} item${tomatoes === 1 ? "" : "s"} detected`;
     }

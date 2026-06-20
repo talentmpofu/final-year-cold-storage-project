@@ -65,7 +65,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // WiFi hotspot credentials (only network to use)
 const char *ssid = "Talent";
-const char *password = "talent401";
+const char *password = "talent401!";
 
 // Backend API endpoint - UPDATE THIS WITH YOUR SERVER IP
 const char *serverUrl = "http://192.168.137.1:3000/api/metrics";

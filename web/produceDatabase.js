@@ -115,21 +115,22 @@ const produceDatabase = {
   rotten: {
     name: "Rotten Tomatoes",
     temperature: {
-      min: 8,
-      max: 10,
-      optimal: 9,
+      min: 0,
+      max: 5,
+      optimal: 2,
     },
     humidity: {
-      min: 80,
-      max: 90,
-      optimal: 85,
+      min: 50,
+      max: 60,
+      optimal: 55,
     },
     vocs: {
-      threshold: 50,
+      threshold: 200,
       sensitivity: "high",
     },
-    description: "Rotten tomatoes should be removed from storage immediately.",
-    storageLife: "Not suitable for storage.",
+    description:
+      "Rotten tomatoes should be removed from storage immediately. These thresholds are NOT suitable for long-term storage.",
+    storageLife: "Not suitable for storage - remove immediately.",
     icon: "",
   },
 };
