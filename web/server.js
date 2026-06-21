@@ -299,26 +299,26 @@ function isBadQualityLabel(label) {
 }
 
 function getDetectionColor(label) {
-  // Color-code by ripeness stage for easy visual differentiation
-  const normalized = String(label || "").toLowerCase();
+  const normalizedLabel = String(label || "").toLowerCase();
 
-  if (normalized.includes("fully_ripe")) {
-    return { stroke: "#dc2626", fill: "#dc2626" }; // Red - fully ripe
+  // Color-code by tomato ripeness class
+  if (normalizedLabel.includes("rotten")) {
+    return { stroke: "#ef4444", fill: "#ef4444" }; // Red for rotten
   }
-  if (normalized.includes("half_ripe")) {
-    return { stroke: "#f97316", fill: "#f97316" }; // Orange - half ripe
+  if (normalizedLabel.includes("fully_ripe")) {
+    return { stroke: "#84cc16", fill: "#84cc16" }; // Lime green for fully ripe
   }
-  if (normalized.includes("mature_green")) {
-    return { stroke: "#22c55e", fill: "#22c55e" }; // Green - mature green
+  if (normalizedLabel.includes("mature_green")) {
+    return { stroke: "#f97316", fill: "#f97316" }; // Orange for mature green
   }
-  if (normalized.includes("rotten")) {
-    return { stroke: "#8b5cf6", fill: "#8b5cf6" }; // Purple - rotten/spoiled
-  }
-  if (normalized.includes("mixed")) {
-    return { stroke: "#06b6d4", fill: "#06b6d4" }; // Cyan - mixed ripeness
+  if (normalizedLabel.includes("half_ripe")) {
+    return { stroke: "#22c55e", fill: "#22c55e" }; // Green for half ripe
   }
 
-  return { stroke: "#6366f1", fill: "#6366f1" }; // Indigo - generic/unknown
+  // Default fallback
+  return isBadQualityLabel(label)
+    ? { stroke: "#ef4444", fill: "#ef4444" }
+    : { stroke: "#22c55e", fill: "#22c55e" };
 }
 
 function clamp(value, min, max) {
