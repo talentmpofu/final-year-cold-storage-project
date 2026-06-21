@@ -49,7 +49,7 @@ const ROBOFLOW_API_BASE =
 const ROBOFLOW_API_KEY = process.env.ROBOFLOW_API_KEY || "";
 const ROBOFLOW_PROJECT = process.env.ROBOFLOW_PROJECT || "";
 const ROBOFLOW_VERSION = process.env.ROBOFLOW_VERSION || "";
-const ROBOFLOW_CONFIDENCE = Number(process.env.ROBOFLOW_CONFIDENCE || 0.75); // 0-1 scale (75% = 0.75)
+const ROBOFLOW_CONFIDENCE = Number(process.env.ROBOFLOW_CONFIDENCE || 50);
 const ROBOFLOW_OVERLAP = Number(process.env.ROBOFLOW_OVERLAP || 50);
 const NORMALIZED_IMAGE_SIZE = 640;
 
@@ -109,7 +109,6 @@ let latestMetrics = {
 };
 
 const PRODUCE_CONFIDENCE_THRESHOLD = 0.5;
-const ANNOTATION_CONFIDENCE_THRESHOLD = 0.75; // Only annotate detections >= 75%
 const SUPPORTED_PRODUCE_TYPES = [
   "mixed",
   "tomatoes",
@@ -300,9 +299,26 @@ function isBadQualityLabel(label) {
 }
 
 function getDetectionColor(label) {
-  return isBadQualityLabel(label)
-    ? { stroke: "#ff2d55", fill: "#ff2d55" }
-    : { stroke: "#22c55e", fill: "#22c55e" };
+  // Color-code by ripeness stage for easy visual differentiation
+  const normalized = String(label || "").toLowerCase();
+
+  if (normalized.includes("fully_ripe")) {
+    return { stroke: "#dc2626", fill: "#dc2626" }; // Red - fully ripe
+  }
+  if (normalized.includes("half_ripe")) {
+    return { stroke: "#f97316", fill: "#f97316" }; // Orange - half ripe
+  }
+  if (normalized.includes("mature_green")) {
+    return { stroke: "#22c55e", fill: "#22c55e" }; // Green - mature green
+  }
+  if (normalized.includes("rotten")) {
+    return { stroke: "#8b5cf6", fill: "#8b5cf6" }; // Purple - rotten/spoiled
+  }
+  if (normalized.includes("mixed")) {
+    return { stroke: "#06b6d4", fill: "#06b6d4" }; // Cyan - mixed ripeness
+  }
+
+  return { stroke: "#6366f1", fill: "#6366f1" }; // Indigo - generic/unknown
 }
 
 function clamp(value, min, max) {
@@ -488,21 +504,13 @@ async function runRoboflowInference(imagePath) {
     : [];
 
   const allDetections = mapRoboflowPredictionsToDetections(predictions);
-
-  // Filter to only high-confidence detections (>= 75%)
-  const detections = allDetections.filter(
-    (d) => Number(d.confidence || 0) >= ANNOTATION_CONFIDENCE_THRESHOLD,
-  );
-
-  const top = pickTopProduceDetection(
-    detections.length > 0 ? detections : allDetections,
-  );
+  const top = pickTopProduceDetection(allDetections);
 
   return {
     provider: "roboflow",
     detected: top.detected,
     confidence: top.confidence,
-    all_detections: detections.length > 0 ? detections : allDetections,
+    all_detections: allDetections,
   };
 }
 
@@ -1237,18 +1245,11 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
       const normalizedDetectedProduce = resolvedProduce.type;
       const produceConfidence = resolvedProduce.confidence;
 
-      // Only annotate detections with confidence >= 75%
-      const highConfidenceDetections = Array.isArray(all_detections)
-        ? all_detections.filter(
-            (d) => Number(d.confidence || 0) >= ANNOTATION_CONFIDENCE_THRESHOLD,
-          )
-        : [];
-
       let isAnnotated = false;
-      if (highConfidenceDetections.length > 0) {
+      if (Array.isArray(all_detections) && all_detections.length > 0) {
         await annotateSnapshotImage(
           savedImagePath,
-          highConfidenceDetections,
+          all_detections,
           NORMALIZED_IMAGE_SIZE,
           NORMALIZED_IMAGE_SIZE,
         );
