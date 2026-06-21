@@ -301,18 +301,18 @@ function isBadQualityLabel(label) {
 function getDetectionColor(label) {
   const normalizedLabel = String(label || "").toLowerCase();
 
-  // Color-code by tomato ripeness class
+  // Color-code by tomato ripeness class - green gradient from light (early) to dark (ripe)
   if (normalizedLabel.includes("rotten")) {
     return { stroke: "#ef4444", fill: "#ef4444" }; // Red for rotten
   }
-  if (normalizedLabel.includes("fully_ripe")) {
-    return { stroke: "#84cc16", fill: "#84cc16" }; // Lime green for fully ripe
-  }
   if (normalizedLabel.includes("mature_green")) {
-    return { stroke: "#f97316", fill: "#f97316" }; // Orange for mature green
+    return { stroke: "#86efac", fill: "#86efac" }; // Light green for mature green (earliest)
   }
   if (normalizedLabel.includes("half_ripe")) {
-    return { stroke: "#22c55e", fill: "#22c55e" }; // Green for half ripe
+    return { stroke: "#22c55e", fill: "#22c55e" }; // Medium green for half ripe
+  }
+  if (normalizedLabel.includes("fully_ripe")) {
+    return { stroke: "#15803d", fill: "#15803d" }; // Dark green for fully ripe (most ripe)
   }
 
   // Default fallback
